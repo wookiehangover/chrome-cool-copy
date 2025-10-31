@@ -136,6 +136,26 @@ function showToast(message) {
 }
 
 /**
+ * Get the page title
+ * @returns {string} - The page title
+ */
+function getPageTitle() {
+  return document.title || 'Untitled';
+}
+
+/**
+ * Create a markdown link
+ * @param {string} url - The URL
+ * @param {string} title - The link title
+ * @returns {string} - The markdown formatted link
+ */
+function createMarkdownLink(url, title) {
+  // Escape square brackets in title
+  const escapedTitle = title.replace(/\[/g, '\\[').replace(/\]/g, '\\]');
+  return `[${escapedTitle}](${url})`;
+}
+
+/**
  * Handle the copy clean URL action
  */
 async function handleCopyCleanUrl() {
@@ -151,22 +171,43 @@ async function handleCopyCleanUrl() {
   }
 }
 
+/**
+ * Handle the copy markdown link action
+ */
+async function handleCopyMarkdownLink() {
+  const currentUrl = window.location.href;
+  const cleanedUrl = cleanUrl(currentUrl);
+  const pageTitle = getPageTitle();
+  const markdownLink = createMarkdownLink(cleanedUrl, pageTitle);
+
+  const success = await copyToClipboard(markdownLink);
+
+  if (success) {
+    showToast('✓ Link copied');
+  } else {
+    showToast('× Failed to copy link');
+  }
+}
+
 // Log that the content script has loaded
 // console.log('[Clean Link Copy] Content script loaded');
 
-// Listen for keyboard shortcut: Cmd+Shift+P (macOS) or Ctrl+Shift+P (Windows/Linux)
+// Listen for keyboard shortcuts
 document.addEventListener('keydown', (event) => {
-  // Check for Cmd+Shift+P (Mac) or Ctrl+Shift+P (Windows/Linux)
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   const correctModifier = isMac ? event.metaKey : event.ctrlKey;
 
+  // Cmd+Shift+C (Mac) or Ctrl+Shift+C (Windows/Linux) - Copy clean URL
   if (correctModifier && event.shiftKey && (event.key === 'C' || event.key === 'c')) {
-    // console.log('[Clean Link Copy] Keyboard shortcut triggered!');
-    // Prevent default browser behavior (e.g., print dialog)
     event.preventDefault();
     event.stopPropagation();
-
-    // Handle the copy action
     handleCopyCleanUrl();
+  }
+
+  // Cmd+Shift+X (Mac) or Ctrl+Shift+X (Windows/Linux) - Copy markdown link
+  if (correctModifier && event.shiftKey && (event.key === 'X' || event.key === 'x')) {
+    event.preventDefault();
+    event.stopPropagation();
+    handleCopyMarkdownLink();
   }
 }, true); // Use capture phase to intercept before other handlers

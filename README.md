@@ -4,7 +4,8 @@ A Chrome extension that copies clean URLs without tracking parameters using a si
 
 ## Features
 
-- **Universal Keyboard Shortcut**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
+- **Copy link to clipboard**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux)
+- **Copy markdown link to clipboard**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux)
 - **Automatic URL Cleaning**: Removes common tracking parameters including:
   - UTM parameters (`utm_source`, `utm_medium`, `utm_campaign`, etc.)
   - Facebook tracking (`fbclid`, `fb_action_ids`, etc.)
