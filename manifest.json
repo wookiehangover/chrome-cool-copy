@@ -2,13 +2,33 @@
   "manifest_version": 3,
   "name": "Clean Link Copy",
   "version": "1.0.0",
-  "description": "Copy clean URLs without tracking parameters using Cmd+Shift+P (macOS) or Ctrl+Shift+P (Windows/Linux)",
+  "description": "Copy clean URLs without tracking parameters using configurable keyboard shortcuts",
   "permissions": [
-    "clipboardWrite"
+    "clipboardWrite",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "copy-clean-url": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+C",
+        "mac": "Command+Shift+C"
+      },
+      "description": "Copy clean URL without tracking parameters"
+    },
+    "copy-markdown-link": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
+      },
+      "description": "Copy markdown formatted link"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

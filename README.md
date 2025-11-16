@@ -4,8 +4,8 @@ A Chrome extension that copies clean URLs without tracking parameters using a si
 
 ## Features
 
-- **Copy link to clipboard**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux)
-- **Copy markdown link to clipboard**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux)
+- **Copy link to clipboard**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
+- **Copy markdown link to clipboard**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
 - **Automatic URL Cleaning**: Removes common tracking parameters including:
   - UTM parameters (`utm_source`, `utm_medium`, `utm_campaign`, etc.)
   - Facebook tracking (`fbclid`, `fb_action_ids`, etc.)
@@ -27,9 +27,21 @@ A Chrome extension that copies clean URLs without tracking parameters using a si
 ## Usage
 
 1. Navigate to any webpage
-2. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
+2. Press the keyboard shortcut (default: `Cmd+Shift+C` on macOS or `Ctrl+Shift+C` on Windows/Linux)
 3. The clean URL is copied to your clipboard
 4. A toast notification confirms the action
+
+### Customizing Keyboard Shortcuts
+
+You can customize the keyboard shortcuts by:
+1. Navigate to `chrome://extensions/shortcuts`
+2. Find "Clean Link Copy" in the list
+3. Click the pencil icon next to the command you want to customize
+4. Press your desired keyboard shortcut
+
+The default shortcuts are:
+- **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux)
+- **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux)
 
 ## Example
 
@@ -48,13 +60,15 @@ https://example.com/article
 - **Manifest Version**: V3
 - **Permissions**:
   - `clipboardWrite`: Write to clipboard
-- **Content Scripts**: Injected into all pages for keyboard shortcut handling, URL processing, and toast display
-- **Architecture**: Uses content script with keyboard event listener (no background script needed)
+- **Content Scripts**: Injected into all pages for URL processing and toast display
+- **Background Service Worker**: Handles keyboard shortcut commands via Chrome's Commands API
+- **Architecture**: Uses Chrome's Commands API for configurable keyboard shortcuts, with background script communicating to content script via messaging
 
 ## Files
 
-- `manifest.json` - Extension configuration
-- `content.js` - Keyboard shortcut handler, URL cleaning logic, and clipboard operations
+- `manifest.json` - Extension configuration with commands definitions
+- `background.js` - Background service worker that handles keyboard shortcut commands
+- `content.js` - URL cleaning logic, clipboard operations, and message listener
 - `toast.css` - Toast notification styling
 - `icons/` - Extension icons
 - `test.html` - Test page with sample URLs

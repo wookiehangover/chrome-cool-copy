@@ -192,22 +192,14 @@ async function handleCopyMarkdownLink() {
 // Log that the content script has loaded
 // console.log('[Clean Link Copy] Content script loaded');
 
-// Listen for keyboard shortcuts
-document.addEventListener('keydown', (event) => {
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const correctModifier = isMac ? event.metaKey : event.ctrlKey;
-
-  // Cmd+Shift+C (Mac) or Ctrl+Shift+C (Windows/Linux) - Copy clean URL
-  if (correctModifier && event.shiftKey && (event.key === 'C' || event.key === 'c')) {
-    event.preventDefault();
-    event.stopPropagation();
+// Listen for messages from the background script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'copyCleanUrl') {
     handleCopyCleanUrl();
-  }
-
-  // Cmd+Shift+X (Mac) or Ctrl+Shift+X (Windows/Linux) - Copy markdown link
-  if (correctModifier && event.shiftKey && (event.key === 'X' || event.key === 'x')) {
-    event.preventDefault();
-    event.stopPropagation();
+    sendResponse({ success: true });
+  } else if (message.action === 'copyMarkdownLink') {
     handleCopyMarkdownLink();
+    sendResponse({ success: true });
   }
-}, true); // Use capture phase to intercept before other handlers
+  return true; // Keep the message channel open for async response
+});
