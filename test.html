@@ -99,6 +99,89 @@
     </div>
 
     <div class="test-section">
+        <h2>Test Tables for Element Picker</h2>
+        <p>Use the element picker (Cmd+Shift+P / Ctrl+Shift+P) to select these tables and copy them as CSV:</p>
+
+        <h3>Simple Table</h3>
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+            <thead>
+                <tr style="background-color: #f0f0f0;">
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>City</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Alice</td>
+                    <td>28</td>
+                    <td>New York</td>
+                </tr>
+                <tr>
+                    <td>Bob</td>
+                    <td>34</td>
+                    <td>San Francisco</td>
+                </tr>
+                <tr>
+                    <td>Charlie</td>
+                    <td>25</td>
+                    <td>Los Angeles</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Table with Merged Cells</h3>
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+            <thead>
+                <tr style="background-color: #f0f0f0;">
+                    <th colspan="2">Personal Info</th>
+                    <th>Contact</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>First Name</td>
+                    <td>Last Name</td>
+                    <td>Email</td>
+                </tr>
+                <tr>
+                    <td>John</td>
+                    <td>Doe</td>
+                    <td>john@example.com</td>
+                </tr>
+                <tr>
+                    <td>Jane</td>
+                    <td>Smith</td>
+                    <td>jane@example.com</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Table with Special Characters</h3>
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+            <thead>
+                <tr style="background-color: #f0f0f0;">
+                    <th>Product</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Widget A</td>
+                    <td>A great widget, "highly recommended"</td>
+                    <td>$19.99</td>
+                </tr>
+                <tr>
+                    <td>Gadget B</td>
+                    <td>Features: fast, reliable, and easy to use</td>
+                    <td>$29.99</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
         <h2>Current Page URL</h2>
         <div class="test-url" id="current-url"></div>
         <p><small>This is the URL that will be cleaned when you press the keyboard shortcut</small></p>

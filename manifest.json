@@ -27,12 +27,19 @@
         "mac": "Command+Shift+X"
       },
       "description": "Copy markdown formatted link"
+    },
+    "copy-element": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+P",
+        "mac": "Command+Shift+P"
+      },
+      "description": "Copy selected element to clipboard"
     }
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["html2canvas.min.js", "content.js"],
       "css": ["toast.css"],
       "run_at": "document_end",
       "all_frames": false

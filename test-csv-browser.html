@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table CSV Conversion Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            border-color: #28a745;
+        }
+        .fail {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+        }
+        .test-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .expected, .actual {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .summary {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .summary.pass {
+            background-color: #d4edda;
+            border: 1px solid #28a745;
+        }
+        .summary.fail {
+            background-color: #f8d7da;
+            border: 1px solid #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>Table CSV Conversion Tests</h1>
+    <div id="results"></div>
+
+    <script>
+        // tableToCSV function from content.js
+        function tableToCSV(tableElement) {
+          try {
+            const table = tableElement.tagName === 'TABLE'
+              ? tableElement
+              : tableElement.querySelector('table');
+
+            if (!table) {
+              throw new Error('No table found in element');
+            }
+
+            const rows = Array.from(table.querySelectorAll('tr'));
+
+            if (rows.length === 0) {
+              throw new Error('Table has no rows');
+            }
+
+            const maxCols = Math.max(...rows.map(row => {
+              let colCount = 0;
+              Array.from(row.querySelectorAll('td, th')).forEach(cell => {
+                colCount += parseInt(cell.getAttribute('colspan') || 1);
+              });
+              return colCount;
+            }));
+
+            const cellMatrix = Array(rows.length).fill(null).map(() => Array(maxCols).fill(''));
+
+            rows.forEach((row, rowIndex) => {
+              let colIndex = 0;
+              const cells = Array.from(row.querySelectorAll('td, th'));
+
+              cells.forEach(cell => {
+                while (colIndex < maxCols && cellMatrix[rowIndex][colIndex] !== '') {
+                  colIndex++;
+                }
+
+                const colspan = parseInt(cell.getAttribute('colspan') || 1);
+                const rowspan = parseInt(cell.getAttribute('rowspan') || 1);
+                const cellText = cell.textContent.trim();
+
+                for (let r = 0; r < rowspan; r++) {
+                  for (let c = 0; c < colspan; c++) {
+                    if (rowIndex + r < rows.length) {
+                      cellMatrix[rowIndex + r][colIndex + c] = cellText;
+                    }
+                  }
+                }
+
+                colIndex += colspan;
+              });
+            });
+
+            const csvContent = cellMatrix.map(row => {
+              return row.map(cell => {
+                const escaped = cell.replace(/"/g, '""');
+                if (escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')) {
+                  return `"${escaped}"`;
+                }
+                return escaped;
+              }).join(',');
+            }).join('\n');
+
+            return csvContent;
+          } catch (error) {
+            console.error('Error converting table to CSV:', error);
+            throw error;
+          }
+        }
+
+        const tests = [
+          {
+            name: 'Simple table',
+            html: '<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>',
+            expected: 'A,B\nC,D'
+          },
+          {
+            name: 'Table with colspan',
+            html: '<table><tr><td colspan="2">Merged</td></tr><tr><td>A</td><td>B</td></tr></table>',
+            expected: 'Merged,Merged\nA,B'
+          },
+          {
+            name: 'CSV escaping - commas',
+            html: '<table><tr><td>Hello, World</td><td>Test</td></tr></table>',
+            expected: '"Hello, World",Test'
+          },
+          {
+            name: 'CSV escaping - quotes',
+            html: '<table><tr><td>Say "Hi"</td><td>Test</td></tr></table>',
+            expected: '"Say ""Hi""",Test'
+          },
+          {
+            name: 'Table with rowspan',
+            html: '<table><tr><td rowspan="2">A</td><td>B</td></tr><tr><td>C</td></tr></table>',
+            expected: 'A,B\nA,C'
+          }
+        ];
+
+        let passed = 0;
+        let failed = 0;
+        const resultsDiv = document.getElementById('results');
+
+        tests.forEach(test => {
+          try {
+            const div = document.createElement('div');
+            div.innerHTML = test.html;
+            const result = tableToCSV(div);
+            
+            const isPass = result === test.expected;
+            if (isPass) passed++;
+            else failed++;
+
+            const testDiv = document.createElement('div');
+            testDiv.className = `test ${isPass ? 'pass' : 'fail'}`;
+            testDiv.innerHTML = `
+              <div class="test-name">${isPass ? '✓' : '✗'} ${test.name}</div>
+              <div class="expected">Expected:\n${test.expected}</div>
+              <div class="actual">Actual:\n${result}</div>
+            `;
+            resultsDiv.appendChild(testDiv);
+          } catch (error) {
+            failed++;
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test fail';
+            testDiv.innerHTML = `
+              <div class="test-name">✗ ${test.name}</div>
+              <div>Error: ${error.message}</div>
+            `;
+            resultsDiv.appendChild(testDiv);
+          }
+        });
+
+        const summary = document.createElement('div');
+        summary.className = `summary ${failed === 0 ? 'pass' : 'fail'}`;
+        summary.textContent = `${passed} passed, ${failed} failed`;
+        resultsDiv.appendChild(summary);
+    </script>
+</body>
+</html>
+
