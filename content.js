@@ -463,6 +463,8 @@ async function handlePickerClick(event) {
           await handleTableCopy(element);
         } else if (elementType === 'text') {
           await handleTextCopy(element);
+        } else if (elementType === 'svg') {
+          await handleSvgCopy(element);
         } else if (elementType === 'image' || elementType === 'visual') {
           await handleImageCopy(element);
         }
@@ -567,27 +569,36 @@ async function handleTableCopy(element) {
 }
 
 /**
- * Handle text copy - extract innerText/textContent from element
+ * Handle text copy - convert HTML to markdown using Turndown
  * @param {Element} element - The text element
  */
 async function handleTextCopy(element) {
   try {
-    // Try to use innerText first (preserves line breaks and formatting)
-    // Fall back to textContent if innerText is not available
-    let text = '';
+    // Get the HTML content from the element
+    const html = element.innerHTML;
 
-    if (element.innerText) {
-      text = element.innerText.trim();
-    } else if (element.textContent) {
-      text = element.textContent.trim();
-    }
-
-    if (!text) {
-      showToast('× No text content found');
+    if (!html || !html.trim()) {
+      showToast('× No content found');
       return;
     }
 
-    const success = await copyToClipboard(text);
+    // Convert HTML to markdown using Turndown
+    let markdown = '';
+    try {
+      const turndownService = new TurndownService();
+      markdown = turndownService.turndown(html);
+    } catch (error) {
+      console.error('[Clean Link Copy] Error converting HTML to markdown:', error);
+      // Fallback to plain text if conversion fails
+      markdown = element.innerText || element.textContent || '';
+    }
+
+    if (!markdown || !markdown.trim()) {
+      showToast('× No content found');
+      return;
+    }
+
+    const success = await copyToClipboard(markdown.trim());
 
     if (success) {
       showToast('✓ Text copied');
@@ -601,19 +612,266 @@ async function handleTextCopy(element) {
 }
 
 /**
- * Handle image copy - send element bounds to background service worker
+ * Capture the current frame from a video element and copy to clipboard
+ * @param {HTMLVideoElement} videoElement - The video element to capture from
+ * @returns {Promise<boolean>} - True if successful, false otherwise
+ */
+async function captureVideoFrame(videoElement) {
+  try {
+    // Ensure it's a video element
+    if (videoElement.tagName !== 'VIDEO') {
+      throw new Error('Element is not a video element');
+    }
+
+    // Check if video has valid dimensions
+    if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
+      throw new Error('Video has no valid dimensions');
+    }
+
+    // Create a canvas with the same dimensions as the video
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+
+    // Get the 2D context and draw the current video frame
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Failed to get canvas 2D context');
+    }
+
+    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to blob and copy to clipboard
+    return new Promise((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          console.error('[Clean Link Copy] Failed to create blob from canvas');
+          showToast('× Failed to capture video frame');
+          resolve(false);
+          return;
+        }
+
+        try {
+          const success = await copyImageToClipboard(blob);
+          if (success) {
+            showToast('✓ Video frame copied');
+          } else {
+            showToast('× Failed to copy video frame');
+          }
+          resolve(success);
+        } catch (error) {
+          console.error('[Clean Link Copy] Error copying video frame:', error);
+          showToast('× Failed to copy video frame');
+          resolve(false);
+        }
+      }, 'image/png');
+    });
+  } catch (error) {
+    console.error('[Clean Link Copy] Error capturing video frame:', error);
+    showToast('× Failed to capture video frame');
+    return false;
+  }
+}
+
+/**
+ * Export a canvas element to PNG blob and copy to clipboard
+ * @param {HTMLCanvasElement} canvasElement - The canvas element to export
+ * @returns {Promise<boolean>} - True if successful, false otherwise
+ */
+async function captureCanvasFrame(canvasElement) {
+  try {
+    // Ensure it's a canvas element
+    if (canvasElement.tagName !== 'CANVAS') {
+      throw new Error('Element is not a canvas element');
+    }
+
+    // Check if canvas has valid dimensions
+    if (canvasElement.width === 0 || canvasElement.height === 0) {
+      throw new Error('Canvas has no valid dimensions');
+    }
+
+    // Convert canvas to blob and copy to clipboard
+    return new Promise((resolve) => {
+      canvasElement.toBlob(async (blob) => {
+        if (!blob) {
+          console.error('[Clean Link Copy] Failed to create blob from canvas');
+          showToast('× Failed to capture canvas');
+          resolve(false);
+          return;
+        }
+
+        try {
+          const success = await copyImageToClipboard(blob);
+          if (success) {
+            showToast('✓ Canvas copied');
+          } else {
+            showToast('× Failed to copy canvas');
+          }
+          resolve(success);
+        } catch (error) {
+          console.error('[Clean Link Copy] Error copying canvas:', error);
+          showToast('× Failed to copy canvas');
+          resolve(false);
+        }
+      }, 'image/png');
+    });
+  } catch (error) {
+    console.error('[Clean Link Copy] Error capturing canvas:', error);
+    showToast('× Failed to capture canvas');
+    return false;
+  }
+}
+
+/**
+ * Handle SVG copy - serialize SVG to markup string
+ * @param {Element} element - The SVG element or element containing SVG
+ */
+async function handleSvgCopy(element) {
+  try {
+    // Find the actual SVG element if the selected element contains an SVG
+    const svgElement = element.tagName === 'SVG'
+      ? element
+      : element.querySelector('svg');
+
+    if (!svgElement) {
+      showToast('× No SVG found in element');
+      return;
+    }
+
+    // Serialize SVG to markup string
+    const svgMarkup = svgElement.outerHTML;
+
+    if (!svgMarkup || !svgMarkup.trim()) {
+      showToast('× SVG is empty');
+      return;
+    }
+
+    // Copy SVG markup as text
+    const success = await copyToClipboard(svgMarkup);
+
+    if (success) {
+      showToast('✓ SVG copied');
+    } else {
+      showToast('× Failed to copy SVG');
+    }
+  } catch (error) {
+    console.error('[Clean Link Copy] Error copying SVG:', error);
+    showToast('× Failed to copy SVG');
+  }
+}
+
+/**
+ * Fetch an image directly and copy to clipboard
+ * @param {string} imageSrc - The image source URL
+ * @returns {Promise<boolean>} - True if successful, false otherwise
+ */
+async function fetchAndCopyImage(imageSrc) {
+  try {
+    // Handle data URLs directly
+    if (imageSrc.startsWith('data:')) {
+      const response = await fetch(imageSrc);
+      const blob = await response.blob();
+      return await copyImageToClipboard(blob);
+    }
+
+    // Convert relative URLs to absolute
+    let absoluteUrl = imageSrc;
+    if (!imageSrc.startsWith('http://') && !imageSrc.startsWith('https://')) {
+      const baseUrl = window.location.origin;
+      absoluteUrl = new URL(imageSrc, baseUrl).href;
+    }
+
+    // Fetch the image
+    const response = await fetch(absoluteUrl, {
+      mode: 'cors',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    return await copyImageToClipboard(blob);
+  } catch (error) {
+    console.error('[Clean Link Copy] Error fetching image directly:', error);
+    return false;
+  }
+}
+
+/**
+ * Handle image copy - detect and route direct media elements, fall back to screenshot
  * @param {Element} element - The element to capture as image
  */
 async function handleImageCopy(element) {
   try {
-    // Get the bounding client rect of the element
-    const rect = element.getBoundingClientRect();
+    // Route direct media elements first (before checking for nested elements)
 
-    // Get the device pixel ratio for proper scaling on high-DPI displays
+    // Handle direct video elements - capture current frame
+    if (element.tagName === 'VIDEO') {
+      console.log('[Clean Link Copy] Detected direct <video> element');
+      await captureVideoFrame(element);
+      return;
+    }
+
+    // Handle direct canvas elements - export to PNG
+    if (element.tagName === 'CANVAS') {
+      console.log('[Clean Link Copy] Detected direct <canvas> element');
+      await captureCanvasFrame(element);
+      return;
+    }
+
+    // Handle direct image elements - try direct copy
+    if (element.tagName === 'IMG') {
+      const imageSrc = element.src || element.getAttribute('src');
+      if (imageSrc) {
+        console.log('[Clean Link Copy] Detected direct <img> element, attempting direct copy');
+        const success = await fetchAndCopyImage(imageSrc);
+        if (success) {
+          showToast('✓ Image copied');
+          return;
+        }
+        console.log('[Clean Link Copy] Direct image copy failed, falling back to screenshot');
+      }
+    }
+
+    // Check for nested media elements (containers with media inside)
+
+    // Check if element contains a video element
+    const videoElement = element.querySelector('video');
+    if (videoElement) {
+      console.log('[Clean Link Copy] Detected nested <video> element');
+      await captureVideoFrame(videoElement);
+      return;
+    }
+
+    // Check if element contains a canvas element
+    const canvasElement = element.querySelector('canvas');
+    if (canvasElement) {
+      console.log('[Clean Link Copy] Detected nested <canvas> element');
+      await captureCanvasFrame(canvasElement);
+      return;
+    }
+
+    // Check if element contains an image element
+    const imgElement = element.querySelector('img');
+    if (imgElement) {
+      const imageSrc = imgElement.src || imgElement.getAttribute('src');
+      if (imageSrc) {
+        console.log('[Clean Link Copy] Detected nested <img> element, attempting direct copy');
+        const success = await fetchAndCopyImage(imageSrc);
+        if (success) {
+          showToast('✓ Image copied');
+          return;
+        }
+        console.log('[Clean Link Copy] Direct image copy for nested <img> failed, falling back to screenshot');
+      }
+    }
+
+    // Fall back to screenshot capture for non-media elements or if direct copy failed
+    const rect = element.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
-    // Prepare the message with element bounds and pixel ratio
-    // The bounds are in CSS pixels, the background will scale by devicePixelRatio
     const message = {
       action: 'captureElement',
       bounds: {
@@ -625,7 +883,7 @@ async function handleImageCopy(element) {
       devicePixelRatio: devicePixelRatio
     };
 
-    console.log('[Clean Link Copy] Sending capture request with bounds:', message.bounds, 'devicePixelRatio:', devicePixelRatio);
+    console.log('[Clean Link Copy] Falling back to screenshot capture with bounds:', message.bounds, 'devicePixelRatio:', devicePixelRatio);
 
     // Send message to background service worker
     chrome.runtime.sendMessage(message, (response) => {
@@ -773,7 +1031,7 @@ function isTextHeavy(element) {
 /**
  * Detect the type of element for copying
  * @param {Element} element - The element to detect
- * @returns {string} - The element type: 'table', 'text', 'image', or 'visual'
+ * @returns {string} - The element type: 'table', 'text', 'image', 'svg', or 'visual'
  */
 function detectElementType(element) {
   if (!element) {
@@ -790,9 +1048,18 @@ function detectElementType(element) {
     return 'image';
   }
 
-  // Check if element is or contains canvas or SVG
-  if (element.tagName === 'CANVAS' || element.tagName === 'SVG' ||
-      element.querySelector('canvas') || element.querySelector('svg')) {
+  // Check if element is or contains video
+  if (element.tagName === 'VIDEO' || element.querySelector('video')) {
+    return 'visual';
+  }
+
+  // Check if element is or contains SVG (before canvas check)
+  if (element.tagName === 'SVG' || element.querySelector('svg')) {
+    return 'svg';
+  }
+
+  // Check if element is or contains canvas
+  if (element.tagName === 'CANVAS' || element.querySelector('canvas')) {
     return 'visual';
   }
 

@@ -99,6 +99,27 @@
     </div>
 
     <div class="test-section">
+        <h2>Test Video for Element Picker</h2>
+        <p>Use the element picker (Cmd+Shift+P / Ctrl+Shift+P) to select the video below and copy the current frame as PNG:</p>
+
+        <h3>Sample Video</h3>
+        <video width="400" height="300" controls style="border: 2px solid #4285F4; border-radius: 4px; margin: 10px 0;">
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <p><small>This is a sample video. When you use the element picker on it, the current frame will be captured and copied to your clipboard as a PNG image.</small></p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Canvas for Element Picker</h2>
+        <p>Use the element picker (Cmd+Shift+P / Ctrl+Shift+P) to select the canvas below and copy it as PNG:</p>
+
+        <h3>Sample Canvas</h3>
+        <canvas id="sample-canvas" width="400" height="300" style="border: 2px solid #4285F4; border-radius: 4px; margin: 10px 0; background: white;"></canvas>
+        <p><small>This is a sample canvas with a gradient and shapes. When you use the element picker on it, the canvas will be exported and copied to your clipboard as a PNG image.</small></p>
+    </div>
+
+    <div class="test-section">
         <h2>Test Tables for Element Picker</h2>
         <p>Use the element picker (Cmd+Shift+P / Ctrl+Shift+P) to select these tables and copy them as CSV:</p>
 
@@ -190,11 +211,37 @@
     <script>
         // Display current URL
         document.getElementById('current-url').textContent = window.location.href;
-        
+
         // Update URL display when it changes
         window.addEventListener('popstate', () => {
             document.getElementById('current-url').textContent = window.location.href;
         });
+
+        // Draw sample canvas
+        const canvas = document.getElementById('sample-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Draw gradient background
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, '#4285F4');
+        gradient.addColorStop(1, '#34A853');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw some shapes
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(100, 100, 50, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 193, 7, 0.8)';
+        ctx.fillRect(250, 50, 100, 100);
+
+        // Draw text
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sample Canvas', canvas.width / 2, canvas.height - 30);
     </script>
 </body>
 </html>
