@@ -249,8 +249,7 @@ function createPickerOverlay() {
     overlay.className = 'element-picker-overlay';
     overlay.innerHTML = `
       <div class="element-picker-message">
-        <span>🎯 Element Picker Active</span>
-        <span class="element-picker-hint">Click to select • ESC to cancel</span>
+        <span>Element Picker Active</span>
       </div>
     `;
 
@@ -539,55 +538,78 @@ async function handleTextCopy(element) {
 }
 
 /**
- * Handle image copy - capture element as image using html2canvas
+ * Handle image copy - send element bounds to background service worker
  * @param {Element} element - The element to capture as image
  */
 async function handleImageCopy(element) {
   try {
-    // Check if html2canvas is available
-    if (typeof html2canvas === 'undefined') {
-      console.error('[Clean Link Copy] html2canvas library not loaded');
-      showToast('× Image capture not available');
-      return;
-    }
+    // Get the bounding client rect of the element
+    const rect = element.getBoundingClientRect();
 
-    // Capture the element as a canvas
-    let canvas;
-    try {
-      canvas = await html2canvas(element, {
-        allowTaint: true,
-        useCORS: true,
-        backgroundColor: null
-      });
-    } catch (error) {
-      console.error('[Clean Link Copy] Error capturing element with html2canvas:', error);
-      showToast('× Failed to capture image');
-      return;
-    }
+    // Get the device pixel ratio for proper scaling on high-DPI displays
+    const devicePixelRatio = window.devicePixelRatio || 1;
 
-    // Convert canvas to blob
-    canvas.toBlob(async (blob) => {
+    // Prepare the message with element bounds and pixel ratio
+    // The bounds are in CSS pixels, the background will scale by devicePixelRatio
+    const message = {
+      action: 'captureElement',
+      bounds: {
+        top: Math.round(rect.top),
+        left: Math.round(rect.left),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+      },
+      devicePixelRatio: devicePixelRatio
+    };
+
+    console.log('[Clean Link Copy] Sending capture request with bounds:', message.bounds, 'devicePixelRatio:', devicePixelRatio);
+
+    // Send message to background service worker
+    chrome.runtime.sendMessage(message, (response) => {
       try {
-        if (!blob) {
-          console.error('[Clean Link Copy] Failed to create blob from canvas');
-          showToast('× Failed to create image');
+        // Check for errors
+        if (chrome.runtime.lastError) {
+          console.error('[Clean Link Copy] Failed to send message to background:', chrome.runtime.lastError.message);
+          showToast('× Failed to capture image');
           return;
         }
 
-        const success = await copyImageToClipboard(blob);
-
-        if (success) {
-          showToast('✓ Image copied');
-        } else {
-          showToast('× Failed to copy image');
+        // Check if response indicates success
+        if (!response || !response.success) {
+          console.error('[Clean Link Copy] Background failed to capture image:', response?.error);
+          showToast('× Failed to capture image');
+          return;
         }
+
+        // Response should contain a data URL or blob
+        if (!response.imageData) {
+          console.error('[Clean Link Copy] No image data in response');
+          showToast('× Failed to capture image');
+          return;
+        }
+
+        // Convert data URL to blob and copy to clipboard
+        fetch(response.imageData)
+          .then(res => res.blob())
+          .then(blob => copyImageToClipboard(blob))
+          .then(success => {
+            if (success) {
+              showToast('✓ Image copied');
+            } else {
+              showToast('× Failed to copy image');
+            }
+          })
+          .catch(error => {
+            console.error('[Clean Link Copy] Error processing captured image:', error);
+            showToast('× Failed to copy image');
+          });
       } catch (error) {
-        console.error('[Clean Link Copy] Error in toBlob callback:', error);
-        showToast('× Failed to copy image');
+        console.error('[Clean Link Copy] Error in capture response handler:', error);
+        showToast('× Failed to capture image');
       }
-    }, 'image/png');
+    });
   } catch (error) {
-    console.error('[Clean Link Copy] Error capturing image:', error);
+    console.error('[Clean Link Copy] Error in handleImageCopy:', error);
     showToast('× Failed to capture image');
   }
 }
