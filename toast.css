@@ -69,7 +69,6 @@
 
 .element-picker-toolbar {
   display: flex;
-  align-items: center;
   gap: 8px;
   margin-top: 4px;
   pointer-events: auto;

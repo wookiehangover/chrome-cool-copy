@@ -1,11 +1,15 @@
-# Clean Link Copy - Chrome Extension
+# Cool Copy - Chrome Extension
 
-A Chrome extension that copies clean URLs without tracking parameters using a simple keyboard shortcut.
+A Chrome extension that adds cool copy features to Chrome, including:
+- copying clean URLs without tracking parameters using a simple keyboard shortcut
+- copying markdown formatted links using a simple keyboard shortcut
+- copying any element on the page to the clipboard using a simple keyboard shortcut
 
 ## Features
 
 - **Copy link to clipboard**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
 - **Copy markdown link to clipboard**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
+- **Copy element to clipboard**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
 - **Automatic URL Cleaning**: Removes common tracking parameters including:
   - UTM parameters (`utm_source`, `utm_medium`, `utm_campaign`, etc.)
   - Facebook tracking (`fbclid`, `fb_action_ids`, etc.)

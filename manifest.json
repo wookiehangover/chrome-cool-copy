@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Clean Link Copy",
+  "name": "Cool Copy",
   "version": "1.0.0",
-  "description": "Copy clean URLs without tracking parameters using configurable keyboard shortcuts",
+  "description": "Copy clean URLs, markdown formatted links, and selected elements to the clipboard using configurable keyboard shortcuts",
   "permissions": [
     "clipboardWrite",
     "tabs",
