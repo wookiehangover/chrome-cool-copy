@@ -103,6 +103,117 @@ async function captureAndCropImage(bounds, devicePixelRatio = 1) {
   }
 }
 
+/**
+ * Capture the entire page by scrolling and stitching screenshots
+ * Uses rate limiting to avoid exceeding MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND
+ * @param {number} tabId - The tab ID to capture
+ * @param {Object} pageInfo - Page dimensions and scroll info from content script
+ * @returns {Promise<string>} - Data URL of the full page screenshot
+ */
+async function captureEntirePage(tabId, pageInfo) {
+  const { scrollWidth, scrollHeight, viewportWidth, viewportHeight, devicePixelRatio } = pageInfo;
+
+  // Rate limit: Chrome allows ~2 captureVisibleTab calls per second
+  // Use 600ms delay to stay safely under the limit
+  const CAPTURE_DELAY_MS = 600;
+
+  console.log('[Clean Link Copy] Capturing entire page:', scrollWidth + 'x' + scrollHeight,
+    'viewport:', viewportWidth + 'x' + viewportHeight, 'dpr:', devicePixelRatio);
+
+  // Get the active tab's window
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tabs || tabs.length === 0) {
+    throw new Error('No active tab found');
+  }
+  const tab = tabs[0];
+
+  // Calculate how many screenshots we need
+  const cols = Math.ceil(scrollWidth / viewportWidth);
+  const rows = Math.ceil(scrollHeight / viewportHeight);
+  const totalCaptures = cols * rows;
+
+  console.log('[Clean Link Copy] Will capture', cols, 'x', rows, '=', totalCaptures, 'screenshots');
+
+  // Create the final canvas at full page size (scaled by devicePixelRatio)
+  const finalWidth = Math.round(scrollWidth * devicePixelRatio);
+  const finalHeight = Math.round(scrollHeight * devicePixelRatio);
+  const finalCanvas = new OffscreenCanvas(finalWidth, finalHeight);
+  const finalCtx = finalCanvas.getContext('2d');
+
+  if (!finalCtx) {
+    throw new Error('Failed to get canvas context');
+  }
+
+  // Fill with white background
+  finalCtx.fillStyle = '#ffffff';
+  finalCtx.fillRect(0, 0, finalWidth, finalHeight);
+
+  // Capture each section with rate limiting
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const scrollX = col * viewportWidth;
+      const scrollY = row * viewportHeight;
+
+      // Tell content script to scroll to position
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'scrollTo',
+        x: scrollX,
+        y: scrollY
+      });
+
+      // Wait for scroll and render to complete
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // Capture the visible viewport
+      const screenshotDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+        format: 'png'
+      });
+
+      // Convert to ImageBitmap
+      const response = await fetch(screenshotDataUrl);
+      const blob = await response.blob();
+      const image = await createImageBitmap(blob);
+
+      // Calculate where to draw this piece
+      const destX = Math.round(scrollX * devicePixelRatio);
+      const destY = Math.round(scrollY * devicePixelRatio);
+
+      // Calculate how much of this screenshot to use (handle edge cases)
+      const remainingWidth = scrollWidth - scrollX;
+      const remainingHeight = scrollHeight - scrollY;
+      const srcWidth = Math.min(image.width, Math.round(remainingWidth * devicePixelRatio));
+      const srcHeight = Math.min(image.height, Math.round(remainingHeight * devicePixelRatio));
+
+      // Draw this piece onto the final canvas
+      finalCtx.drawImage(
+        image,
+        0, 0,           // source x, y
+        srcWidth, srcHeight,  // source width, height
+        destX, destY,   // destination x, y
+        srcWidth, srcHeight   // destination width, height
+      );
+
+      const captureNum = row * cols + col + 1;
+      console.log('[Clean Link Copy] Captured section', captureNum, '/', totalCaptures,
+        'at scroll', scrollX + ',' + scrollY);
+
+      // Rate limit: wait before next capture (skip delay on last capture)
+      if (captureNum < totalCaptures) {
+        await new Promise(resolve => setTimeout(resolve, CAPTURE_DELAY_MS));
+      }
+    }
+  }
+
+  // Convert final canvas to data URL
+  const blob = await finalCanvas.convertToBlob({ type: 'image/png' });
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Failed to read blob'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 chrome.commands.onCommand.addListener((command) => {
   // Get the active tab
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -144,6 +255,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
         .catch(error => {
           console.error('[Clean Link Copy] Error in captureElement handler:', error);
+          sendResponse({
+            success: false,
+            error: error.message
+          });
+        });
+
+      // Return true to indicate we'll send response asynchronously
+      return true;
+    } else if (message.action === 'captureFullPage') {
+      // Handle full page capture request by scrolling and stitching with rate limiting
+      captureEntirePage(sender.tab.id, message.pageInfo)
+        .then(imageData => {
+          // Restore original scroll position
+          chrome.tabs.sendMessage(sender.tab.id, {
+            action: 'scrollTo',
+            x: message.pageInfo.originalScrollX,
+            y: message.pageInfo.originalScrollY
+          });
+          sendResponse({
+            success: true,
+            imageData: imageData
+          });
+        })
+        .catch(error => {
+          console.error('[Clean Link Copy] Error in captureFullPage handler:', error);
+          // Try to restore scroll position even on error
+          chrome.tabs.sendMessage(sender.tab.id, {
+            action: 'scrollTo',
+            x: message.pageInfo.originalScrollX,
+            y: message.pageInfo.originalScrollY
+          });
           sendResponse({
             success: false,
             error: error.message

@@ -78,3 +78,4 @@ build/
 *.pem
 key.pem
 
+.augment

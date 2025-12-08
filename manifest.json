@@ -3,14 +3,8 @@
   "name": "Cool Copy",
   "version": "1.0.0",
   "description": "Copy clean URLs, markdown formatted links, and selected elements to the clipboard using configurable keyboard shortcuts",
-  "permissions": [
-    "clipboardWrite",
-    "tabs",
-    "activeTab"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["clipboardWrite", "tabs", "activeTab"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "src/background.js"
   },
@@ -40,8 +34,8 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/turndown.js", "src/content.js"],
-      "css": ["src/toast.css"],
+      "js": ["src/turndown.js", "dist/content.js"],
+      "css": ["src/styles.css"],
       "run_at": "document_end",
       "all_frames": false
     }
@@ -52,4 +46,3 @@
     "128": "icons/icon128.png"
   }
 }
-
