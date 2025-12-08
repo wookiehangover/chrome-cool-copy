@@ -73,7 +73,7 @@ https://example.com/article
 - `manifest.json` - Extension configuration with commands definitions
 - `background.js` - Background service worker that handles keyboard shortcut commands
 - `content.js` - URL cleaning logic, clipboard operations, and message listener
-- `toast.css` - Toast notification styling
+- `styles.css` - Toast notification styling
 - `icons/` - Extension icons
 - `test.html` - Test page with sample URLs
 
@@ -88,4 +88,3 @@ This extension:
 ## License
 
 MIT License - Feel free to use and modify as needed.
-

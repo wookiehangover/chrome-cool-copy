@@ -103,6 +103,35 @@ async function captureAndCropImage(bounds, devicePixelRatio = 1) {
   }
 }
 
+/**
+ * Capture the full visible viewport
+ * @returns {Promise<string>} - Data URL of the full page screenshot
+ */
+async function captureFullPage() {
+  try {
+    // Get the active tab
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tabs || tabs.length === 0) {
+      throw new Error('No active tab found');
+    }
+
+    const tab = tabs[0];
+
+    // Capture the visible tab as PNG (full viewport)
+    const screenshotDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+      format: 'png'
+    });
+
+    console.log('[Clean Link Copy] Full page screenshot captured');
+
+    return screenshotDataUrl;
+  } catch (error) {
+    console.error('[Clean Link Copy] Error capturing full page:', error);
+    throw error;
+  }
+}
+
 chrome.commands.onCommand.addListener((command) => {
   // Get the active tab
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -144,6 +173,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
         .catch(error => {
           console.error('[Clean Link Copy] Error in captureElement handler:', error);
+          sendResponse({
+            success: false,
+            error: error.message
+          });
+        });
+
+      // Return true to indicate we'll send response asynchronously
+      return true;
+    } else if (message.action === 'captureFullPage') {
+      // Handle full page capture request
+      captureFullPage()
+        .then(imageData => {
+          sendResponse({
+            success: true,
+            imageData: imageData
+          });
+        })
+        .catch(error => {
+          console.error('[Clean Link Copy] Error in captureFullPage handler:', error);
           sendResponse({
             success: false,
             error: error.message
