@@ -10,7 +10,7 @@
     "default_title": "Cool Copy - View Clipped Pages"
   },
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "dist/background.js"
   },
   "commands": {
     "copy-clean-url": {
@@ -58,7 +58,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["clipped-pages.html", "clipped-pages.css", "clipped-pages.js", "popup.html", "popup.css", "popup.js", "settings.html", "settings.css", "settings.js"],
+      "resources": ["clipped-pages.html", "clipped-pages.css", "clipped-pages.js", "popup.html", "popup.css", "popup.js", "settings.html", "settings.css", "settings.js", "dist/database.js"],
       "matches": ["<all_urls>"]
     }
   ]

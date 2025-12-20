@@ -1,4 +1,5 @@
 // Background service worker for handling keyboard shortcuts
+import { initializeDatabase, saveWebpage } from './services/database';
 
 /**
  * Send a message to the content script with error handling
@@ -300,11 +301,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Handle page clip request - save to AgentDB
       (async () => {
         try {
-          // Dynamically import the database service
-          const { initializeDatabase, saveWebpage } = await import('./services/database.ts');
-
           // Get AgentDB config from chrome.storage.sync
-          const storageData = await new Promise((resolve) => {
+          const storageData = await new Promise<{ agentdbConfig?: {
+            baseUrl: string;
+            apiKey: string;
+            token: string;
+            dbName: string;
+            dbType?: 'sqlite' | 'duckdb';
+          } }>((resolve) => {
             chrome.storage.sync.get(['agentdbConfig'], (result) => {
               resolve(result);
             });

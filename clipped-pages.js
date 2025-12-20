@@ -41,7 +41,7 @@ async function loadPages() {
     }
 
     // Dynamically import and initialize database service
-    const { initializeDatabase, getWebpages } = await import('./src/services/database.ts');
+    const { initializeDatabase, getWebpages } = await import('./dist/database.js');
     await initializeDatabase(config);
 
     // Fetch all webpages
@@ -188,7 +188,7 @@ async function confirmDelete() {
     const config = await getAgentDBConfig();
     if (!config) throw new Error('AgentDB configuration not found.');
 
-    const { initializeDatabase, deleteWebpage } = await import('./src/services/database.ts');
+    const { initializeDatabase, deleteWebpage } = await import('./dist/database.js');
     await initializeDatabase(config);
     await deleteWebpage(pendingDeleteId);
 

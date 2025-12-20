@@ -96,7 +96,7 @@ async function testConnection() {
   testConnectionBtn.disabled = true;
 
   try {
-    const { initializeDatabase, getWebpages } = await import('./src/services/database.ts');
+    const { initializeDatabase, getWebpages } = await import('./dist/database.js');
     await initializeDatabase(config);
     await getWebpages();
     showStatus('Connection successful', 'success');
