@@ -5,7 +5,8 @@
   "description": "Chrome extension for enhanced copy functionality",
   "scripts": {
     "build": "rollup -c",
-    "watch": "rollup -c --watch"
+    "watch": "rollup -c --watch",
+    "cleanup": "bash scripts/cleanup-migration.sh"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^29.0.0",
@@ -13,6 +14,7 @@
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/chrome": "^0.1.32",
     "rollup": "^4.x",
+    "rollup-plugin-copy": "^3.5.0",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3"
   },

@@ -6,11 +6,11 @@
   "permissions": ["clipboardWrite", "tabs", "activeTab", "storage"],
   "host_permissions": ["<all_urls>"],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "pages/popup.html",
     "default_title": "Cool Copy - View Clipped Pages"
   },
   "background": {
-    "service_worker": "dist/background.js"
+    "service_worker": "background.js"
   },
   "commands": {
     "copy-clean-url": {
@@ -45,8 +45,8 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/turndown.js", "dist/content.js"],
-      "css": ["src/styles.css"],
+      "js": ["vendor/turndown.js", "content.js"],
+      "css": ["styles.css"],
       "run_at": "document_end",
       "all_frames": false
     }
@@ -58,7 +58,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["clipped-pages.html", "clipped-pages.css", "clipped-pages.js", "popup.html", "popup.css", "popup.js", "settings.html", "settings.css", "settings.js", "dist/database.js"],
+      "resources": ["pages/clipped-pages.html", "pages/clipped-pages.css", "pages/clipped-pages.js", "pages/popup.html", "pages/popup.css", "pages/popup.js", "pages/settings.html", "pages/settings.css", "pages/settings.js", "services/database.js"],
       "matches": ["<all_urls>"]
     }
   ]

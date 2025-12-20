@@ -11,7 +11,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+    "lib": ["ES2015", "ESNext", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

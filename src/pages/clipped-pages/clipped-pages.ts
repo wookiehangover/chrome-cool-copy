@@ -3,34 +3,50 @@
  * Manages display and interaction with clipped pages from AgentDB
  */
 
-let allPages = [];
-let pendingDeleteId = null;
+interface Page {
+  id: string;
+  title?: string;
+  url: string;
+  text_content?: string;
+  created_at?: string;
+}
+
+interface AgentDBConfig {
+  baseUrl: string;
+  apiKey: string;
+  token: string;
+  dbName: string;
+  dbType: string;
+}
+
+let allPages: Page[] = [];
+let pendingDeleteId: string | null = null;
 
 // DOM Elements
-const pagesContainer = document.getElementById('pagesContainer');
-const emptyState = document.getElementById('emptyState');
-const loadingState = document.getElementById('loadingState');
-const errorState = document.getElementById('errorState');
-const searchInput = document.getElementById('searchInput');
-const confirmModal = document.getElementById('confirmModal');
-const cancelButton = document.getElementById('cancelButton');
-const confirmButton = document.getElementById('confirmButton');
-const retryButton = document.getElementById('retryButton');
+const pagesContainer = document.getElementById('pagesContainer') as HTMLDivElement;
+const emptyState = document.getElementById('emptyState') as HTMLDivElement;
+const loadingState = document.getElementById('loadingState') as HTMLDivElement;
+const errorState = document.getElementById('errorState') as HTMLDivElement;
+const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+const confirmModal = document.getElementById('confirmModal') as HTMLDivElement;
+const cancelButton = document.getElementById('cancelButton') as HTMLButtonElement;
+const confirmButton = document.getElementById('confirmButton') as HTMLButtonElement;
+const retryButton = document.getElementById('retryButton') as HTMLButtonElement;
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', (): void => {
   loadPages();
   setupEventListeners();
 });
 
-function setupEventListeners() {
+function setupEventListeners(): void {
   searchInput.addEventListener('input', filterPages);
   cancelButton.addEventListener('click', closeConfirmModal);
   confirmButton.addEventListener('click', confirmDelete);
   retryButton.addEventListener('click', loadPages);
 }
 
-async function loadPages() {
+async function loadPages(): Promise<void> {
   try {
     showLoadingState();
 
@@ -41,7 +57,8 @@ async function loadPages() {
     }
 
     // Dynamically import and initialize database service
-    const { initializeDatabase, getWebpages } = await import('./dist/database.js');
+    const databaseUrl = chrome.runtime.getURL('services/database.js');
+    const { initializeDatabase, getWebpages } = await import(databaseUrl);
     await initializeDatabase(config);
 
     // Fetch all webpages
@@ -60,27 +77,27 @@ async function loadPages() {
   }
 }
 
-function getAgentDBConfig() {
+function getAgentDBConfig(): Promise<AgentDBConfig | null> {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(['agentdbConfig'], (result) => {
-      resolve(result.agentdbConfig || null);
+    chrome.storage.sync.get(['agentdbConfig'], (result: Record<string, unknown>) => {
+      resolve((result.agentdbConfig as AgentDBConfig | undefined) || null);
     });
   });
 }
 
-function showPages(pages) {
+function showPages(pages: Page[]): void {
   pagesContainer.innerHTML = '';
   hideLoadingState();
   hideErrorState();
   emptyState.style.display = 'none';
 
-  pages.forEach(page => {
+  pages.forEach((page) => {
     const card = createPageCard(page);
     pagesContainer.appendChild(card);
   });
 }
 
-function createPageCard(page) {
+function createPageCard(page: Page): HTMLDivElement {
   const card = document.createElement('div');
   card.className = 'page-card';
 
@@ -105,15 +122,15 @@ function createPageCard(page) {
   `;
 
   // Add event listeners
-  const expandBtn = card.querySelector('.expand-button');
-  const deleteBtn = card.querySelector('.delete-button');
+  const expandBtn = card.querySelector('.expand-button') as HTMLButtonElement;
+  const deleteBtn = card.querySelector('.delete-button') as HTMLButtonElement;
 
-  expandBtn.addEventListener('click', (e) => {
+  expandBtn.addEventListener('click', (e: Event): void => {
     e.stopPropagation();
     expandPage(page);
   });
 
-  deleteBtn.addEventListener('click', (e) => {
+  deleteBtn.addEventListener('click', (e: Event): void => {
     e.stopPropagation();
     openConfirmModal(page.id);
   });
@@ -121,7 +138,7 @@ function createPageCard(page) {
   return card;
 }
 
-function expandPage(page) {
+function expandPage(page: Page): void {
   // Create a new window/tab to display full content
   const newWindow = window.open('', '_blank');
   if (!newWindow) {
@@ -156,9 +173,9 @@ function expandPage(page) {
   newWindow.document.close();
 }
 
-function filterPages() {
+function filterPages(): void {
   const query = searchInput.value.toLowerCase();
-  const filtered = allPages.filter(page => {
+  const filtered = allPages.filter((page) => {
     const title = (page.title || '').toLowerCase();
     const url = (page.url || '').toLowerCase();
     return title.includes(query) || url.includes(query);
@@ -171,24 +188,25 @@ function filterPages() {
   }
 }
 
-function openConfirmModal(pageId) {
+function openConfirmModal(pageId: string): void {
   pendingDeleteId = pageId;
   confirmModal.style.display = 'flex';
 }
 
-function closeConfirmModal() {
+function closeConfirmModal(): void {
   confirmModal.style.display = 'none';
   pendingDeleteId = null;
 }
 
-async function confirmDelete() {
+async function confirmDelete(): Promise<void> {
   if (!pendingDeleteId) return;
 
   try {
     const config = await getAgentDBConfig();
     if (!config) throw new Error('AgentDB configuration not found.');
 
-    const { initializeDatabase, deleteWebpage } = await import('./dist/database.js');
+    const databaseUrl = chrome.runtime.getURL('services/database.js');
+    const { initializeDatabase, deleteWebpage } = await import(databaseUrl);
     await initializeDatabase(config);
     await deleteWebpage(pendingDeleteId);
 
@@ -200,37 +218,38 @@ async function confirmDelete() {
   }
 }
 
-function showLoadingState() {
+function showLoadingState(): void {
   loadingState.style.display = 'block';
   pagesContainer.innerHTML = '';
   emptyState.style.display = 'none';
   errorState.style.display = 'none';
 }
 
-function hideLoadingState() {
+function hideLoadingState(): void {
   loadingState.style.display = 'none';
 }
 
-function showEmptyState() {
+function showEmptyState(): void {
   emptyState.style.display = 'block';
   pagesContainer.innerHTML = '';
   errorState.style.display = 'none';
   loadingState.style.display = 'none';
 }
 
-function showErrorState(message) {
+function showErrorState(message: string): void {
   errorState.style.display = 'block';
-  document.getElementById('errorMessage').textContent = message;
+  const errorMessageEl = document.getElementById('errorMessage') as HTMLDivElement;
+  errorMessageEl.textContent = message;
   pagesContainer.innerHTML = '';
   emptyState.style.display = 'none';
   loadingState.style.display = 'none';
 }
 
-function hideErrorState() {
+function hideErrorState(): void {
   errorState.style.display = 'none';
 }
 
-function escapeHtml(text) {
+function escapeHtml(text: string): string {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
