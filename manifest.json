@@ -3,8 +3,12 @@
   "name": "Cool Copy",
   "version": "1.0.0",
   "description": "Copy clean URLs, markdown formatted links, and selected elements to the clipboard using configurable keyboard shortcuts",
-  "permissions": ["clipboardWrite", "tabs", "activeTab"],
+  "permissions": ["clipboardWrite", "tabs", "activeTab", "storage"],
   "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Cool Copy - View Clipped Pages"
+  },
   "background": {
     "service_worker": "src/background.js"
   },
@@ -29,6 +33,13 @@
         "mac": "Command+Shift+P"
       },
       "description": "Copy selected element to clipboard"
+    },
+    "clip-page": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Clip current page to AgentDB"
     }
   },
   "content_scripts": [
@@ -44,5 +55,11 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["clipped-pages.html", "clipped-pages.css", "clipped-pages.js", "popup.html", "popup.css", "popup.js", "settings.html", "settings.css", "settings.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

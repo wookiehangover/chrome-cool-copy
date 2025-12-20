@@ -13,5 +13,8 @@
     "rollup": "^4.x",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@agentdb/sdk": "^1.1.26"
   }
 }

@@ -6,6 +6,7 @@
 import { handleCopyCleanUrl } from './url-cleaner.js';
 import { handleCopyMarkdownLink } from './markdown.js';
 import { startElementPicker } from './element-picker.js';
+import { showToast } from './toast.js';
 
 /**
  * Message type for communication with background script
@@ -70,6 +71,56 @@ chrome.runtime.onMessage.addListener(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error("[Clean Link Copy] Error in scrollTo:", error);
+          sendResponse({ success: false, error: errorMessage });
+        }
+      } else if (message.action === "clipPage") {
+        // Handle clip page request - collect page data and send to background
+        try {
+          // Collect page data
+          const pageData = {
+            url: window.location.href,
+            title: document.title,
+            domContent: document.documentElement.outerHTML,
+            textContent: document.body.innerText || "",
+            metadata: {
+              description: document.querySelector('meta[name="description"]')?.getAttribute('content') || "",
+              keywords: document.querySelector('meta[name="keywords"]')?.getAttribute('content') || "",
+              author: document.querySelector('meta[name="author"]')?.getAttribute('content') || "",
+              ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute('content') || "",
+              ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute('content') || "",
+              ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || ""
+            }
+          };
+
+          // Send page data to background script for database storage
+          chrome.runtime.sendMessage(
+            {
+              action: "savePageToDatabase",
+              ...pageData
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.error("[Clean Link Copy] Failed to send clipPage message:", chrome.runtime.lastError.message);
+                showToast("Error: Failed to clip page");
+                return;
+              }
+
+              if (response && response.success) {
+                console.log("[Clean Link Copy] Page clipped successfully");
+                showToast("Page clipped successfully!");
+              } else {
+                const errorMsg = response?.error || "Unknown error";
+                console.error("[Clean Link Copy] Failed to clip page:", errorMsg);
+                showToast("Error: " + errorMsg);
+              }
+            }
+          );
+
+          sendResponse({ success: true });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error("[Clean Link Copy] Error in clipPage:", error);
+          showToast("Error: " + errorMessage);
           sendResponse({ success: false, error: errorMessage });
         }
       } else {

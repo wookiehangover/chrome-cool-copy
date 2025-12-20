@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cool Copy</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <h1 class="popup-title">Cool Copy</h1>
+      <p class="popup-subtitle">Clip and manage web pages</p>
+    </header>
+
+    <main class="popup-content">
+      <p class="popup-description">
+        Access your clipped pages and manage your saved web content.
+      </p>
+
+      <button id="viewClippedPagesBtn" class="button button-primary">
+        View Clipped Pages
+      </button>
+
+      <button id="openSettingsBtn" class="button button-secondary">
+        Settings
+      </button>
+
+      <div class="shortcuts-section">
+        <h2 class="shortcuts-title">Keyboard Shortcuts</h2>
+        <ul class="shortcuts-list">
+          <li><kbd>Cmd+Shift+S</kbd> Clip page</li>
+          <li><kbd>Cmd+Shift+C</kbd> Copy clean URL</li>
+          <li><kbd>Cmd+Shift+X</kbd> Copy markdown link</li>
+          <li><kbd>Cmd+Shift+P</kbd> Copy element</li>
+        </ul>
+      </div>
+    </main>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+

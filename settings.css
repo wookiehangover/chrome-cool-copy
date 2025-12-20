@@ -1,0 +1,175 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  background: #fafafa;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 20px;
+}
+
+.settings-container {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+}
+
+.settings-header {
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.settings-title {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #000;
+}
+
+.settings-subtitle {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.settings-content {
+  padding: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #000;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 0;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.15s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #000;
+}
+
+.form-group input::placeholder {
+  color: #999;
+}
+
+.form-hint {
+  font-size: 11px;
+  color: #999;
+  margin-top: 6px;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.button {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 400;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  text-align: center;
+  background: #fff;
+  color: #000;
+}
+
+.button:hover {
+  background: #f5f5f5;
+}
+
+.button:active {
+  background: #eee;
+}
+
+.button-primary {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+.button-primary:hover {
+  background: #222;
+}
+
+.button-primary:active {
+  background: #333;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-message {
+  margin-top: 20px;
+  padding: 12px;
+  font-size: 12px;
+  text-align: center;
+  border: 1px solid;
+}
+
+.status-message.success {
+  background: #f0fff0;
+  color: #1a7f1a;
+  border-color: #c0e0c0;
+}
+
+.status-message.error {
+  background: #fff0f0;
+  color: #c00;
+  border-color: #e0c0c0;
+}
+
+.status-message.info {
+  background: #f5f5f5;
+  color: #666;
+  border-color: #e5e5e5;
+}
+
+.settings-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e5e5e5;
+  text-align: center;
+}
+
+.back-link {
+  font-size: 12px;
+  color: #666;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: #000;
+}
+

@@ -237,6 +237,8 @@ chrome.commands.onCommand.addListener((command) => {
       sendMessageToTab(tab.id, { action: 'copyMarkdownLink' });
     } else if (command === 'copy-element') {
       sendMessageToTab(tab.id, { action: 'startElementPicker' });
+    } else if (command === 'clip-page') {
+      sendMessageToTab(tab.id, { action: 'clipPage' });
     }
   });
 });
@@ -291,6 +293,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             error: error.message
           });
         });
+
+      // Return true to indicate we'll send response asynchronously
+      return true;
+    } else if (message.action === 'savePageToDatabase') {
+      // Handle page clip request - save to AgentDB
+      (async () => {
+        try {
+          // Dynamically import the database service
+          const { initializeDatabase, saveWebpage } = await import('./services/database.ts');
+
+          // Get AgentDB config from chrome.storage.sync
+          const storageData = await new Promise((resolve) => {
+            chrome.storage.sync.get(['agentdbConfig'], (result) => {
+              resolve(result);
+            });
+          });
+
+          const config = storageData.agentdbConfig;
+          if (!config || !config.baseUrl || !config.apiKey || !config.token || !config.dbName) {
+            throw new Error('AgentDB configuration not found. Please configure AgentDB settings.');
+          }
+
+          // Initialize database connection
+          await initializeDatabase(config);
+
+          // Save the webpage
+          const webpage = {
+            url: message.url,
+            title: message.title,
+            dom_content: message.domContent,
+            text_content: message.textContent,
+            metadata: message.metadata || {}
+          };
+
+          await saveWebpage(webpage);
+
+          sendResponse({
+            success: true,
+            message: 'Page clipped successfully'
+          });
+        } catch (error) {
+          console.error('[Clean Link Copy] Error saving page to database:', error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      })();
 
       // Return true to indicate we'll send response asynchronously
       return true;
