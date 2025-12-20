@@ -2,6 +2,7 @@ import typescript from "@rollup/plugin-typescript";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import copy from "rollup-plugin-copy";
+import css from "rollup-plugin-import-css";
 
 export default [
   {
@@ -12,6 +13,7 @@ export default [
       sourcemap: true,
     },
     plugins: [
+      css(),
       typescript({
         tsconfig: false,
         compilerOptions: {
@@ -125,7 +127,6 @@ export default [
           { src: "src/pages/clipped-pages/clipped-pages.css", dest: "dist/pages" },
           { src: "src/pages/settings/settings.css", dest: "dist/pages" },
           { src: "src/styles.css", dest: "dist" },
-          { src: "src/content/command-palette.css", dest: "dist" },
           // Copy vendor files
           { src: "vendor/*", dest: "dist/vendor" },
           // Copy icons

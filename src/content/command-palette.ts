@@ -5,6 +5,7 @@
 
 import type { Command } from "./commands.js";
 import { showToast } from "./toast.js";
+import styles from "./command-palette.css";
 
 let commandPaletteOpen = false;
 let selectedCommandIndex = 0;
@@ -20,181 +21,7 @@ function injectStyles(): void {
 
   const style = document.createElement("style");
   style.id = "command-palette-styles";
-  style.textContent = `
-    #command-palette-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 999999;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding-top: 20vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    .command-palette-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      cursor: pointer;
-    }
-
-    .command-palette-panel {
-      position: relative;
-      z-index: 1;
-      width: 90%;
-      max-width: 500px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      overflow: hidden;
-      animation: slideDown 0.2s ease-out;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .command-palette-panel {
-        background: #1a1a1a;
-        color: #f0f0f0;
-      }
-    }
-
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .command-palette-search {
-      width: 100%;
-      padding: 12px 16px;
-      border: none;
-      border-bottom: 1px solid #e5e5e5;
-      font-size: 14px;
-      outline: none;
-      background: white;
-      color: #000;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .command-palette-search {
-        background: #1a1a1a;
-        color: #f0f0f0;
-        border-bottom-color: #333;
-      }
-    }
-
-    .command-palette-search::placeholder {
-      color: #999;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .command-palette-search::placeholder {
-        color: #707070;
-      }
-    }
-
-    .command-palette-list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .command-palette-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 16px;
-      cursor: pointer;
-      border-bottom: 1px solid #f0f0f0;
-      transition: background-color 0.15s ease;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .command-palette-item {
-        border-bottom-color: #2a2a2a;
-      }
-    }
-
-    .command-palette-item:last-child {
-      border-bottom: none;
-    }
-
-    .command-palette-item:hover,
-    .command-palette-item.selected {
-      background-color: #f5f5f5;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .command-palette-item:hover,
-      .command-palette-item.selected {
-        background-color: #252525;
-      }
-    }
-
-    .command-palette-item-name {
-      flex: 1;
-      font-size: 13px;
-      font-weight: 400;
-      color: #000;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .command-palette-item-name {
-        color: #f0f0f0;
-      }
-    }
-
-    .command-palette-item-shortcut {
-      font-size: 11px;
-      color: #999;
-      margin-left: 16px;
-      text-align: right;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .command-palette-item-shortcut {
-        color: #707070;
-      }
-    }
-
-    .command-palette-list::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .command-palette-list::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .command-palette-list::-webkit-scrollbar-thumb {
-      background: #ccc;
-      border-radius: 3px;
-    }
-
-    .command-palette-list::-webkit-scrollbar-thumb:hover {
-      background: #999;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .command-palette-list::-webkit-scrollbar-thumb {
-        background: #555;
-      }
-
-      .command-palette-list::-webkit-scrollbar-thumb:hover {
-        background: #777;
-      }
-    }
-  `;
+  style.textContent = styles;
 
   document.head.appendChild(style);
   styleInjected = true;
@@ -225,22 +52,35 @@ function filterCommands(query: string): Command[] {
     return allCommands;
   }
 
-  return allCommands.filter(
-    (cmd) => fuzzyMatch(query, cmd.name) || (cmd.description && fuzzyMatch(query, cmd.description)),
+  const results = [];
+
+  const extactMatch = allCommands.find((cmd) =>
+    cmd.name.toLowerCase().includes(query.toLowerCase()),
   );
+
+  if (extactMatch) {
+    results.push(extactMatch);
+  }
+
+  const fuzzyMatches = allCommands.filter((cmd) => fuzzyMatch(query, cmd.name));
+
+  const descriptionMatches = allCommands.filter(
+    (cmd) => cmd.description && fuzzyMatch(query, cmd.description),
+  );
+
+  return [...new Set([...results, ...fuzzyMatches, ...descriptionMatches])];
 }
 
 /**
  * Render the command palette UI
  */
 function renderCommandPalette(): void {
-  const container = document.getElementById("command-palette-container");
-  if (!container) return;
+  const dialog = document.getElementById("command-palette-dialog");
+  if (!dialog) return;
 
-  const searchInput = container.querySelector("#command-palette-search") as HTMLInputElement;
-  const commandList = container.querySelector("#command-palette-list") as HTMLElement;
+  const commandList = dialog.querySelector("#command-palette-list") as HTMLElement;
 
-  if (!searchInput || !commandList) return;
+  if (!commandList) return;
 
   // Clear and rebuild command list
   commandList.innerHTML = "";
@@ -304,33 +144,26 @@ export function openCommandPalette(): void {
   // Inject styles if not already done
   injectStyles();
 
-  // Create container if it doesn't exist
-  let container = document.getElementById("command-palette-container");
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "command-palette-container";
-    document.body.appendChild(container);
+  // Create dialog if it doesn't exist
+  let dialog = document.getElementById("command-palette-dialog") as HTMLDialogElement | null;
+  if (!dialog) {
+    dialog = document.createElement("dialog");
+    dialog.id = "command-palette-dialog";
+    document.body.appendChild(dialog);
   }
 
-  container.innerHTML = `
-    <div class="command-palette-overlay"></div>
-    <div class="command-palette-panel">
-      <input
-        id="command-palette-search"
-        type="text"
-        class="command-palette-search"
-        placeholder="Search commands..."
-        autocomplete="off"
-      />
-      <div id="command-palette-list" class="command-palette-list"></div>
-    </div>
+  dialog.innerHTML = `
+    <input
+      id="command-palette-search"
+      type="text"
+      class="command-palette-search"
+      placeholder="Search commands..."
+      autocomplete="off"
+    />
+    <div id="command-palette-list" class="command-palette-list"></div>
   `;
 
-  const searchInput = container.querySelector("#command-palette-search") as HTMLInputElement;
-  const overlay = container.querySelector(".command-palette-overlay") as HTMLElement;
-
-  // Focus search input
-  searchInput.focus();
+  const searchInput = dialog.querySelector("#command-palette-search") as HTMLInputElement;
 
   // Handle search input
   searchInput.addEventListener("input", (e) => {
@@ -340,7 +173,7 @@ export function openCommandPalette(): void {
     renderCommandPalette();
   });
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation (arrow keys and enter only, escape handled by dialog)
   searchInput.addEventListener("keydown", (e) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -353,18 +186,29 @@ export function openCommandPalette(): void {
     } else if (e.key === "Enter") {
       e.preventDefault();
       executeCommand();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
+    }
+  });
+
+  // Close on backdrop click
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) {
       closeCommandPalette();
     }
   });
 
-  // Close on overlay click
-  overlay.addEventListener("click", closeCommandPalette);
+  // Handle cancel event (Escape key)
+  dialog.addEventListener("cancel", (e) => {
+    e.preventDefault();
+    closeCommandPalette();
+  });
 
   // Initial render
   filteredCommands = allCommands;
   renderCommandPalette();
+
+  // Open as modal and focus search input
+  dialog.showModal();
+  searchInput.focus();
 }
 
 /**
@@ -372,9 +216,10 @@ export function openCommandPalette(): void {
  */
 export function closeCommandPalette(): void {
   commandPaletteOpen = false;
-  const container = document.getElementById("command-palette-container");
-  if (container) {
-    container.remove();
+  const dialog = document.getElementById("command-palette-dialog") as HTMLDialogElement | null;
+  if (dialog) {
+    dialog.close();
+    dialog.remove();
   }
 }
 
