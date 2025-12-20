@@ -27,19 +27,12 @@
       },
       "description": "Copy markdown formatted link"
     },
-    "copy-element": {
+    "open-command-palette": {
       "suggested_key": {
         "default": "Ctrl+Shift+P",
         "mac": "Command+Shift+P"
       },
-      "description": "Copy selected element to clipboard"
-    },
-    "clip-page": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      },
-      "description": "Clip current page to AgentDB"
+      "description": "Open command palette"
     }
   },
   "content_scripts": [

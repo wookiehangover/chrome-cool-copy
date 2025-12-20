@@ -1,24 +1,34 @@
 # Cool Copy - Chrome Extension
 
 A Chrome extension that adds cool copy features to Chrome, including:
-- copying clean URLs without tracking parameters using a simple keyboard shortcut
-- copying markdown formatted links using a simple keyboard shortcut
-- copying any element on the page to the clipboard using a simple keyboard shortcut
+- copying clean URLs without tracking parameters
+- copying markdown formatted links
+- copying any element on the page to the clipboard
 - **clipping entire web pages to AgentDB for persistent storage and later retrieval**
+
+All features are accessible through a unified **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`) with fuzzy search, or via preserved keyboard shortcuts for frequently used actions.
 
 ## Features
 
+### Command Palette
+- **Open Command Palette**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
+- Searchable overlay with fuzzy search for quick command access
+- Keyboard navigation (arrow keys, Enter to execute, Escape to close)
+- Displays keyboard shortcuts next to commands
+- Works on all pages
+- Clean, minimal design inspired by Dieter Rams principles
+
 ### Copy Features
-- **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
-- **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
-- **Copy element**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
+- **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux) - Direct shortcut or via Command Palette
+- **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux) - Direct shortcut or via Command Palette
+- **Copy element**: Access via Command Palette - Select any element on the page to copy to clipboard
 
 ### Page Clipper
-- **Clip current page**: `Cmd+Shift+S` (macOS) / `Ctrl+Shift+S` (Windows/Linux) - Configurable via `chrome://extensions/shortcuts`
+- **Clip current page**: Access via Command Palette - Saves the entire page to AgentDB
 - **Persistent storage**: Pages are saved to AgentDB for later retrieval
 - **Full content capture**: Captures both DOM content and text content
 - **Metadata extraction**: Automatically extracts page title, description, keywords, and Open Graph data
-- **Clipped pages viewer**: Access all clipped pages via the extension popup
+- **Clipped pages viewer**: Access all clipped pages via the extension popup or Command Palette
 - **Search and filter**: Find clipped pages by title or URL
 - **View full content**: Expand any clipped page to view its complete text content
 - **Delete pages**: Remove clipped pages with confirmation
@@ -66,28 +76,71 @@ npm run cleanup
 
 This script removes old root-level JS/HTML/CSS files that have been moved to the new `src/pages/` structure.
 
+## Upgrading from Previous Versions
+
+### Version 1.0 - Command Palette Refactor
+
+If you're upgrading from a version before the Command Palette feature, here are the key changes:
+
+**What's New:**
+- **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`) - Unified interface for all extension features
+- Fuzzy search for quick command access
+- All commands accessible in one place
+
+**What Changed:**
+- `Cmd+Shift+P` now opens the Command Palette instead of directly copying an element
+- `Cmd+Shift+S` (Clip page) is now accessed through the Command Palette
+- The preserved shortcuts (`Cmd+Shift+C` and `Cmd+Shift+X`) still work as before
+
+**Migration Steps:**
+1. Update the extension to the latest version
+2. Reload the extension in Chrome (`chrome://extensions/`)
+3. Start using the Command Palette with `Cmd+Shift+P` / `Ctrl+Shift+P`
+4. Your existing keyboard shortcuts for "Copy clean URL" and "Copy markdown link" continue to work
+
+**No Action Required:**
+- Your AgentDB configuration is preserved
+- Your clipped pages are not affected
+- All existing functionality remains available
+
 ## Usage
 
-### Copy Features
+### Using the Command Palette
+
+The Command Palette is the primary interface for accessing all extension features:
+
+1. Navigate to any webpage
+2. Press `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux) to open the Command Palette
+3. Type to search for a command (e.g., "copy clean", "clip", "settings")
+4. Use arrow keys to navigate, or click with your mouse
+5. Press Enter or click to execute the selected command
+6. Press Escape to close the palette
+
+**Available Commands:**
+- **Copy clean URL** - Copy the current URL without tracking parameters
+- **Copy markdown link** - Copy a markdown formatted link to the current page
+- **Copy element** - Select any element on the page to copy to clipboard
+- **Clip page** - Save the entire page to AgentDB
+- **View clipped pages** - Open the clipped pages viewer
+- **Settings** - Open extension settings
+
+### Quick Keyboard Shortcuts
+
+For frequently used actions, you can use direct keyboard shortcuts:
 
 1. Navigate to any webpage
 2. Press the keyboard shortcut for the desired action:
    - **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux)
    - **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux)
-   - **Copy element**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
 3. A toast notification confirms the action
 4. The content is copied to your clipboard
 
-### Page Clipper
+### Viewing Clipped Pages
 
-1. Navigate to any webpage you want to save
-2. Press `Cmd+Shift+S` (macOS) / `Ctrl+Shift+S` (Windows/Linux) to clip the page
-3. A toast notification confirms the page was clipped successfully
-4. To view your clipped pages:
-   - Click the Cool Copy extension icon in the toolbar
-   - Click "View Clipped Pages" button
-   - The clipped pages viewer will open in a new tab
-5. In the clipped pages viewer:
+1. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Search for "View clipped pages" and press Enter
+3. The clipped pages viewer will open in a new tab
+4. In the clipped pages viewer:
    - **Search**: Use the search box to find pages by title or URL
    - **View**: Click the "View" button to see the full text content of a page
    - **Delete**: Click the "Delete" button to remove a page (with confirmation)
@@ -101,10 +154,11 @@ You can customize the keyboard shortcuts by:
 4. Press your desired keyboard shortcut
 
 The default shortcuts are:
+- **Open Command Palette**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
 - **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux)
 - **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux)
-- **Copy element**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
-- **Clip page**: `Cmd+Shift+S` (macOS) / `Ctrl+Shift+S` (Windows/Linux)
+
+**Note:** The "Copy element" and "Clip page" commands are now accessed through the Command Palette instead of direct keyboard shortcuts, making the extension more extensible and reducing keyboard shortcut conflicts.
 
 ## AgentDB Setup
 
@@ -204,6 +258,9 @@ https://example.com/article
 #### Core Files
 - `src/background.ts` - Background service worker handling keyboard shortcuts and page capture
 - `src/content/index.ts` - Content script entry point for message handling
+- `src/content/command-palette.ts` - Command palette UI component and logic
+- `src/content/command-palette.css` - Command palette styling
+- `src/content/commands.ts` - Command registry and definitions
 - `src/content/url-cleaner.ts` - URL cleaning logic
 - `src/content/markdown.ts` - Markdown link generation
 - `src/content/element-picker.ts` - Element selection and capture

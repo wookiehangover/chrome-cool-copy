@@ -7,6 +7,8 @@ import { handleCopyCleanUrl } from './url-cleaner.js';
 import { handleCopyMarkdownLink } from './markdown.js';
 import { startElementPicker } from './element-picker.js';
 import { showToast } from './toast.js';
+import { openCommandPalette, registerCommands } from './command-palette.js';
+import { commandRegistry, executeCommand } from './commands.js';
 
 /**
  * Message type for communication with background script
@@ -71,6 +73,16 @@ chrome.runtime.onMessage.addListener(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error("[Clean Link Copy] Error in scrollTo:", error);
+          sendResponse({ success: false, error: errorMessage });
+        }
+      } else if (message.action === "openCommandPalette") {
+        // Handle command palette open request
+        try {
+          openCommandPalette();
+          sendResponse({ success: true });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error("[Clean Link Copy] Error in openCommandPalette:", error);
           sendResponse({ success: false, error: errorMessage });
         }
       } else if (message.action === "clipPage") {
@@ -138,4 +150,14 @@ chrome.runtime.onMessage.addListener(
     return true; // Keep the message channel open for async response
   }
 );
+
+/**
+ * Initialize command palette with available commands from the registry
+ */
+function initializeCommandPalette(): void {
+  registerCommands(commandRegistry);
+}
+
+// Initialize command palette when content script loads
+initializeCommandPalette();
 

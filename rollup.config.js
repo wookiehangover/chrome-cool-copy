@@ -125,6 +125,7 @@ export default [
           { src: "src/pages/clipped-pages/clipped-pages.css", dest: "dist/pages" },
           { src: "src/pages/settings/settings.css", dest: "dist/pages" },
           { src: "src/styles.css", dest: "dist" },
+          { src: "src/content/command-palette.css", dest: "dist" },
           // Copy vendor files
           { src: "vendor/*", dest: "dist/vendor" },
           // Copy icons

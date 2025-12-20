@@ -236,10 +236,8 @@ chrome.commands.onCommand.addListener((command) => {
       sendMessageToTab(tab.id, { action: 'copyCleanUrl' });
     } else if (command === 'copy-markdown-link') {
       sendMessageToTab(tab.id, { action: 'copyMarkdownLink' });
-    } else if (command === 'copy-element') {
-      sendMessageToTab(tab.id, { action: 'startElementPicker' });
-    } else if (command === 'clip-page') {
-      sendMessageToTab(tab.id, { action: 'clipPage' });
+    } else if (command === 'open-command-palette') {
+      sendMessageToTab(tab.id, { action: 'openCommandPalette' });
     }
   });
 });
