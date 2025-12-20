@@ -25,10 +25,7 @@ export function hasVisualStyling(element: Element): boolean {
   // Check for box-shadow or text-shadow
   const boxShadow = computedStyle.boxShadow;
   const textShadow = computedStyle.textShadow;
-  if (
-    (boxShadow && boxShadow !== "none") ||
-    (textShadow && textShadow !== "none")
-  ) {
+  if ((boxShadow && boxShadow !== "none") || (textShadow && textShadow !== "none")) {
     return true;
   }
 
@@ -141,4 +138,3 @@ export function detectElementType(element: Element): "table" | "text" | "image" 
   // Default to visual for other elements (complex/styled content)
   return "visual";
 }
-

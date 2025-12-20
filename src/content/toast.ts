@@ -18,9 +18,7 @@ export function showToast(message: string): void {
 
     // Add to page
     if (!document.body) {
-      console.error(
-        "[Clean Link Copy] Cannot show toast: document body not available",
-      );
+      console.error("[Clean Link Copy] Cannot show toast: document body not available");
       return;
     }
 
@@ -31,10 +29,7 @@ export function showToast(message: string): void {
       try {
         toast.classList.add("show");
       } catch (error) {
-        console.error(
-          "[Clean Link Copy] Error adding show class to toast:",
-          error,
-        );
+        console.error("[Clean Link Copy] Error adding show class to toast:", error);
       }
     }, 10);
 
@@ -62,4 +57,3 @@ export function showToast(message: string): void {
     console.log("[Clean Link Copy] Toast message:", message);
   }
 }
-

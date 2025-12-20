@@ -28,4 +28,3 @@ export async function copyImageToClipboard(blob: Blob): Promise<boolean> {
     return false;
   }
 }
-

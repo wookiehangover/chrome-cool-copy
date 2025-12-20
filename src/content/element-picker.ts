@@ -3,9 +3,15 @@
  * Handles element selection UI and interaction for copying elements
  */
 
-import { detectElementType } from './type-detection.js';
-import { showToast } from './toast.js';
-import { handleTableCopy, handleTextCopy, handleSvgCopy, handleImageCopy, handleFullPageScreenshot } from './copy-handlers.js';
+import { detectElementType } from "./type-detection.js";
+import { showToast } from "./toast.js";
+import {
+  handleTableCopy,
+  handleTextCopy,
+  handleSvgCopy,
+  handleImageCopy,
+  handleFullPageScreenshot,
+} from "./copy-handlers.js";
 
 /**
  * Element Picker State
@@ -74,8 +80,7 @@ export function createPickerOverlay(): HTMLElement {
       setForcedType(type === "auto" ? null : type);
       // Update the type indicator if there's a highlighted element
       if (currentHighlightedElement) {
-        const displayType =
-          forcedType || detectElementType(currentHighlightedElement);
+        const displayType = forcedType || detectElementType(currentHighlightedElement);
         updateTypeIndicator(displayType);
       }
     });
@@ -168,10 +173,7 @@ export function startElementPicker(): void {
     try {
       createPickerOverlay();
     } catch (error) {
-      console.error(
-        "[Clean Link Copy] Failed to create picker overlay:",
-        error,
-      );
+      console.error("[Clean Link Copy] Failed to create picker overlay:", error);
       elementPickerActive = false;
       showToast("× Failed to start element picker");
       throw error;
@@ -329,9 +331,7 @@ export function stopElementPicker(): void {
 
     // If no element was selected (e.g., Escape was pressed), clear the selection
     if (!selectedElement) {
-      console.log(
-        "[Clean Link Copy] Element picker cancelled without selection",
-      );
+      console.log("[Clean Link Copy] Element picker cancelled without selection");
     }
   } catch (error) {
     console.error("[Clean Link Copy] Error stopping element picker:", error);
@@ -419,4 +419,3 @@ export async function handlePageSelection(): Promise<void> {
     showToast("× Failed to copy page");
   }
 }
-

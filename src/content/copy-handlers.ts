@@ -3,9 +3,9 @@
  * Handles table, text, image, SVG, and page copying
  */
 
-import { copyToClipboard, copyImageToClipboard } from './clipboard.js';
-import { showToast } from './toast.js';
-import { detectElementType } from './type-detection.js';
+import { copyToClipboard, copyImageToClipboard } from "./clipboard.js";
+import { showToast } from "./toast.js";
+import { detectElementType } from "./type-detection.js";
 
 /**
  * Handle table copy
@@ -32,7 +32,7 @@ export async function handleTableCopy(element: Element): Promise<void> {
  */
 export async function handlePageSelection(
   forcedType: string | null,
-  stopElementPicker: () => void
+  stopElementPicker: () => void,
 ): Promise<void> {
   try {
     // Get the main content area - try common content containers first
@@ -100,10 +100,7 @@ export async function handleFullPageScreenshot(): Promise<void> {
     console.log("[Clean Link Copy] Capturing full page screenshot");
 
     // Get full page dimensions
-    const scrollWidth = Math.max(
-      document.body.scrollWidth,
-      document.documentElement.scrollWidth,
-    );
+    const scrollWidth = Math.max(document.body.scrollWidth, document.documentElement.scrollWidth);
     const scrollHeight = Math.max(
       document.body.scrollHeight,
       document.documentElement.scrollHeight,
@@ -153,10 +150,7 @@ export async function handleFullPageScreenshot(): Promise<void> {
 
         // Check if response indicates success
         if (!response || !response.success) {
-          console.error(
-            "[Clean Link Copy] Background failed to capture page:",
-            response?.error,
-          );
+          console.error("[Clean Link Copy] Background failed to capture page:", response?.error);
           showToast("× Failed to capture page");
           return;
         }
@@ -180,17 +174,11 @@ export async function handleFullPageScreenshot(): Promise<void> {
             }
           })
           .catch((error) => {
-            console.error(
-              "[Clean Link Copy] Error processing captured page:",
-              error,
-            );
+            console.error("[Clean Link Copy] Error processing captured page:", error);
             showToast("× Failed to copy page screenshot");
           });
       } catch (error) {
-        console.error(
-          "[Clean Link Copy] Error in capture response handler:",
-          error,
-        );
+        console.error("[Clean Link Copy] Error in capture response handler:", error);
         showToast("× Failed to capture page");
       }
     });
@@ -220,10 +208,7 @@ export async function handleTextCopy(element: Element): Promise<void> {
       const turndownService = new TurndownService();
       markdown = turndownService.turndown(html);
     } catch (error) {
-      console.error(
-        "[Clean Link Copy] Error converting HTML to markdown:",
-        error,
-      );
+      console.error("[Clean Link Copy] Error converting HTML to markdown:", error);
       // Fallback to plain text if conversion fails
       const htmlElement = element as HTMLElement;
       markdown = htmlElement.innerText || element.textContent || "";
@@ -365,8 +350,7 @@ export async function captureCanvasFrame(canvasElement: HTMLCanvasElement): Prom
 export async function handleSvgCopy(element: Element): Promise<void> {
   try {
     // Find the actual SVG element if the selected element contains an SVG
-    const svgElement =
-      element.tagName === "SVG" ? element : element.querySelector("svg");
+    const svgElement = element.tagName === "SVG" ? element : element.querySelector("svg");
 
     if (!svgElement) {
       showToast("× No SVG found in element");
@@ -461,17 +445,13 @@ export async function handleImageCopy(element: Element): Promise<void> {
       const imgElement = element as HTMLImageElement;
       const imageSrc = imgElement.src || element.getAttribute("src");
       if (imageSrc) {
-        console.log(
-          "[Clean Link Copy] Detected direct <img> element, attempting direct copy",
-        );
+        console.log("[Clean Link Copy] Detected direct <img> element, attempting direct copy");
         const success = await fetchAndCopyImage(imageSrc);
         if (success) {
           showToast("✓ Image copied");
           return;
         }
-        console.log(
-          "[Clean Link Copy] Direct image copy failed, falling back to screenshot",
-        );
+        console.log("[Clean Link Copy] Direct image copy failed, falling back to screenshot");
       }
     }
 
@@ -498,9 +478,7 @@ export async function handleImageCopy(element: Element): Promise<void> {
     if (imgElement) {
       const imageSrc = imgElement.src || imgElement.getAttribute("src");
       if (imageSrc) {
-        console.log(
-          "[Clean Link Copy] Detected nested <img> element, attempting direct copy",
-        );
+        console.log("[Clean Link Copy] Detected nested <img> element, attempting direct copy");
         const success = await fetchAndCopyImage(imageSrc);
         if (success) {
           showToast("✓ Image copied");
@@ -549,10 +527,7 @@ export async function handleImageCopy(element: Element): Promise<void> {
 
         // Check if response indicates success
         if (!response || !response.success) {
-          console.error(
-            "[Clean Link Copy] Background failed to capture image:",
-            response?.error,
-          );
+          console.error("[Clean Link Copy] Background failed to capture image:", response?.error);
           showToast("× Failed to capture image");
           return;
         }
@@ -576,17 +551,11 @@ export async function handleImageCopy(element: Element): Promise<void> {
             }
           })
           .catch((error) => {
-            console.error(
-              "[Clean Link Copy] Error processing captured image:",
-              error,
-            );
+            console.error("[Clean Link Copy] Error processing captured image:", error);
             showToast("× Failed to copy image");
           });
       } catch (error) {
-        console.error(
-          "[Clean Link Copy] Error in capture response handler:",
-          error,
-        );
+        console.error("[Clean Link Copy] Error in capture response handler:", error);
         showToast("× Failed to capture image");
       }
     });
@@ -605,9 +574,7 @@ function tableToCSV(tableElement: Element): string {
   try {
     // Find the actual table element if the selected element contains a table
     const table =
-      tableElement.tagName === "TABLE"
-        ? tableElement
-        : tableElement.querySelector("table");
+      tableElement.tagName === "TABLE" ? tableElement : tableElement.querySelector("table");
 
     if (!table) {
       throw new Error("No table found in element");
@@ -670,11 +637,7 @@ function tableToCSV(tableElement: Element): string {
           .map((cell) => {
             // Escape quotes and wrap in quotes if contains comma, newline, or quote
             const escaped = cell.replace(/"/g, '""');
-            if (
-              escaped.includes(",") ||
-              escaped.includes("\n") ||
-              escaped.includes('"')
-            ) {
+            if (escaped.includes(",") || escaped.includes("\n") || escaped.includes('"')) {
               return `"${escaped}"`;
             }
             return escaped;
@@ -689,4 +652,3 @@ function tableToCSV(tableElement: Element): string {
     throw error;
   }
 }
-

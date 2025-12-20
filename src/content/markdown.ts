@@ -2,9 +2,9 @@
  * Markdown utilities for creating and copying markdown links
  */
 
-import { copyToClipboard } from './clipboard.js';
-import { showToast } from './toast.js';
-import { cleanUrl } from './url-cleaner.js';
+import { copyToClipboard } from "./clipboard.js";
+import { showToast } from "./toast.js";
+import { cleanUrl } from "./url-cleaner.js";
 
 /**
  * Get the page title
@@ -43,4 +43,3 @@ export async function handleCopyMarkdownLink(): Promise<void> {
     showToast("× Failed to copy link");
   }
 }
-

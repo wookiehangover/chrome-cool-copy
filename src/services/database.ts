@@ -3,7 +3,7 @@
  * Handles all AgentDB operations for webpage storage and retrieval
  */
 
-import { DatabaseService, DatabaseConnection, ExecuteResult } from '@agentdb/sdk';
+import { DatabaseService, DatabaseConnection, ExecuteResult } from "@agentdb/sdk";
 
 /**
  * Webpage data interface matching the database schema
@@ -32,7 +32,7 @@ interface DatabaseConfig {
   apiKey: string;
   token: string;
   dbName: string;
-  dbType?: 'sqlite' | 'duckdb';
+  dbType?: "sqlite" | "duckdb";
 }
 
 let dbService: DatabaseService | null = null;
@@ -47,13 +47,13 @@ export async function initializeDatabase(configuration: DatabaseConfig): Promise
   try {
     config = {
       ...configuration,
-      dbType: configuration.dbType || 'sqlite',
+      dbType: configuration.dbType || "sqlite",
     };
 
     dbService = new DatabaseService(config.baseUrl, config.apiKey);
     dbConnection = dbService.connect(config.token, config.dbName, config.dbType);
 
-    console.log('[Database] Initialized connection to', config.dbName);
+    console.log("[Database] Initialized connection to", config.dbName);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to initialize database: ${message}`);
@@ -65,7 +65,7 @@ export async function initializeDatabase(configuration: DatabaseConfig): Promise
  */
 function ensureInitialized(): DatabaseConnection {
   if (!dbConnection) {
-    throw new Error('Database not initialized. Call initializeDatabase() first.');
+    throw new Error("Database not initialized. Call initializeDatabase() first.");
   }
   return dbConnection;
 }
@@ -98,7 +98,7 @@ export async function saveWebpage(webpage: Webpage): Promise<ExecuteResult> {
       ],
     });
 
-    console.log('[Database] Webpage saved:', webpage.url);
+    console.log("[Database] Webpage saved:", webpage.url);
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -115,12 +115,12 @@ export async function getWebpages(): Promise<Webpage[]> {
 
   try {
     const result = await connection.execute({
-      sql: 'SELECT * FROM webpages ORDER BY created_at DESC',
+      sql: "SELECT * FROM webpages ORDER BY created_at DESC",
       params: [],
     });
 
     const rows = result.results[0]?.rows || [];
-    console.log('[Database] Retrieved', rows.length, 'webpages');
+    console.log("[Database] Retrieved", rows.length, "webpages");
     return rows as Webpage[];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -138,17 +138,17 @@ export async function getWebpage(id: string): Promise<Webpage | null> {
 
   try {
     const result = await connection.execute({
-      sql: 'SELECT * FROM webpages WHERE id = ?',
+      sql: "SELECT * FROM webpages WHERE id = ?",
       params: [id],
     });
 
     const rows = result.results[0]?.rows || [];
     if (rows.length === 0) {
-      console.log('[Database] Webpage not found:', id);
+      console.log("[Database] Webpage not found:", id);
       return null;
     }
 
-    console.log('[Database] Retrieved webpage:', id);
+    console.log("[Database] Retrieved webpage:", id);
     return rows[0] as Webpage;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -166,15 +166,14 @@ export async function deleteWebpage(id: string): Promise<ExecuteResult> {
 
   try {
     const result = await connection.execute({
-      sql: 'DELETE FROM webpages WHERE id = ?',
+      sql: "DELETE FROM webpages WHERE id = ?",
       params: [id],
     });
 
-    console.log('[Database] Webpage deleted:', id);
+    console.log("[Database] Webpage deleted:", id);
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to delete webpage: ${message}`);
   }
 }
-

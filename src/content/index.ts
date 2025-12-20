@@ -3,12 +3,12 @@
  * Handles message listener for background script communication
  */
 
-import { handleCopyCleanUrl } from './url-cleaner.js';
-import { handleCopyMarkdownLink } from './markdown.js';
-import { startElementPicker } from './element-picker.js';
-import { showToast } from './toast.js';
-import { openCommandPalette, registerCommands } from './command-palette.js';
-import { commandRegistry, executeCommand } from './commands.js';
+import { handleCopyCleanUrl } from "./url-cleaner.js";
+import { handleCopyMarkdownLink } from "./markdown.js";
+import { startElementPicker } from "./element-picker.js";
+import { showToast } from "./toast.js";
+import { openCommandPalette, registerCommands } from "./command-palette.js";
+import { commandRegistry } from "./commands.js";
 
 /**
  * Message type for communication with background script
@@ -33,7 +33,7 @@ chrome.runtime.onMessage.addListener(
   (
     message: ContentMessage,
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response: MessageResponse) => void
+    sendResponse: (response: MessageResponse) => void,
   ): boolean => {
     try {
       if (message.action === "copyCleanUrl") {
@@ -95,24 +95,34 @@ chrome.runtime.onMessage.addListener(
             domContent: document.documentElement.outerHTML,
             textContent: document.body.innerText || "",
             metadata: {
-              description: document.querySelector('meta[name="description"]')?.getAttribute('content') || "",
-              keywords: document.querySelector('meta[name="keywords"]')?.getAttribute('content') || "",
-              author: document.querySelector('meta[name="author"]')?.getAttribute('content') || "",
-              ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute('content') || "",
-              ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute('content') || "",
-              ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || ""
-            }
+              description:
+                document.querySelector('meta[name="description"]')?.getAttribute("content") || "",
+              keywords:
+                document.querySelector('meta[name="keywords"]')?.getAttribute("content") || "",
+              author: document.querySelector('meta[name="author"]')?.getAttribute("content") || "",
+              ogTitle:
+                document.querySelector('meta[property="og:title"]')?.getAttribute("content") || "",
+              ogDescription:
+                document
+                  .querySelector('meta[property="og:description"]')
+                  ?.getAttribute("content") || "",
+              ogImage:
+                document.querySelector('meta[property="og:image"]')?.getAttribute("content") || "",
+            },
           };
 
           // Send page data to background script for database storage
           chrome.runtime.sendMessage(
             {
               action: "savePageToDatabase",
-              ...pageData
+              ...pageData,
             },
             (response) => {
               if (chrome.runtime.lastError) {
-                console.error("[Clean Link Copy] Failed to send clipPage message:", chrome.runtime.lastError.message);
+                console.error(
+                  "[Clean Link Copy] Failed to send clipPage message:",
+                  chrome.runtime.lastError.message,
+                );
                 showToast("Error: Failed to clip page");
                 return;
               }
@@ -125,7 +135,7 @@ chrome.runtime.onMessage.addListener(
                 console.error("[Clean Link Copy] Failed to clip page:", errorMsg);
                 showToast("Error: " + errorMsg);
               }
-            }
+            },
           );
 
           sendResponse({ success: true });
@@ -141,14 +151,11 @@ chrome.runtime.onMessage.addListener(
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(
-        "[Clean Link Copy] Unexpected error in message listener:",
-        error,
-      );
+      console.error("[Clean Link Copy] Unexpected error in message listener:", error);
       sendResponse({ success: false, error: errorMessage });
     }
     return true; // Keep the message channel open for async response
-  }
+  },
 );
 
 /**
@@ -160,4 +167,3 @@ function initializeCommandPalette(): void {
 
 // Initialize command palette when content script loads
 initializeCommandPalette();
-

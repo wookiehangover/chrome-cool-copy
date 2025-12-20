@@ -21,4 +21,3 @@ export interface Webpage {
 export function initializeDatabase(config: AgentDBConfig): Promise<void>;
 export function getWebpages(): Promise<Webpage[]>;
 export function deleteWebpage(id: string): Promise<void>;
-

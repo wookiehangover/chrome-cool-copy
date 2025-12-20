@@ -3,8 +3,8 @@
  * Handles URL cleaning and copy operations
  */
 
-import { copyToClipboard } from './clipboard.js';
-import { showToast } from './toast.js';
+import { copyToClipboard } from "./clipboard.js";
+import { showToast } from "./toast.js";
 
 // List of common tracking parameters to remove
 export const TRACKING_PARAMS: readonly string[] = [
@@ -105,4 +105,3 @@ export async function handleCopyCleanUrl(): Promise<void> {
     showToast("× Failed to copy link");
   }
 }
-

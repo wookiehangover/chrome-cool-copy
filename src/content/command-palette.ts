@@ -3,8 +3,8 @@
  * Provides a searchable overlay for accessing extension commands
  */
 
-import type { Command } from './commands.js';
-import { showToast } from './toast.js';
+import type { Command } from "./commands.js";
+import { showToast } from "./toast.js";
 
 let commandPaletteOpen = false;
 let selectedCommandIndex = 0;
@@ -18,8 +18,8 @@ let styleInjected = false;
 function injectStyles(): void {
   if (styleInjected) return;
 
-  const style = document.createElement('style');
-  style.id = 'command-palette-styles';
+  const style = document.createElement("style");
+  style.id = "command-palette-styles";
   style.textContent = `
     #command-palette-container {
       position: fixed;
@@ -225,8 +225,8 @@ function filterCommands(query: string): Command[] {
     return allCommands;
   }
 
-  return allCommands.filter(cmd =>
-    fuzzyMatch(query, cmd.name) || (cmd.description && fuzzyMatch(query, cmd.description))
+  return allCommands.filter(
+    (cmd) => fuzzyMatch(query, cmd.name) || (cmd.description && fuzzyMatch(query, cmd.description)),
   );
 }
 
@@ -234,39 +234,39 @@ function filterCommands(query: string): Command[] {
  * Render the command palette UI
  */
 function renderCommandPalette(): void {
-  const container = document.getElementById('command-palette-container');
+  const container = document.getElementById("command-palette-container");
   if (!container) return;
 
-  const searchInput = container.querySelector('#command-palette-search') as HTMLInputElement;
-  const commandList = container.querySelector('#command-palette-list') as HTMLElement;
+  const searchInput = container.querySelector("#command-palette-search") as HTMLInputElement;
+  const commandList = container.querySelector("#command-palette-list") as HTMLElement;
 
   if (!searchInput || !commandList) return;
 
   // Clear and rebuild command list
-  commandList.innerHTML = '';
+  commandList.innerHTML = "";
 
   filteredCommands.forEach((cmd, index) => {
-    const item = document.createElement('div');
-    item.className = `command-palette-item ${index === selectedCommandIndex ? 'selected' : ''}`;
+    const item = document.createElement("div");
+    item.className = `command-palette-item ${index === selectedCommandIndex ? "selected" : ""}`;
     item.dataset.index = String(index);
 
-    const nameEl = document.createElement('div');
-    nameEl.className = 'command-palette-item-name';
+    const nameEl = document.createElement("div");
+    nameEl.className = "command-palette-item-name";
     nameEl.textContent = cmd.name;
 
-    const shortcutEl = document.createElement('div');
-    shortcutEl.className = 'command-palette-item-shortcut';
-    shortcutEl.textContent = cmd.shortcut || '';
+    const shortcutEl = document.createElement("div");
+    shortcutEl.className = "command-palette-item-shortcut";
+    shortcutEl.textContent = cmd.shortcut || "";
 
     item.appendChild(nameEl);
     item.appendChild(shortcutEl);
 
-    item.addEventListener('click', () => {
+    item.addEventListener("click", () => {
       selectedCommandIndex = index;
       executeCommand();
     });
 
-    item.addEventListener('mouseenter', () => {
+    item.addEventListener("mouseenter", () => {
       selectedCommandIndex = index;
       renderCommandPalette();
     });
@@ -285,7 +285,7 @@ async function executeCommand(): Promise<void> {
     try {
       await command.action();
     } catch (error) {
-      console.error('[Command Palette] Error executing command:', error);
+      console.error("[Command Palette] Error executing command:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       showToast(`× Error: ${errorMessage}`);
     }
@@ -305,10 +305,10 @@ export function openCommandPalette(): void {
   injectStyles();
 
   // Create container if it doesn't exist
-  let container = document.getElementById('command-palette-container');
+  let container = document.getElementById("command-palette-container");
   if (!container) {
-    container = document.createElement('div');
-    container.id = 'command-palette-container';
+    container = document.createElement("div");
+    container.id = "command-palette-container";
     document.body.appendChild(container);
   }
 
@@ -326,14 +326,14 @@ export function openCommandPalette(): void {
     </div>
   `;
 
-  const searchInput = container.querySelector('#command-palette-search') as HTMLInputElement;
-  const overlay = container.querySelector('.command-palette-overlay') as HTMLElement;
+  const searchInput = container.querySelector("#command-palette-search") as HTMLInputElement;
+  const overlay = container.querySelector(".command-palette-overlay") as HTMLElement;
 
   // Focus search input
   searchInput.focus();
 
   // Handle search input
-  searchInput.addEventListener('input', (e) => {
+  searchInput.addEventListener("input", (e) => {
     const query = (e.target as HTMLInputElement).value;
     filteredCommands = filterCommands(query);
     selectedCommandIndex = 0;
@@ -341,26 +341,26 @@ export function openCommandPalette(): void {
   });
 
   // Handle keyboard navigation
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') {
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       selectedCommandIndex = Math.min(selectedCommandIndex + 1, filteredCommands.length - 1);
       renderCommandPalette();
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       selectedCommandIndex = Math.max(selectedCommandIndex - 1, 0);
       renderCommandPalette();
-    } else if (e.key === 'Enter') {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       executeCommand();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       e.preventDefault();
       closeCommandPalette();
     }
   });
 
   // Close on overlay click
-  overlay.addEventListener('click', closeCommandPalette);
+  overlay.addEventListener("click", closeCommandPalette);
 
   // Initial render
   filteredCommands = allCommands;
@@ -372,7 +372,7 @@ export function openCommandPalette(): void {
  */
 export function closeCommandPalette(): void {
   commandPaletteOpen = false;
-  const container = document.getElementById('command-palette-container');
+  const container = document.getElementById("command-palette-container");
   if (container) {
     container.remove();
   }
@@ -384,4 +384,3 @@ export function closeCommandPalette(): void {
 export function registerCommands(commands: Command[]): void {
   allCommands = commands;
 }
-
