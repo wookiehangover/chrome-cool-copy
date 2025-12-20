@@ -4,9 +4,42 @@
   box-sizing: border-box;
 }
 
+:root {
+  --text-primary: #000;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --border-color: #e5e5e5;
+  --bg-page: #fff;
+  --bg-card: #fff;
+  --bg-hover: #f5f5f5;
+  --bg-active: #eee;
+  --accent: #000;
+  --accent-hover: #222;
+  --kbd-bg: #f5f5f5;
+  --kbd-text: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #f0f0f0;
+    --text-secondary: #a0a0a0;
+    --text-muted: #707070;
+    --border-color: #333;
+    --bg-page: #1a1a1a;
+    --bg-card: #1a1a1a;
+    --bg-hover: #252525;
+    --bg-active: #2a2a2a;
+    --accent: #fff;
+    --accent-hover: #ddd;
+    --kbd-bg: #2a2a2a;
+    --kbd-text: #ccc;
+  }
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  background: #fff;
+  background: var(--bg-page);
+  color: var(--text-primary);
 }
 
 .popup-container {
@@ -15,19 +48,19 @@ body {
 
 .popup-header {
   padding: 24px 20px 16px;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .popup-title {
   font-size: 18px;
   font-weight: 500;
   letter-spacing: -0.01em;
-  color: #000;
+  color: var(--text-primary);
 }
 
 .popup-subtitle {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -37,7 +70,7 @@ body {
 
 .popup-description {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 16px;
   line-height: 1.5;
 }
@@ -45,38 +78,38 @@ body {
 .button {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 13px;
   font-weight: 400;
   cursor: pointer;
   transition: background-color 0.15s ease;
   text-align: center;
-  background: #fff;
-  color: #000;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .button:hover {
-  background: #f5f5f5;
+  background: var(--bg-hover);
 }
 
 .button:active {
-  background: #eee;
+  background: var(--bg-active);
 }
 
 .button-primary {
-  background: #000;
-  color: #fff;
-  border-color: #000;
+  background: var(--accent);
+  color: var(--bg-page);
+  border-color: var(--accent);
   margin-bottom: 8px;
 }
 
 .button-primary:hover {
-  background: #222;
+  background: var(--accent-hover);
 }
 
 .button-primary:active {
-  background: #333;
+  background: var(--bg-active);
 }
 
 .button-secondary {
@@ -84,14 +117,14 @@ body {
 }
 
 .shortcuts-section {
-  border-top: 1px solid #e5e5e5;
+  border-top: 1px solid var(--border-color);
   padding-top: 16px;
 }
 
 .shortcuts-title {
   font-size: 10px;
   font-weight: 500;
-  color: #999;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 10px;
@@ -100,7 +133,7 @@ body {
 .shortcuts-list {
   list-style: none;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .shortcuts-list li {
@@ -111,12 +144,12 @@ body {
 }
 
 kbd {
-  background: #f5f5f5;
-  border: 1px solid #e5e5e5;
+  background: var(--kbd-bg);
+  border: 1px solid var(--border-color);
   border-radius: 3px;
   padding: 2px 6px;
   font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   font-size: 10px;
-  color: #333;
+  color: var(--kbd-text);
 }
 
