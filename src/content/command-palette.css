@@ -71,7 +71,7 @@
 }
 
 .command-palette-list {
-  max-height: 400px;
+  max-height: 240px;
   overflow-y: auto;
 }
 
