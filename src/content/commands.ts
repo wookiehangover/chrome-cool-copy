@@ -64,19 +64,47 @@ export const commandRegistry: Command[] = [
     description: "Clip current page to AgentDB",
     shortcut: "",
     action: async () => {
-      // Send clipPage message to content script (self)
-      // This will be handled by the message listener in index.ts
+      // Collect page data directly (we're already in the content script)
+      const pageData = {
+        url: window.location.href,
+        title: document.title,
+        domContent: document.documentElement.outerHTML,
+        textContent: document.body.innerText || "",
+        metadata: {
+          description:
+            document.querySelector('meta[name="description"]')?.getAttribute("content") || "",
+          keywords: document.querySelector('meta[name="keywords"]')?.getAttribute("content") || "",
+          author: document.querySelector('meta[name="author"]')?.getAttribute("content") || "",
+          ogTitle:
+            document.querySelector('meta[property="og:title"]')?.getAttribute("content") || "",
+          ogDescription:
+            document.querySelector('meta[property="og:description"]')?.getAttribute("content") ||
+            "",
+          ogImage:
+            document.querySelector('meta[property="og:image"]')?.getAttribute("content") || "",
+        },
+      };
+
+      // Send page data to background script for database storage
       const response = await new Promise<{ success: boolean; error?: string }>((resolve) => {
-        chrome.runtime.sendMessage({ action: "clipPage" }, (response) => {
-          if (chrome.runtime.lastError) {
-            resolve({ success: false, error: chrome.runtime.lastError.message });
-          } else {
-            resolve(response || { success: false, error: "No response" });
-          }
-        });
+        chrome.runtime.sendMessage(
+          {
+            action: "savePageToDatabase",
+            ...pageData,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              resolve({ success: false, error: chrome.runtime.lastError.message });
+            } else {
+              resolve(response || { success: false, error: "No response" });
+            }
+          },
+        );
       });
 
-      if (!response.success) {
+      if (response.success) {
+        showToast("Page clipped successfully!");
+      } else {
         throw new Error(response.error || "Failed to clip page");
       }
     },

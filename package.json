@@ -8,7 +8,10 @@
     "watch": "rollup -c --watch",
     "cleanup": "bash scripts/cleanup-migration.sh",
     "lint": "oxlint src/**/*.ts",
-    "format": "oxfmt src/**/*.ts"
+    "format": "oxfmt src/**/*.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^29.0.0",
