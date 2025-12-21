@@ -12,6 +12,7 @@ import {
   isDarkModeActive,
 } from "./features/dark-mode-manager.js";
 import { openDarkModePanel } from "./features/dark-mode-panel.js";
+import { toggleBannerState } from "./features/grokipedia-banner.js";
 import { showToast } from "./toast.js";
 
 /**
@@ -162,6 +163,17 @@ export const commandRegistry: Command[] = [
         return;
       }
       openDarkModePanel();
+    },
+  },
+  {
+    id: "toggle-grokipedia-banner",
+    name: "Toggle Grokipedia Banner",
+    description: "Toggle Grokipedia banner on Wikipedia pages",
+    shortcut: "",
+    action: async () => {
+      const newState = await toggleBannerState();
+      const message = newState ? "Grokipedia Banner: Enabled" : "Grokipedia Banner: Disabled";
+      showToast(message);
     },
   },
 ];

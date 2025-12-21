@@ -242,10 +242,43 @@ chrome.commands.onCommand.addListener((command) => {
   });
 });
 
+/**
+ * Check if a Grokipedia page exists for an article title
+ * @param {string} articleTitle - The Wikipedia article title
+ * @returns {Promise<boolean>} - True if the page exists
+ */
+async function checkGrokipediaExists(articleTitle: string): Promise<boolean> {
+  const GROKIPEDIA_BASE_URL = "https://grokipedia.com/page";
+  const encodedTitle = encodeURIComponent(articleTitle.trim());
+  const url = `${GROKIPEDIA_BASE_URL}/${encodedTitle}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      cache: "no-store",
+    });
+    return response.ok;
+  } catch (error) {
+    console.error(`[Grokipedia] Error checking page for "${articleTitle}":`, error);
+    return false;
+  }
+}
+
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   try {
-    if (message.action === 'captureElement') {
+    if (message.action === 'checkGrokipediaExists') {
+      // Handle Grokipedia existence check
+      checkGrokipediaExists(message.articleTitle)
+        .then(exists => {
+          sendResponse({ success: true, exists });
+        })
+        .catch(error => {
+          console.error('[Grokipedia] Error in checkGrokipediaExists handler:', error);
+          sendResponse({ success: false, exists: false, error: error.message });
+        });
+      return true;
+    } else if (message.action === 'captureElement') {
       // Handle element capture request
       captureAndCropImage(message.bounds, message.devicePixelRatio || 1)
         .then(imageData => {

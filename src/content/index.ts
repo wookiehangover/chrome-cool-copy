@@ -10,6 +10,7 @@ import { showToast } from "./toast.js";
 import { openCommandPalette, registerCommands } from "./command-palette.js";
 import { commandRegistry } from "./commands.js";
 import { initializeDarkMode } from "./features/dark-mode-manager.js";
+import { initializeGrokipediaBanner } from "./features/grokipedia-banner.js";
 
 /**
  * Message type for communication with background script
@@ -177,8 +178,22 @@ async function initializeDarkModeFeature(): Promise<void> {
   }
 }
 
+/**
+ * Initialize Grokipedia banner feature
+ */
+function initializeGrokipediaBannerFeature(): void {
+  try {
+    initializeGrokipediaBanner();
+  } catch (error) {
+    console.error("[Grokipedia Banner] Initialization failed:", error);
+  }
+}
+
 // Initialize command palette when content script loads
 initializeCommandPalette();
 
 // Initialize dark mode feature
 initializeDarkModeFeature();
+
+// Initialize Grokipedia banner feature
+initializeGrokipediaBannerFeature();

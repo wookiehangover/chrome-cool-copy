@@ -1,0 +1,90 @@
+/* Grokipedia Banner Component */
+
+.grokipedia-banner {
+  position: relative;
+  background: #f5f5f5;
+  color: #666;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.grokipedia-banner-hide {
+  display: none;
+}
+
+.grokipedia-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+}
+
+.grokipedia-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #666;
+}
+
+.grokipedia-banner-link {
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.grokipedia-banner-link:hover {
+  text-decoration: underline;
+}
+
+.grokipedia-banner-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin-left: 12px;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.grokipedia-banner-close:hover {
+  color: #333;
+}
+
+.grokipedia-banner-close svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .grokipedia-banner {
+    background: #1a1a1a;
+    border-bottom-color: #333;
+  }
+
+  .grokipedia-banner-text {
+    color: #888;
+  }
+
+  .grokipedia-banner-link {
+    color: #ccc;
+  }
+
+  .grokipedia-banner-close {
+    color: #555;
+  }
+
+  .grokipedia-banner-close:hover {
+    color: #ccc;
+  }
+}
+
