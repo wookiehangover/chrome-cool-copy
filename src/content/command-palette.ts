@@ -107,8 +107,15 @@ function renderCommandPalette(): void {
     });
 
     item.addEventListener("mouseenter", () => {
-      selectedCommandIndex = index;
-      renderCommandPalette();
+      if (selectedCommandIndex !== index) {
+        // Update selection without full re-render
+        const previousSelected = commandList.querySelector(".command-palette-item.selected");
+        if (previousSelected) {
+          previousSelected.classList.remove("selected");
+        }
+        item.classList.add("selected");
+        selectedCommandIndex = index;
+      }
     });
 
     commandList.appendChild(item);
