@@ -8,7 +8,7 @@ import {
   getDarkModeSettings,
   updateDarkModeSettings,
 } from "./dark-mode-manager.js";
-import { showToast } from "./toast.js";
+import { showToast } from "../toast.js";
 import styles from "./dark-mode-panel.css";
 
 let panelElement: HTMLDivElement | null = null;

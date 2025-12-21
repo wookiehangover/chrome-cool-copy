@@ -3,15 +3,15 @@
  * Handles element selection UI and interaction for copying elements
  */
 
-import { detectElementType } from "./type-detection.js";
-import { showToast } from "./toast.js";
+import { detectElementType } from "../type-detection.js";
+import { showToast } from "../toast.js";
 import {
   handleTableCopy,
   handleTextCopy,
   handleSvgCopy,
   handleImageCopy,
   handleFullPageScreenshot,
-} from "./copy-handlers.js";
+} from "../copy-handlers.js";
 
 /**
  * Element Picker State

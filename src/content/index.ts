@@ -3,13 +3,13 @@
  * Handles message listener for background script communication
  */
 
-import { handleCopyCleanUrl } from "./url-cleaner.js";
-import { handleCopyMarkdownLink } from "./markdown.js";
-import { startElementPicker } from "./element-picker.js";
+import { handleCopyCleanUrl } from "./features/url-cleaner.js";
+import { handleCopyMarkdownLink } from "./features/markdown.js";
+import { startElementPicker } from "./features/element-picker.js";
 import { showToast } from "./toast.js";
 import { openCommandPalette, registerCommands } from "./command-palette.js";
 import { commandRegistry } from "./commands.js";
-import { initializeDarkMode } from "./dark-mode-manager.js";
+import { initializeDarkMode } from "./features/dark-mode-manager.js";
 
 /**
  * Message type for communication with background script

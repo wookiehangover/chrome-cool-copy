@@ -3,15 +3,15 @@
  * Centralized definition of all available commands in the extension
  */
 
-import { handleCopyCleanUrl } from "./url-cleaner.js";
-import { handleCopyMarkdownLink } from "./markdown.js";
-import { startElementPicker } from "./element-picker.js";
+import { handleCopyCleanUrl } from "./features/url-cleaner.js";
+import { handleCopyMarkdownLink } from "./features/markdown.js";
+import { startElementPicker } from "./features/element-picker.js";
 import {
   setDarkModePreference,
   getCurrentPreference,
   isDarkModeActive,
-} from "./dark-mode-manager.js";
-import { openDarkModePanel } from "./dark-mode-panel.js";
+} from "./features/dark-mode-manager.js";
+import { openDarkModePanel } from "./features/dark-mode-panel.js";
 import { showToast } from "./toast.js";
 
 /**
