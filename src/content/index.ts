@@ -9,6 +9,7 @@ import { startElementPicker } from "./element-picker.js";
 import { showToast } from "./toast.js";
 import { openCommandPalette, registerCommands } from "./command-palette.js";
 import { commandRegistry } from "./commands.js";
+import { initializeDarkMode } from "./dark-mode-manager.js";
 
 /**
  * Message type for communication with background script
@@ -165,5 +166,19 @@ function initializeCommandPalette(): void {
   registerCommands(commandRegistry);
 }
 
+/**
+ * Initialize dark mode feature
+ */
+async function initializeDarkModeFeature(): Promise<void> {
+  try {
+    await initializeDarkMode();
+  } catch (error) {
+    console.error("[Dark Mode] Initialization failed:", error);
+  }
+}
+
 // Initialize command palette when content script loads
 initializeCommandPalette();
+
+// Initialize dark mode feature
+initializeDarkModeFeature();

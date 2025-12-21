@@ -6,6 +6,13 @@
 import { handleCopyCleanUrl } from "./url-cleaner.js";
 import { handleCopyMarkdownLink } from "./markdown.js";
 import { startElementPicker } from "./element-picker.js";
+import {
+  setDarkModePreference,
+  getCurrentPreference,
+  isDarkModeActive,
+} from "./dark-mode-manager.js";
+import { openDarkModePanel } from "./dark-mode-panel.js";
+import { showToast } from "./toast.js";
 
 /**
  * Command interface defining the structure of a command
@@ -92,6 +99,41 @@ export const commandRegistry: Command[] = [
     action: () => {
       const settingsUrl = chrome.runtime.getURL("pages/settings.html");
       window.open(settingsUrl, "_blank");
+    },
+  },
+  {
+    id: "dark-mode-toggle",
+    name: "Dark Mode: Toggle",
+    description: "Toggle dark mode on/off for this domain",
+    shortcut: "",
+    action: async () => {
+      const current = getCurrentPreference();
+      const newPref = current === "off" ? "always" : "off";
+      await setDarkModePreference(newPref);
+      showToast(newPref === "always" ? "Dark mode: On" : "Dark mode: Off");
+    },
+  },
+  {
+    id: "dark-mode-system",
+    name: "Dark Mode: Follow System",
+    description: "Follow system dark mode preference",
+    shortcut: "",
+    action: async () => {
+      await setDarkModePreference("system");
+      showToast("Dark mode: Follow System");
+    },
+  },
+  {
+    id: "dark-mode-adjust",
+    name: "Dark Mode: Adjust",
+    description: "Open dark mode adjustment panel",
+    shortcut: "",
+    action: () => {
+      if (!isDarkModeActive()) {
+        showToast("Enable dark mode first");
+        return;
+      }
+      openDarkModePanel();
     },
   },
 ];
