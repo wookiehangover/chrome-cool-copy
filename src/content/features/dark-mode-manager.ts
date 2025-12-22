@@ -1,6 +1,6 @@
 /**
  * Dark Mode Manager
- * Uses SVG filters with mix-blend-mode for dark mode effect
+ * Uses backdrop-filter with invert + contrast for dark mode effect
  * Contrast adjustment uses shader-style pivot around middle gray:
  *   adjusted = (color - 0.5) * contrast + 0.5
  */
@@ -12,7 +12,7 @@ export interface DarkModeSettings {
   contrast: number; // 50-150, default 100 (1.0 = no change)
   sepia: number; // 0-100, default 0
   grayscale: number; // 0-100, default 0
-  mixColor: string; // hex color, default #fff
+  mixColor: string; // hex color, default #fff (unused in backdrop-filter approach)
 }
 
 interface DarkModePreferences {
@@ -31,9 +31,8 @@ const defaultSettings: DarkModeSettings = {
   mixColor: "#ffffff",
 };
 
-// DOM elements for the dark mode overlay
+// DOM element for the dark mode overlay
 let overlayElement: HTMLDivElement | null = null;
-let svgFilterElement: SVGSVGElement | null = null;
 let isActive = false;
 
 let currentDomain: string = "";
@@ -41,9 +40,7 @@ let currentPreference: DarkModePreference = "off";
 let currentSettings: DarkModeSettings = { ...defaultSettings };
 let darkModeMediaQuery: MediaQueryList | null = null;
 
-const FILTER_ID = "dark-mode-contrast-filter";
 const OVERLAY_ID = "dark-mode-overlay";
-const SVG_FILTER_ID = "dark-mode-svg-filters";
 
 /**
  * Extract the precise hostname from URL for per-host scoping
@@ -107,30 +104,8 @@ async function saveSettings(settings: DarkModeSettingsStorage): Promise<void> {
 }
 
 /**
- * Create the SVG filter element with feComponentTransfer for contrast adjustment
- * Formula: adjusted = (color - 0.5) * contrast + 0.5
- * Maps to: slope = contrast, intercept = 0.5 * (1 - contrast)
- */
-function createSVGFilter(): SVGSVGElement {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.id = SVG_FILTER_ID;
-  svg.setAttribute("style", "position: absolute; width: 0; height: 0;");
-  svg.innerHTML = `
-    <defs>
-      <filter id="${FILTER_ID}" color-interpolation-filters="sRGB">
-        <feComponentTransfer>
-          <feFuncR type="linear" slope="1" intercept="0"/>
-          <feFuncG type="linear" slope="1" intercept="0"/>
-          <feFuncB type="linear" slope="1" intercept="0"/>
-        </feComponentTransfer>
-      </filter>
-    </defs>
-  `;
-  return svg;
-}
-
-/**
- * Create the overlay element that applies the dark mode effect
+ * Create the overlay element that applies the dark mode effect using backdrop-filter
+ * This inverts colors and applies contrast/brightness adjustments to the page behind it
  */
 function createOverlay(): HTMLDivElement {
   const overlay = document.createElement("div");
@@ -143,38 +118,10 @@ function createOverlay(): HTMLDivElement {
     height: 100%;
     pointer-events: none;
     z-index: 2147483646;
-    mix-blend-mode: difference;
-    background: #ffffff;
-    transition: opacity 0.2s ease;
+    background: transparent;
+    transition: backdrop-filter 0.2s ease;
   `;
   return overlay;
-}
-
-/**
- * Update the SVG filter parameters based on current contrast setting
- */
-function updateFilterParams(): void {
-  if (!svgFilterElement) return;
-
-  // Convert percentage (50-150) to multiplier (0.5-1.5)
-  const contrast = currentSettings.contrast / 100;
-
-  // Shader formula: adjusted = (color - 0.5) * contrast + 0.5
-  // SVG linear: output = slope * input + intercept
-  // Therefore: slope = contrast, intercept = 0.5 * (1 - contrast)
-  const slope = contrast;
-  const intercept = 0.5 * (1 - contrast);
-
-  const feFuncR = svgFilterElement.querySelector("feFuncR");
-  const feFuncG = svgFilterElement.querySelector("feFuncG");
-  const feFuncB = svgFilterElement.querySelector("feFuncB");
-
-  [feFuncR, feFuncG, feFuncB].forEach((func) => {
-    if (func) {
-      func.setAttribute("slope", String(slope));
-      func.setAttribute("intercept", String(intercept));
-    }
-  });
 }
 
 /**
@@ -185,10 +132,6 @@ function cleanupDarkMode(): void {
     overlayElement.remove();
     overlayElement = null;
   }
-  if (svgFilterElement) {
-    svgFilterElement.remove();
-    svgFilterElement = null;
-  }
   isActive = false;
 }
 
@@ -197,12 +140,6 @@ function cleanupDarkMode(): void {
  */
 function enableDarkMode(): void {
   if (isActive) return;
-
-  // Create and inject SVG filter if needed
-  if (!svgFilterElement) {
-    svgFilterElement = createSVGFilter();
-    document.body.appendChild(svgFilterElement);
-  }
 
   // Create and inject overlay if needed
   if (!overlayElement) {
@@ -323,28 +260,34 @@ export function isDarkModeActive(): boolean {
 }
 
 /**
- * Apply CSS filters and settings to the overlay
+ * Apply backdrop-filter settings to the overlay
+ * Uses invert(1) for dark mode base, then contrast/brightness adjustments
  */
 function applySettingsToDOM(): void {
   if (!overlayElement) return;
 
-  const { brightness, sepia, grayscale, mixColor } = currentSettings;
+  const { brightness, contrast, sepia, grayscale } = currentSettings;
 
-  // Update SVG filter for contrast (shader-style pivot adjustment)
-  updateFilterParams();
-
-  // Build CSS filter string for other effects
+  // Build backdrop-filter string
+  // Order matters: invert first, then adjust contrast/brightness
   const filters: string[] = [];
 
-  // Always reference the SVG filter for contrast
-  filters.push(`url(#${FILTER_ID})`);
+  // Base dark mode effect - invert all colors
+  filters.push("invert(1)");
 
+  // Contrast adjustment (percentage maps directly)
+  if (contrast !== 100) filters.push(`contrast(${contrast}%)`);
+
+  // Brightness adjustment
   if (brightness !== 100) filters.push(`brightness(${brightness}%)`);
+
+  // Optional color adjustments
   if (sepia > 0) filters.push(`sepia(${sepia}%)`);
   if (grayscale > 0) filters.push(`grayscale(${grayscale}%)`);
 
-  overlayElement.style.filter = filters.join(" ");
-  overlayElement.style.background = mixColor;
+  overlayElement.style.backdropFilter = filters.join(" ");
+  // Also set webkit prefix for Safari compatibility
+  overlayElement.style.setProperty("-webkit-backdrop-filter", filters.join(" "));
 }
 
 /**
