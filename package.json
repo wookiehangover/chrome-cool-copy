@@ -9,6 +9,7 @@
     "cleanup": "bash scripts/cleanup-migration.sh",
     "lint": "oxlint src/**/*.ts",
     "format": "oxfmt src/**/*.ts",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
