@@ -1,13 +1,15 @@
 /**
  * Dark Mode Manager
- * Handles Darkmode.js initialization, storage operations, and preference application
+ * Uses SVG filters with mix-blend-mode for dark mode effect
+ * Contrast adjustment uses shader-style pivot around middle gray:
+ *   adjusted = (color - 0.5) * contrast + 0.5
  */
 
 export type DarkModePreference = "always" | "system" | "off";
 
 export interface DarkModeSettings {
   brightness: number; // 50-150, default 100
-  contrast: number; // 50-150, default 100
+  contrast: number; // 50-150, default 100 (1.0 = no change)
   sepia: number; // 0-100, default 0
   grayscale: number; // 0-100, default 0
   mixColor: string; // hex color, default #fff
@@ -29,13 +31,19 @@ const defaultSettings: DarkModeSettings = {
   mixColor: "#ffffff",
 };
 
-// Darkmode.js is loaded from vendor script, so we use any type
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let darkmodeInstance: any = null;
+// DOM elements for the dark mode overlay
+let overlayElement: HTMLDivElement | null = null;
+let svgFilterElement: SVGSVGElement | null = null;
+let isActive = false;
+
 let currentDomain: string = "";
 let currentPreference: DarkModePreference = "off";
 let currentSettings: DarkModeSettings = { ...defaultSettings };
 let darkModeMediaQuery: MediaQueryList | null = null;
+
+const FILTER_ID = "dark-mode-contrast-filter";
+const OVERLAY_ID = "dark-mode-overlay";
+const SVG_FILTER_ID = "dark-mode-svg-filters";
 
 /**
  * Extract the precise hostname from URL for per-host scoping
@@ -99,41 +107,135 @@ async function saveSettings(settings: DarkModeSettingsStorage): Promise<void> {
 }
 
 /**
- * Clean up Darkmode.js DOM elements and state
+ * Create the SVG filter element with feComponentTransfer for contrast adjustment
+ * Formula: adjusted = (color - 0.5) * contrast + 0.5
+ * Maps to: slope = contrast, intercept = 0.5 * (1 - contrast)
+ */
+function createSVGFilter(): SVGSVGElement {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.id = SVG_FILTER_ID;
+  svg.setAttribute("style", "position: absolute; width: 0; height: 0;");
+  svg.innerHTML = `
+    <defs>
+      <filter id="${FILTER_ID}" color-interpolation-filters="sRGB">
+        <feComponentTransfer>
+          <feFuncR type="linear" slope="1" intercept="0"/>
+          <feFuncG type="linear" slope="1" intercept="0"/>
+          <feFuncB type="linear" slope="1" intercept="0"/>
+        </feComponentTransfer>
+      </filter>
+    </defs>
+  `;
+  return svg;
+}
+
+/**
+ * Create the overlay element that applies the dark mode effect
+ */
+function createOverlay(): HTMLDivElement {
+  const overlay = document.createElement("div");
+  overlay.id = OVERLAY_ID;
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2147483646;
+    mix-blend-mode: difference;
+    background: #ffffff;
+    transition: opacity 0.2s ease;
+  `;
+  return overlay;
+}
+
+/**
+ * Update the SVG filter parameters based on current contrast setting
+ */
+function updateFilterParams(): void {
+  if (!svgFilterElement) return;
+
+  // Convert percentage (50-150) to multiplier (0.5-1.5)
+  const contrast = currentSettings.contrast / 100;
+
+  // Shader formula: adjusted = (color - 0.5) * contrast + 0.5
+  // SVG linear: output = slope * input + intercept
+  // Therefore: slope = contrast, intercept = 0.5 * (1 - contrast)
+  const slope = contrast;
+  const intercept = 0.5 * (1 - contrast);
+
+  const feFuncR = svgFilterElement.querySelector("feFuncR");
+  const feFuncG = svgFilterElement.querySelector("feFuncG");
+  const feFuncB = svgFilterElement.querySelector("feFuncB");
+
+  [feFuncR, feFuncG, feFuncB].forEach((func) => {
+    if (func) {
+      func.setAttribute("slope", String(slope));
+      func.setAttribute("intercept", String(intercept));
+    }
+  });
+}
+
+/**
+ * Clean up dark mode DOM elements and state
  */
 function cleanupDarkMode(): void {
-  // Remove Darkmode.js injected elements
-  document.querySelector(".darkmode-layer")?.remove();
-  document.querySelector(".darkmode-background")?.remove();
-  document.querySelector(".darkmode-toggle")?.remove();
+  if (overlayElement) {
+    overlayElement.remove();
+    overlayElement = null;
+  }
+  if (svgFilterElement) {
+    svgFilterElement.remove();
+    svgFilterElement = null;
+  }
+  isActive = false;
+}
 
-  // Remove the body class
-  document.body.classList.remove("darkmode--activated");
+/**
+ * Enable the dark mode overlay
+ */
+function enableDarkMode(): void {
+  if (isActive) return;
 
-  // Clear localStorage entry that Darkmode.js creates
-  window.localStorage.removeItem("darkmode");
+  // Create and inject SVG filter if needed
+  if (!svgFilterElement) {
+    svgFilterElement = createSVGFilter();
+    document.body.appendChild(svgFilterElement);
+  }
 
-  // Clear the instance reference
-  darkmodeInstance = null;
+  // Create and inject overlay if needed
+  if (!overlayElement) {
+    overlayElement = createOverlay();
+    document.body.appendChild(overlayElement);
+  }
+
+  // Apply current settings
+  applySettingsToDOM();
+  isActive = true;
+}
+
+/**
+ * Disable the dark mode overlay
+ */
+function disableDarkMode(): void {
+  if (!isActive) return;
+  cleanupDarkMode();
 }
 
 /**
  * Apply dark mode based on current preference and system state
  */
 function applyDarkMode(): void {
-  if (!darkmodeInstance) return;
-
   const isSystemDark = darkModeMediaQuery?.matches ?? false;
   const shouldEnable =
     currentPreference === "always" ||
     (currentPreference === "system" && isSystemDark);
 
-  const isCurrentlyActive = darkmodeInstance.isActivated();
-
-  if (shouldEnable && !isCurrentlyActive) {
-    darkmodeInstance.toggle();
-  } else if (!shouldEnable && isCurrentlyActive) {
-    darkmodeInstance.toggle();
+  if (shouldEnable) {
+    enableDarkMode();
+  } else {
+    disableDarkMode();
   }
 }
 
@@ -144,23 +246,6 @@ function handleSystemPreferenceChange(): void {
   if (currentPreference === "system") {
     applyDarkMode();
   }
-}
-
-/**
- * Initialize just the Darkmode.js instance (not the full manager)
- */
-function initializeDarkmodeJs(): void {
-  if (darkmodeInstance) return;
-
-  darkmodeInstance = new window.Darkmode({
-    bottom: "32px",
-    right: "32px",
-    mixColor: "#fff",
-    buttonColorDark: "#100f2c",
-    buttonColorLight: "#fff",
-    saveInCookies: false,
-    autoMatchOsTheme: false,
-  });
 }
 
 /**
@@ -181,11 +266,9 @@ export async function initializeDarkMode(): Promise<void> {
     currentPreference = prefs[currentDomain] || "off";
     await loadDomainSettings();
 
-    // Only initialize Darkmode.js if preference is not 'off'
+    // Apply dark mode if preference is not 'off'
     if (currentPreference !== "off") {
-      initializeDarkmodeJs();
       applyDarkMode();
-      applySettingsToDOM();
     }
   } catch (error) {
     console.error("[Dark Mode] Initialization error:", error);
@@ -207,17 +290,11 @@ export async function setDarkModePreference(
       // Clear settings for this domain
       delete prefs[currentDomain];
       await savePreferences(prefs);
-      // Clean up all Darkmode.js artifacts
       cleanupDarkMode();
     } else {
       prefs[currentDomain] = preference;
       await savePreferences(prefs);
-      // Ensure Darkmode.js is initialized before applying
-      if (!darkmodeInstance) {
-        initializeDarkmodeJs();
-      }
       applyDarkMode();
-      applySettingsToDOM();
     }
   } catch (error) {
     console.error("[Dark Mode] Error setting preference:", error);
@@ -242,27 +319,32 @@ export function getCurrentDomain(): string {
  * Check if dark mode is currently active
  */
 export function isDarkModeActive(): boolean {
-  return darkmodeInstance?.isActivated() ?? false;
+  return isActive;
 }
 
 /**
- * Apply CSS filters based on current settings
+ * Apply CSS filters and settings to the overlay
  */
 function applySettingsToDOM(): void {
-  const layer = document.querySelector(".darkmode-layer") as HTMLElement | null;
-  if (!layer) return;
+  if (!overlayElement) return;
 
-  const { brightness, contrast, sepia, grayscale, mixColor } = currentSettings;
+  const { brightness, sepia, grayscale, mixColor } = currentSettings;
 
-  // Apply filters to the layer
+  // Update SVG filter for contrast (shader-style pivot adjustment)
+  updateFilterParams();
+
+  // Build CSS filter string for other effects
   const filters: string[] = [];
+
+  // Always reference the SVG filter for contrast
+  filters.push(`url(#${FILTER_ID})`);
+
   if (brightness !== 100) filters.push(`brightness(${brightness}%)`);
-  if (contrast !== 100) filters.push(`contrast(${contrast}%)`);
   if (sepia > 0) filters.push(`sepia(${sepia}%)`);
   if (grayscale > 0) filters.push(`grayscale(${grayscale}%)`);
 
-  layer.style.filter = filters.length > 0 ? filters.join(" ") : "";
-  layer.style.background = mixColor;
+  overlayElement.style.filter = filters.join(" ");
+  overlayElement.style.background = mixColor;
 }
 
 /**
