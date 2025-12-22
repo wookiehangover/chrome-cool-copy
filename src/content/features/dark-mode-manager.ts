@@ -260,13 +260,37 @@ export function isDarkModeActive(): boolean {
 }
 
 /**
+ * Convert hex color to rgba with specified alpha
+ */
+function hexToRgba(hex: string, alpha: number): string {
+  // Remove # if present
+  const cleanHex = hex.replace("#", "");
+
+  // Parse hex values
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * Check if a color is white (or close to it)
+ */
+function isWhite(hex: string): boolean {
+  const cleanHex = hex.replace("#", "").toLowerCase();
+  return cleanHex === "ffffff" || cleanHex === "fff";
+}
+
+/**
  * Apply backdrop-filter settings to the overlay
  * Uses invert(1) for dark mode base, then contrast/brightness adjustments
+ * Adds a color tint overlay when mixColor is not white
  */
 function applySettingsToDOM(): void {
   if (!overlayElement) return;
 
-  const { brightness, contrast, sepia, grayscale } = currentSettings;
+  const { brightness, contrast, sepia, grayscale, mixColor } = currentSettings;
 
   // Build backdrop-filter string
   // Order matters: invert first, then adjust contrast/brightness
@@ -288,6 +312,14 @@ function applySettingsToDOM(): void {
   overlayElement.style.backdropFilter = filters.join(" ");
   // Also set webkit prefix for Safari compatibility
   overlayElement.style.setProperty("-webkit-backdrop-filter", filters.join(" "));
+
+  // Apply color tint if mixColor is not white
+  if (!isWhite(mixColor)) {
+    // Use 15% opacity for the tint - enough to shift colors without overwhelming
+    overlayElement.style.background = hexToRgba(mixColor, 0.15);
+  } else {
+    overlayElement.style.background = "transparent";
+  }
 }
 
 /**
@@ -297,21 +329,41 @@ export function getDarkModeSettings(): DarkModeSettings {
   return { ...currentSettings };
 }
 
+// Debounce timer for saving settings
+let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+const SAVE_DEBOUNCE_MS = 500;
+
+/**
+ * Debounced save to avoid hitting chrome.storage.sync rate limits
+ */
+function debouncedSaveSettings(): void {
+  if (saveDebounceTimer) {
+    clearTimeout(saveDebounceTimer);
+  }
+
+  saveDebounceTimer = setTimeout(async () => {
+    try {
+      const allSettings = await loadSettings();
+      allSettings[currentDomain] = currentSettings;
+      await saveSettings(allSettings);
+    } catch (error) {
+      console.error("[Dark Mode] Error in debounced save:", error);
+    }
+    saveDebounceTimer = null;
+  }, SAVE_DEBOUNCE_MS);
+}
+
 /**
  * Update dark mode settings and apply them
  */
-export async function updateDarkModeSettings(
-  partial: Partial<DarkModeSettings>,
-): Promise<void> {
+export function updateDarkModeSettings(partial: Partial<DarkModeSettings>): void {
   currentSettings = { ...currentSettings, ...partial };
 
   // Apply to DOM immediately
   applySettingsToDOM();
 
-  // Persist to storage
-  const allSettings = await loadSettings();
-  allSettings[currentDomain] = currentSettings;
-  await saveSettings(allSettings);
+  // Debounce the save to storage
+  debouncedSaveSettings();
 }
 
 /**
