@@ -14,6 +14,7 @@ import {
 import { openDarkModePanel } from "./features/dark-mode-panel.js";
 import { toggleBannerState } from "./features/grokipedia-banner.js";
 import { showToast } from "./toast.js";
+import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 
 /**
  * Command interface defining the structure of a command
@@ -65,48 +66,40 @@ export const commandRegistry: Command[] = [
     description: "Clip current page to AgentDB",
     shortcut: "",
     action: async () => {
-      // Collect page data directly (we're already in the content script)
-      const pageData = {
-        url: window.location.href,
-        title: document.title,
-        domContent: document.documentElement.outerHTML,
-        textContent: document.body.innerText || "",
-        metadata: {
-          description:
-            document.querySelector('meta[name="description"]')?.getAttribute("content") || "",
-          keywords: document.querySelector('meta[name="keywords"]')?.getAttribute("content") || "",
-          author: document.querySelector('meta[name="author"]')?.getAttribute("content") || "",
-          ogTitle:
-            document.querySelector('meta[property="og:title"]')?.getAttribute("content") || "",
-          ogDescription:
-            document.querySelector('meta[property="og:description"]')?.getAttribute("content") ||
-            "",
-          ogImage:
-            document.querySelector('meta[property="og:image"]')?.getAttribute("content") || "",
-        },
-      };
+      try {
+        const pageData = buildPageClipPayload();
 
-      // Send page data to background script for database storage
-      const response = await new Promise<{ success: boolean; error?: string }>((resolve) => {
-        chrome.runtime.sendMessage(
-          {
-            action: "savePageToDatabase",
-            ...pageData,
-          },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              resolve({ success: false, error: chrome.runtime.lastError.message });
-            } else {
-              resolve(response || { success: false, error: "No response" });
-            }
-          },
-        );
-      });
+        // Send page data to background script for database storage
+        const response = await new Promise<{
+          success: boolean;
+          error?: string;
+        }>((resolve) => {
+          chrome.runtime.sendMessage(
+            {
+              action: "savePageToDatabase",
+              ...pageData,
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                resolve({
+                  success: false,
+                  error: chrome.runtime.lastError.message,
+                });
+              } else {
+                resolve(response || { success: false, error: "No response" });
+              }
+            },
+          );
+        });
 
-      if (response.success) {
-        showToast("Page clipped successfully!");
-      } else {
-        throw new Error(response.error || "Failed to clip page");
+        if (response.success) {
+          showToast("Page clipped successfully!");
+        } else {
+          throw new Error(response.error || "Failed to clip page");
+        }
+      } catch (error) {
+        handleClipError(error);
+        throw error;
       }
     },
   },

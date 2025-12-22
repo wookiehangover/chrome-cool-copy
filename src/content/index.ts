@@ -11,6 +11,7 @@ import { openCommandPalette, registerCommands } from "./command-palette.js";
 import { commandRegistry } from "./commands.js";
 import { initializeDarkMode } from "./features/dark-mode-manager.js";
 import { initializeGrokipediaBanner } from "./features/grokipedia-banner.js";
+import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 
 /**
  * Message type for communication with background script
@@ -90,28 +91,7 @@ chrome.runtime.onMessage.addListener(
       } else if (message.action === "clipPage") {
         // Handle clip page request - collect page data and send to background
         try {
-          // Collect page data
-          const pageData = {
-            url: window.location.href,
-            title: document.title,
-            domContent: document.documentElement.outerHTML,
-            textContent: document.body.innerText || "",
-            metadata: {
-              description:
-                document.querySelector('meta[name="description"]')?.getAttribute("content") || "",
-              keywords:
-                document.querySelector('meta[name="keywords"]')?.getAttribute("content") || "",
-              author: document.querySelector('meta[name="author"]')?.getAttribute("content") || "",
-              ogTitle:
-                document.querySelector('meta[property="og:title"]')?.getAttribute("content") || "",
-              ogDescription:
-                document
-                  .querySelector('meta[property="og:description"]')
-                  ?.getAttribute("content") || "",
-              ogImage:
-                document.querySelector('meta[property="og:image"]')?.getAttribute("content") || "",
-            },
-          };
+          const pageData = buildPageClipPayload();
 
           // Send page data to background script for database storage
           chrome.runtime.sendMessage(
@@ -142,9 +122,8 @@ chrome.runtime.onMessage.addListener(
 
           sendResponse({ success: true });
         } catch (error) {
+          handleClipError(error);
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error("[Clean Link Copy] Error in clipPage:", error);
-          showToast("Error: " + errorMessage);
           sendResponse({ success: false, error: errorMessage });
         }
       } else {

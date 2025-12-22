@@ -3,7 +3,7 @@
  * Tests for command definitions and message handler contracts
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetChromeMocks, mockRuntime } from "../test/setup.js";
 
 // Known message actions handled by background.ts
@@ -27,6 +27,20 @@ const CONTENT_HANDLED_ACTIONS = [
 describe("Command Registry", () => {
   beforeEach(() => {
     resetChromeMocks();
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
+
+    // JSDOM defaults to about:blank which our clipper blocks; set to https URL
+    Object.defineProperty(window, "location", {
+      value: new URL("https://example.com/page"),
+      writable: true,
+      configurable: true,
+    });
+
+    document.title = "Example Page";
+    document.body.innerHTML = `<main><p>Hello world</p></main>`;
   });
 
   describe("Message Action Contracts", () => {

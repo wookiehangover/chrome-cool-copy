@@ -23,6 +23,21 @@ let selectedElement: Element | null = null;
 let forcedType: string | null = null; // null = auto, or 'table', 'text', 'image', 'visual'
 
 /**
+ * Cleanup handlers for navigation/unload while picker is active
+ */
+function handlePickerPageHide(): void {
+  if (elementPickerActive) {
+    stopElementPicker();
+  }
+}
+
+function handlePickerVisibilityChange(): void {
+  if (document.hidden && elementPickerActive) {
+    stopElementPicker();
+  }
+}
+
+/**
  * Set the forced type for element picking
  * @param type - The type to force, or null for auto
  */
@@ -192,10 +207,14 @@ export function startElementPicker(): void {
 
     // Add keydown listener for escape
     document.addEventListener("keydown", handlePickerKeydown, true);
+
+    // Add lifecycle listeners to ensure cleanup on navigation/tab switch
+    window.addEventListener("pagehide", handlePickerPageHide, true);
+    document.addEventListener("visibilitychange", handlePickerVisibilityChange, true);
   } catch (error) {
     console.error("[Clean Link Copy] Error starting element picker:", error);
     // Ensure cleanup on error
-    elementPickerActive = false;
+    stopElementPicker();
     throw error;
   }
 }
@@ -324,6 +343,8 @@ export function stopElementPicker(): void {
     document.removeEventListener("mousemove", handlePickerMouseMove, true);
     document.removeEventListener("click", handlePickerClick, true);
     document.removeEventListener("keydown", handlePickerKeydown, true);
+    window.removeEventListener("pagehide", handlePickerPageHide, true);
+    document.removeEventListener("visibilitychange", handlePickerVisibilityChange, true);
 
     // Remove highlight and overlay
     removeHighlight();

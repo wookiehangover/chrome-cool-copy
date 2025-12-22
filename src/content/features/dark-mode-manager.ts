@@ -38,21 +38,13 @@ let currentSettings: DarkModeSettings = { ...defaultSettings };
 let darkModeMediaQuery: MediaQueryList | null = null;
 
 /**
- * Extract base domain from URL
- * Handles localhost, IP addresses, and regular domains
+ * Extract the precise hostname from URL for per-host scoping
+ * Keeps localhost/IPs as-is and lowercases everything else
  */
 export function getBaseDomain(url: string): string {
   try {
-    const hostname = new URL(url).hostname;
-
-    // Handle localhost and IP addresses
-    if (hostname === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
-      return hostname;
-    }
-
-    // Extract base domain (last two parts for most TLDs)
-    const parts = hostname.split(".");
-    return parts.length >= 2 ? parts.slice(-2).join(".") : hostname;
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname;
   } catch {
     return "";
   }
@@ -133,7 +125,8 @@ function applyDarkMode(): void {
 
   const isSystemDark = darkModeMediaQuery?.matches ?? false;
   const shouldEnable =
-    currentPreference === "always" || (currentPreference === "system" && isSystemDark);
+    currentPreference === "always" ||
+    (currentPreference === "system" && isSystemDark);
 
   const isCurrentlyActive = darkmodeInstance.isActivated();
 
@@ -203,7 +196,9 @@ export async function initializeDarkMode(): Promise<void> {
  * Set dark mode preference for current domain
  * Setting to 'off' clears the domain from storage entirely
  */
-export async function setDarkModePreference(preference: DarkModePreference): Promise<void> {
+export async function setDarkModePreference(
+  preference: DarkModePreference,
+): Promise<void> {
   try {
     currentPreference = preference;
     const prefs = await loadPreferences();
@@ -280,7 +275,9 @@ export function getDarkModeSettings(): DarkModeSettings {
 /**
  * Update dark mode settings and apply them
  */
-export async function updateDarkModeSettings(partial: Partial<DarkModeSettings>): Promise<void> {
+export async function updateDarkModeSettings(
+  partial: Partial<DarkModeSettings>,
+): Promise<void> {
   currentSettings = { ...currentSettings, ...partial };
 
   // Apply to DOM immediately
