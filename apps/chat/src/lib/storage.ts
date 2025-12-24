@@ -42,9 +42,7 @@ export async function getAllSessions(): Promise<ConversationSession[]> {
 /**
  * Get a specific session by ID
  */
-export async function getSession(
-  sessionId: string
-): Promise<ConversationSession | null> {
+export async function getSession(sessionId: string): Promise<ConversationSession | null> {
   const sessions = await getAllSessions();
   return sessions.find((s) => s.id === sessionId) || null;
 }
@@ -52,9 +50,7 @@ export async function getSession(
 /**
  * Save a session to storage
  */
-export async function saveSession(
-  session: ConversationSession
-): Promise<void> {
+export async function saveSession(session: ConversationSession): Promise<void> {
   const sessions = await getAllSessions();
   const existingIndex = sessions.findIndex((s) => s.id === session.id);
 
@@ -128,7 +124,7 @@ export function createNewSession(): ConversationSession {
 export async function updateSessionMessages(
   sessionId: string,
   messages: UIMessage[],
-  title?: string
+  title?: string,
 ): Promise<ConversationSession | null> {
   const session = await getSession(sessionId);
   if (!session) return null;
@@ -145,4 +141,3 @@ export async function updateSessionMessages(
   await saveSession(updatedSession);
   return updatedSession;
 }
-

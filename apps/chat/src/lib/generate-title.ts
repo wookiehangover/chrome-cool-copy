@@ -85,4 +85,3 @@ Respond with ONLY the title, no quotes, no explanation, no punctuation at the en
 export function shouldRegenerateTitle(userMessageCount: number): boolean {
   return userMessageCount > 0 && userMessageCount <= TITLE_LOCK_THRESHOLD;
 }
-

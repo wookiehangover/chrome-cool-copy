@@ -79,7 +79,8 @@ export function useExtensionChat(options: UseExtensionChatOptions = {}) {
   const hasTriggeredFinishRef = useRef(false);
 
   useEffect(() => {
-    const wasActive = prevStatusRef.current === "streaming" || prevStatusRef.current === "submitted";
+    const wasActive =
+      prevStatusRef.current === "streaming" || prevStatusRef.current === "submitted";
     const isNowReady = status === "ready";
 
     // Trigger onFinish when transitioning from active state to ready, with messages

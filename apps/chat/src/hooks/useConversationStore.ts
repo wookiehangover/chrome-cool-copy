@@ -17,16 +17,16 @@ interface UseConversationStoreReturn {
   // Current session state
   currentSession: ConversationSession | null;
   isLoading: boolean;
-  
+
   // Sessions list
   sessions: ConversationSession[];
-  
+
   // Actions
   loadSessions: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   startNewSession: () => Promise<ConversationSession>;
   deleteSessionById: (sessionId: string) => Promise<void>;
-  
+
   // Message persistence
   persistMessages: (messages: UIMessage[]) => Promise<void>;
 }
@@ -53,7 +53,7 @@ export function useConversationStore(): UseConversationStoreReturn {
     setIsLoading(true);
     try {
       await loadSessions();
-      
+
       // Try to restore current session
       const currentId = await getCurrentSessionId();
       if (currentId) {
@@ -64,7 +64,7 @@ export function useConversationStore(): UseConversationStoreReturn {
           return;
         }
       }
-      
+
       // No current session, create a new one
       const newSession = createNewSession();
       await saveSession(newSession);
@@ -101,64 +101,75 @@ export function useConversationStore(): UseConversationStoreReturn {
   }, [loadSessions]);
 
   // Delete a session
-  const deleteSessionById = useCallback(async (sessionId: string) => {
-    await deleteSession(sessionId);
-    
-    // If we deleted the current session, start a new one
-    if (currentSession?.id === sessionId) {
-      await startNewSession();
-    } else {
-      await loadSessions();
-    }
-  }, [currentSession, startNewSession, loadSessions]);
+  const deleteSessionById = useCallback(
+    async (sessionId: string) => {
+      await deleteSession(sessionId);
+
+      // If we deleted the current session, start a new one
+      if (currentSession?.id === sessionId) {
+        await startNewSession();
+      } else {
+        await loadSessions();
+      }
+    },
+    [currentSession, startNewSession, loadSessions],
+  );
 
   // Persist messages and handle title generation
-  const persistMessages = useCallback(async (messages: UIMessage[]) => {
-    // Use ref to get current session to avoid stale closure
-    const session = currentSessionRef.current;
-    if (!session) {
-      console.log("[ConversationStore] No current session, skipping persist");
-      return;
-    }
-
-    console.log("[ConversationStore] Persisting messages:", messages.length, "for session:", session.id);
-
-    const userMessageCount = messages.filter((m) => m.role === "user").length;
-    const previousCount = session.messageCount;
-
-    console.log("[ConversationStore] User messages:", userMessageCount, "previous:", previousCount);
-
-    // Determine if we need to regenerate the title
-    const needsTitleRegen =
-      userMessageCount > previousCount &&
-      shouldRegenerateTitle(userMessageCount);
-
-    console.log("[ConversationStore] Needs title regen:", needsTitleRegen);
-
-    let newTitle = session.title;
-    if (needsTitleRegen) {
-      try {
-        console.log("[ConversationStore] Generating title...");
-        newTitle = await generateTitle(messages);
-        console.log("[ConversationStore] Generated title:", newTitle);
-      } catch (error) {
-        console.error("[ConversationStore] Title generation failed:", error);
+  const persistMessages = useCallback(
+    async (messages: UIMessage[]) => {
+      // Use ref to get current session to avoid stale closure
+      const session = currentSessionRef.current;
+      if (!session) {
+        console.log("[ConversationStore] No current session, skipping persist");
+        return;
       }
-    }
 
-    // Update the session
-    const updatedSession = await updateSessionMessages(
-      session.id,
-      messages,
-      newTitle
-    );
+      console.log(
+        "[ConversationStore] Persisting messages:",
+        messages.length,
+        "for session:",
+        session.id,
+      );
 
-    if (updatedSession) {
-      console.log("[ConversationStore] Session updated, new title:", updatedSession.title);
-      setCurrentSession(updatedSession);
-      await loadSessions();
-    }
-  }, [loadSessions]);
+      const userMessageCount = messages.filter((m) => m.role === "user").length;
+      const previousCount = session.messageCount;
+
+      console.log(
+        "[ConversationStore] User messages:",
+        userMessageCount,
+        "previous:",
+        previousCount,
+      );
+
+      // Determine if we need to regenerate the title
+      const needsTitleRegen =
+        userMessageCount > previousCount && shouldRegenerateTitle(userMessageCount);
+
+      console.log("[ConversationStore] Needs title regen:", needsTitleRegen);
+
+      let newTitle = session.title;
+      if (needsTitleRegen) {
+        try {
+          console.log("[ConversationStore] Generating title...");
+          newTitle = await generateTitle(messages);
+          console.log("[ConversationStore] Generated title:", newTitle);
+        } catch (error) {
+          console.error("[ConversationStore] Title generation failed:", error);
+        }
+      }
+
+      // Update the session
+      const updatedSession = await updateSessionMessages(session.id, messages, newTitle);
+
+      if (updatedSession) {
+        console.log("[ConversationStore] Session updated, new title:", updatedSession.title);
+        setCurrentSession(updatedSession);
+        await loadSessions();
+      }
+    },
+    [loadSessions],
+  );
 
   return {
     currentSession,
@@ -171,4 +182,3 @@ export function useConversationStore(): UseConversationStoreReturn {
     persistMessages,
   };
 }
-
