@@ -1,14 +1,20 @@
 .PHONY: build clean lint format
 
-build: lint format
-	npm run build
+build: clean chat extension
+
+chat:
+	pnpm build:chat
+
+extension: lint format
+	pnpm build:extension
+	mkdir -p dist
+	cp -r apps/extension/dist/* dist/
 
 lint:
-	npm run lint
+	pnpm -F @repo/extension run lint
 
 format:
-	npm run format
+	pnpm -F @repo/extension run format
 
 clean:
-	rm -rf dist
-
+	rm -rf dist apps/extension/dist
