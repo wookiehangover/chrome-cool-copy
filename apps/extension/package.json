@@ -34,8 +34,8 @@
   },
   "dependencies": {
     "@agentdb/sdk": "^1.1.26",
-    "@ai-sdk/react": "^2.0.118",
-    "ai": "^5.0.116",
+    "@ai-sdk/react": "^3.0.0",
+    "ai": "^6.0.0",
     "rollup-plugin-polyfill-node": "^0.13.0",
     "zod": "^4.2.1"
   }

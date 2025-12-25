@@ -30,7 +30,7 @@ import {
 } from '@/components/ai-elements/tool'
 import { Button } from '@/components/ui/button'
 import { SessionList } from '@/components/SessionList'
-import { getToolOrDynamicToolName, type DynamicToolUIPart, type ToolUIPart, type UITools } from 'ai'
+import { getToolName, type DynamicToolUIPart, type ToolUIPart, type UITools } from 'ai'
 
 const strategies =
 [
@@ -458,7 +458,7 @@ function App() {
                             )}
                             {/* Render tool calls */}
                             {toolParts.map((toolPart) => {
-                              const toolName = getToolOrDynamicToolName(toolPart)
+                              const toolName = getToolName(toolPart)
                               return (
                                 <Tool key={toolPart.toolCallId} className="group">
                                   <ToolHeader
