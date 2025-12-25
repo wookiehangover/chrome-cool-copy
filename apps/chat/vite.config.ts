@@ -3,8 +3,6 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
-const isDevMode = process.env.VITE_DEV_MODE === 'true'
-
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: './',
@@ -17,10 +15,11 @@ export default defineConfig({
     // Build directly into the extension's dist/sidepanel directory
     outDir: '../extension/dist/sidepanel',
     emptyOutDir: true,
+    // Enable source maps for debugging in dev
+    sourcemap: process.env.NODE_ENV !== 'production',
     rollupOptions: {
       input: 'index.html',
       output: {
-        // Use stable filenames without hashes for easier debugging
         entryFileNames: 'js/[name].js',
         chunkFileNames: 'js/[name]-[hash].js',
         assetFileNames: (assetInfo) => {
@@ -38,18 +37,10 @@ export default defineConfig({
       },
     },
   },
+  // Dev server config (for standalone browser testing, not extension)
   server: {
     port: 5173,
     strictPort: false,
-    // Allow access from chrome-extension:// origins for dev mode
-    cors: true,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
-    // Watch for changes and enable HMR
-    watch: {
-      usePolling: false,
-    },
   },
 })
 

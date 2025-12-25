@@ -94,8 +94,6 @@ export default [
           { src: "src/pages/popup/popup.html", dest: "dist/pages" },
           { src: "src/pages/clipped-pages/clipped-pages.html", dest: "dist/pages" },
           { src: "src/pages/settings/settings.html", dest: "dist/pages" },
-          // Dev mode sidepanel loader
-          { src: "src/sidepanel-dev.html", dest: "dist" },
           // CSS files
           { src: "src/pages/popup/popup.css", dest: "dist/pages" },
           { src: "src/pages/clipped-pages/clipped-pages.css", dest: "dist/pages" },

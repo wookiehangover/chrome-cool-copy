@@ -8,10 +8,9 @@
     "build": "pnpm build:extension && pnpm build:chat",
     "build:extension": "pnpm -F @repo/extension build",
     "build:chat": "pnpm -F @repo/chat build",
-    "dev": "pnpm build:extension && node scripts/setup-dev.js && pnpm dev:chat",
-    "dev:chat": "pnpm -F @repo/chat dev",
-    "dev:reset": "node scripts/setup-dev.js --prod",
-    "watch": "pnpm -F @repo/extension watch",
+    "dev": "pnpm build:extension && pnpm watch:chat",
+    "watch:chat": "pnpm -F @repo/chat watch",
+    "watch:extension": "pnpm -F @repo/extension watch",
     "lint": "pnpm -F @repo/extension lint",
     "format": "pnpm -F @repo/extension format",
     "clean": "rm -rf apps/extension/dist"
