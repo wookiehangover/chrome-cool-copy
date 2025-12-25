@@ -1,49 +1,51 @@
+import { useCallback } from 'react'
 import {
   PromptInput,
   PromptInputTextarea,
   PromptInputFooter,
   PromptInputSubmit,
 } from '@/components/ai-elements/prompt-input'
-import { PageContextBadge, type PageContext } from './PageContextBadge'
+import { PageContextBadge } from './PageContextBadge'
+import { useChatContext } from '@/contexts/ChatContext'
 
-interface ChatInputProps {
-  value: string
-  onChange: (value: string) => void
-  onSubmit: (data: { text: string }) => void
-  pageContext: PageContext | null
-  onClearContext: () => void
-  isLoading: boolean
-  isDisabled: boolean
-  status: 'streaming' | 'submitted' | 'ready' | 'error'
-}
+export function ChatInput() {
+  const {
+    input,
+    setInput,
+    sendMessage,
+    pageContext,
+    clearContext,
+    isLoading,
+    isLoadingContext,
+    status,
+  } = useChatContext()
 
-export function ChatInput({
-  value,
-  onChange,
-  onSubmit,
-  pageContext,
-  onClearContext,
-  isLoading,
-  isDisabled,
-  status,
-}: ChatInputProps) {
+  const handleSubmit = useCallback(
+    ({ text }: { text: string }) => {
+      if (!text.trim()) return
+      setInput('')
+      sendMessage({ parts: [{ type: 'text', text }] })
+    },
+    [sendMessage, setInput]
+  )
+
   const placeholder = pageContext ? 'Ask about this page...' : 'Ask a question...'
-  const isSubmitDisabled = isLoading || !value.trim() || isDisabled
+  const isSubmitDisabled = isLoading || !input.trim() || isLoadingContext
 
   return (
     <div className="border-t border-border p-4">
       {pageContext && (
-        <PageContextBadge context={pageContext} onClear={onClearContext} />
+        <PageContextBadge context={pageContext} onClear={clearContext} />
       )}
       <PromptInput
-        onSubmit={onSubmit}
+        onSubmit={handleSubmit}
         className="rounded-lg border border-input bg-background"
       >
         <PromptInputTextarea
           placeholder={placeholder}
-          disabled={isLoading || isDisabled}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          disabled={isLoading || isLoadingContext}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
         />
         <PromptInputFooter>
           <div />

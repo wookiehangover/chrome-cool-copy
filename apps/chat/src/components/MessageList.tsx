@@ -1,4 +1,3 @@
-import type { UIMessage } from 'ai'
 import {
   Message,
   MessageContent,
@@ -17,25 +16,14 @@ import {
   ToolOutput,
 } from '@/components/ai-elements/tool'
 import { getToolName, type DynamicToolUIPart, type ToolUIPart, type UITools } from 'ai'
+import { useChatContext } from '@/contexts/ChatContext'
 
 // Helper type for tool parts (either typed or dynamic)
 type AnyToolUIPart = DynamicToolUIPart | ToolUIPart<UITools>
 
-interface MessageListProps {
-  messages: UIMessage[]
-  reasoning: string | null
-  isReasoningStreaming: boolean
-  getMessageContent: (message: UIMessage) => string
-  error?: Error | null
-}
-
-export function MessageList({
-  messages,
-  reasoning,
-  isReasoningStreaming,
-  getMessageContent,
-  error,
-}: MessageListProps) {
+export function MessageList() {
+  const { messages, reasoning, isReasoningStreaming, getMessageContent, error } =
+    useChatContext()
   return (
     <>
       {messages.map((message, index) => {

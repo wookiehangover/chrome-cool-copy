@@ -1,7 +1,5 @@
-import { useState, useCallback, useMemo } from 'react'
-import { useExtensionChat } from './hooks/useExtensionChat'
-import { useConversationStore } from './hooks/useConversationStore'
-import { usePageContext } from './hooks/usePageContext'
+import { useCallback } from 'react'
+import { ChatProvider, useChatContext } from '@/contexts/ChatContext'
 import {
   Conversation,
   ConversationContent,
@@ -11,74 +9,34 @@ import { ChatInput } from '@/components/ChatInput'
 import { MessageList } from '@/components/MessageList'
 import { EmptyState } from '@/components/EmptyState'
 import { SessionList } from '@/components/SessionList'
-import { getRandomStrategy } from '@/constants/oblique-strategies'
 
-function App() {
-  const [input, setInput] = useState('')
-  const [showSessionList, setShowSessionList] = useState(false)
-
-  // Page context from the active tab
-  const { pageContext, isLoading: isLoadingContext, clearContext } = usePageContext()
-
-  // Conversation store for persistence
+function ChatContent() {
   const {
+    messages,
+    clearMessages,
+    randomStrategy,
     currentSession,
     sessions,
-    isLoading: isLoadingStore,
     loadSession,
     startNewSession,
     deleteSessionById,
-    persistMessages,
-  } = useConversationStore()
-
-  // Handle message persistence
-  const handleFinish = useCallback(
-    (messages: Parameters<typeof persistMessages>[0]) => {
-      persistMessages(messages)
-    },
-    [persistMessages]
-  )
-
-  const {
-    messages,
-    sendMessage,
-    isLoading,
-    error,
-    clearMessages,
-    status,
-    getMessageContent,
-    reasoning,
-    isReasoningStreaming,
-  } = useExtensionChat({
-    pageContext,
-    initialMessages: currentSession?.messages,
-    onFinish: handleFinish,
-  })
-
-  // Get a random strategy when session changes
-  const randomStrategy = useMemo(() => getRandomStrategy(), [currentSession?.id])
-
-  const handleSubmit = useCallback(
-    ({ text }: { text: string }) => {
-      if (!text.trim()) return
-      setInput('')
-      sendMessage({ parts: [{ type: 'text', text }] })
-    },
-    [sendMessage]
-  )
+    showSessionList,
+    setShowSessionList,
+    isAppLoading,
+  } = useChatContext()
 
   const handleNewChat = useCallback(async () => {
     await startNewSession()
     clearMessages()
     setShowSessionList(false)
-  }, [startNewSession, clearMessages])
+  }, [startNewSession, clearMessages, setShowSessionList])
 
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
       await loadSession(sessionId)
       setShowSessionList(false)
     },
-    [loadSession]
+    [loadSession, setShowSessionList]
   )
 
   const handleDeleteSession = useCallback(
@@ -90,11 +48,11 @@ function App() {
 
   const handleOpenSessions = useCallback(() => {
     setShowSessionList(true)
-  }, [])
+  }, [setShowSessionList])
 
   const handleCloseSessions = useCallback(() => {
     setShowSessionList(false)
-  }, [])
+  }, [setShowSessionList])
 
   // Show session list view
   if (showSessionList) {
@@ -111,8 +69,6 @@ function App() {
       </div>
     )
   }
-
-  const isAppLoading = isLoadingContext || isLoadingStore
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
@@ -132,29 +88,22 @@ function App() {
             {messages.length === 0 ? (
               <EmptyState strategy={randomStrategy} />
             ) : (
-              <MessageList
-                messages={messages}
-                reasoning={reasoning}
-                isReasoningStreaming={isReasoningStreaming}
-                getMessageContent={getMessageContent}
-                error={error}
-              />
+              <MessageList />
             )}
           </ConversationContent>
         </Conversation>
       )}
 
-      <ChatInput
-        value={input}
-        onChange={setInput}
-        onSubmit={handleSubmit}
-        pageContext={pageContext}
-        onClearContext={clearContext}
-        isLoading={isLoading}
-        isDisabled={isLoadingContext}
-        status={status}
-      />
+      <ChatInput />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <ChatProvider>
+      <ChatContent />
+    </ChatProvider>
   )
 }
 
