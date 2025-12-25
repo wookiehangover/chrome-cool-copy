@@ -3,9 +3,23 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import copy from "rollup-plugin-copy";
 import css from "rollup-plugin-import-css";
-import nodePolyfills from 'rollup-plugin-polyfill-node';
+import nodePolyfills from "rollup-plugin-polyfill-node";
+
+// Shared TypeScript config
+const tsConfig = {
+  tsconfig: false,
+  compilerOptions: {
+    target: "ESNext",
+    module: "ESNext",
+  },
+  exclude: ["apps/**/*", "node_modules/**/*"],
+};
+
+// Shared plugins for bundles that need node resolution
+const nodePlugins = [resolve(), commonjs()];
 
 export default [
+  // Content script - IIFE for immediate execution
   {
     input: "src/content/index.ts",
     output: {
@@ -13,18 +27,10 @@ export default [
       format: "iife",
       sourcemap: true,
     },
-    plugins: [
-      css(),
-      typescript({
-        tsconfig: false,
-        compilerOptions: {
-          target: "ESNext",
-          module: "ESNext",
-        },
-        exclude: ["apps/**/*", "node_modules/**/*"],
-      }),
-    ],
+    plugins: [css(), typescript(tsConfig)],
   },
+
+  // Database service - ES module
   {
     input: "src/services/database.ts",
     output: {
@@ -32,19 +38,10 @@ export default [
       format: "es",
       sourcemap: true,
     },
-    plugins: [
-      resolve(),
-      commonjs(),
-      typescript({
-        tsconfig: false,
-        compilerOptions: {
-          target: "ESNext",
-          module: "ESNext",
-        },
-        exclude: ["apps/**/*", "node_modules/**/*"],
-      }),
-    ],
+    plugins: [...nodePlugins, typescript(tsConfig)],
   },
+
+  // Background service worker - ES module with node polyfills
   {
     input: "src/background.ts",
     output: {
@@ -53,20 +50,10 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    plugins: [
-      nodePolyfills(),
-      resolve(),
-      commonjs(),
-      typescript({
-        tsconfig: false,
-        compilerOptions: {
-          target: "ESNext",
-          module: "ESNext",
-        },
-        exclude: ["apps/**/*", "node_modules/**/*"],
-      }),
-    ],
+    plugins: [nodePolyfills(), ...nodePlugins, typescript(tsConfig)],
   },
+
+  // Popup page - IIFE
   {
     input: "src/pages/popup/popup.ts",
     output: {
@@ -74,17 +61,10 @@ export default [
       format: "iife",
       sourcemap: true,
     },
-    plugins: [
-      typescript({
-        tsconfig: false,
-        compilerOptions: {
-          target: "ESNext",
-          module: "ESNext",
-        },
-        exclude: ["apps/**/*", "node_modules/**/*"],
-      }),
-    ],
+    plugins: [typescript(tsConfig)],
   },
+
+  // Clipped pages - ES module
   {
     input: "src/pages/clipped-pages/clipped-pages.ts",
     output: {
@@ -93,19 +73,10 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    plugins: [
-      resolve(),
-      commonjs(),
-      typescript({
-        tsconfig: false,
-        compilerOptions: {
-          target: "ESNext",
-          module: "ESNext",
-        },
-        exclude: ["apps/**/*", "node_modules/**/*"],
-      }),
-    ],
+    plugins: [...nodePlugins, typescript(tsConfig)],
   },
+
+  // Settings page - ES module with static asset copying
   {
     input: "src/pages/settings/settings.ts",
     output: {
@@ -115,32 +86,26 @@ export default [
       inlineDynamicImports: true,
     },
     plugins: [
-      resolve(),
-      commonjs(),
-      typescript({
-        tsconfig: false,
-        compilerOptions: {
-          target: "ESNext",
-          module: "ESNext",
-        },
-        exclude: ["apps/**/*", "node_modules/**/*"],
-      }),
+      ...nodePlugins,
+      typescript(tsConfig),
       copy({
         targets: [
-          // Copy HTML files
+          // HTML files
           { src: "src/pages/popup/popup.html", dest: "dist/pages" },
           { src: "src/pages/clipped-pages/clipped-pages.html", dest: "dist/pages" },
           { src: "src/pages/settings/settings.html", dest: "dist/pages" },
-          // Copy CSS files
+          // Dev mode sidepanel loader
+          { src: "src/sidepanel-dev.html", dest: "dist" },
+          // CSS files
           { src: "src/pages/popup/popup.css", dest: "dist/pages" },
           { src: "src/pages/clipped-pages/clipped-pages.css", dest: "dist/pages" },
           { src: "src/pages/settings/settings.css", dest: "dist/pages" },
           { src: "src/styles.css", dest: "dist" },
-          // Copy vendor files
+          // Vendor files
           { src: "vendor/*", dest: "dist/vendor" },
-          // Copy icons
+          // Icons
           { src: "icons/*", dest: "dist/icons" },
-          // Copy manifest
+          // Manifest
           { src: "manifest.json", dest: "dist" },
         ],
       }),

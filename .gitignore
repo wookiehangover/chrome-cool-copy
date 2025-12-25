@@ -62,7 +62,8 @@ package-lock.json
 yarn.lock
 
 # Build outputs
-dist/
+# Extension build output (load this directory in Chrome)
+apps/extension/dist/
 build/
 *.crx
 *.pem
