@@ -196,7 +196,7 @@ export const commandRegistry: Command[] = [
     id: "open-chat",
     name: "Open Chat",
     description: "Open the chat side panel",
-    shortcut: getPlatformShortcut("Cmd+Shift+A", "Ctrl+Shift+A"),
+    shortcut: "",
     action: () => {
       // Content scripts don't have access to chrome.tabs or chrome.sidePanel
       // Send message to background script which has the required permissions

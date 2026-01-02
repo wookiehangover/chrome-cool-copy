@@ -181,7 +181,6 @@ The Command Palette is the primary interface for accessing all extension feature
 | Copy clean URL | `Cmd+Shift+C` | `Ctrl+Shift+C` |
 | Copy markdown link | `Cmd+Shift+X` | `Ctrl+Shift+X` |
 | Reader mode | `Cmd+Shift+R` | `Ctrl+Shift+R` |
-| Open Chat | `Cmd+Shift+A` | `Ctrl+Shift+A` |
 
 ### Customizing Keyboard Shortcuts
 
