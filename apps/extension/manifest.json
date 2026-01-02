@@ -37,13 +37,6 @@
         "mac": "Command+Shift+P"
       },
       "description": "Open command palette"
-    },
-    "open-chat": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+A",
-        "mac": "Command+Shift+A"
-      },
-      "description": "Open chat side panel"
     }
   },
   "content_scripts": [

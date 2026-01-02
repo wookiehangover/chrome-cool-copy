@@ -341,6 +341,8 @@ chrome.commands.onCommand.addListener((command) => {
       sendMessageToTab(tab.id, { action: "copyMarkdownLink" });
     } else if (command === "open-command-palette") {
       sendMessageToTab(tab.id, { action: "openCommandPalette" });
+    } else if (command === "reader-mode") {
+      sendMessageToTab(tab.id, { action: "toggleReaderMode" });
     } else if (command === "open-chat") {
       // Open the side panel for chat
       chrome.sidePanel.open({ tabId: tab.id }, () => {

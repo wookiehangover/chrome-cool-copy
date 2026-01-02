@@ -15,6 +15,7 @@ import { openDarkModePanel } from "./features/dark-mode-panel.js";
 import { toggleBannerState } from "./features/grokipedia-banner.js";
 import { showToast } from "./toast.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
+import { toggleReaderMode } from "./features/reader-mode.js";
 
 /**
  * Command interface defining the structure of a command
@@ -59,6 +60,13 @@ export const commandRegistry: Command[] = [
     description: "Copy selected element to clipboard",
     shortcut: "",
     action: startElementPicker,
+  },
+  {
+    id: "reader-mode",
+    name: "Reader mode",
+    description: "Toggle distraction-free reading mode",
+    shortcut: getPlatformShortcut("Cmd+Shift+R", "Ctrl+Shift+R"),
+    action: toggleReaderMode,
   },
   {
     id: "clip-page",

@@ -22,6 +22,7 @@ const CONTENT_HANDLED_ACTIONS = [
   "startElementPicker",
   "scrollTo",
   "openCommandPalette",
+  "toggleReaderMode",
   "clipPage",
 ] as const;
 

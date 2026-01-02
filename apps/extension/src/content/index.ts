@@ -14,6 +14,7 @@ import { initializeGrokipediaBanner } from "./features/grokipedia-banner.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { buildPageContext, type PageContext } from "./features/page-context.js";
 import { scrapePage, type ScrapedPage } from "./features/page-scraper.js";
+import { toggleReaderMode } from "./features/reader-mode.js";
 
 /**
  * Message type for communication with background script
@@ -90,6 +91,16 @@ chrome.runtime.onMessage.addListener(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error("[Clean Link Copy] Error in openCommandPalette:", error);
+          sendResponse({ success: false, error: errorMessage });
+        }
+      } else if (message.action === "toggleReaderMode") {
+        // Handle reader mode toggle request
+        try {
+          toggleReaderMode();
+          sendResponse({ success: true });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error("[Reader Mode] Error in toggleReaderMode:", error);
           sendResponse({ success: false, error: errorMessage });
         }
       } else if (message.action === "clipPage") {
