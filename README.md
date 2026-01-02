@@ -31,7 +31,7 @@ All features are accessible through a unified **Command Palette** (`Cmd+Shift+P`
   - Select any element on the page to copy to clipboard
 
 ### Reader Mode
-- **Toggle Reader Mode**: `Cmd+Shift+R` (macOS) / `Ctrl+Shift+R` (Windows/Linux)
+- **Toggle Reader Mode**: Access via Command Palette
 - Distraction-free reading experience
 - Automatically extracts main article content
 - Filters out navigation, ads, sidebars, and other non-essential elements
@@ -180,7 +180,6 @@ The Command Palette is the primary interface for accessing all extension feature
 | Open Command Palette | `Cmd+Shift+P` | `Ctrl+Shift+P` |
 | Copy clean URL | `Cmd+Shift+C` | `Ctrl+Shift+C` |
 | Copy markdown link | `Cmd+Shift+X` | `Ctrl+Shift+X` |
-| Reader mode | `Cmd+Shift+R` | `Ctrl+Shift+R` |
 
 ### Customizing Keyboard Shortcuts
 

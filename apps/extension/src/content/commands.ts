@@ -65,7 +65,7 @@ export const commandRegistry: Command[] = [
     id: "reader-mode",
     name: "Reader mode",
     description: "Toggle distraction-free reading mode",
-    shortcut: getPlatformShortcut("Cmd+Shift+R", "Ctrl+Shift+R"),
+    shortcut: "",
     action: toggleReaderMode,
   },
   {
