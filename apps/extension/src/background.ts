@@ -581,6 +581,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       })();
       return true;
+    } else if (message.action === "updateClipContent") {
+      // Update clip content (from reader mode edit)
+      (async () => {
+        try {
+          const { updateLocalClip } = await import("./services/local-clips.js");
+          const result = await updateLocalClip(message.clipId, {
+            dom_content: message.domContent,
+            text_content: message.textContent,
+          });
+          if (result) {
+            sendResponse({ success: true });
+          } else {
+            sendResponse({ success: false, error: "Clip not found" });
+          }
+        } catch (error) {
+          console.error("[Clean Link Copy] Error updating clip content:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "openClipViewer") {
+      // Open clip viewer in a new tab
+      const viewerUrl = chrome.runtime.getURL(
+        `pages/clip-viewer.html?id=${encodeURIComponent(message.clipId)}`
+      );
+      chrome.tabs.create({ url: viewerUrl });
+      return false;
     } else if (message.action === "aiRequest") {
       // Handle non-streaming AI request - forward to Vercel AI Gateway
       // Supports tool calling with browse tool

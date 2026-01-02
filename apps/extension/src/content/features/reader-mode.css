@@ -30,8 +30,9 @@
   --link-underline: #808080;
   --code-bg: #f5f5f5;
   --blockquote-border: #d0d0d0;
-  --highlight-bg: #fff3cd;
-  --highlight-active: #ffe69c;
+  --highlight-bg: #FFFF00;
+  --highlight-active: #FFFF00;
+  --highlight-text: #000000;
   --control-bg: rgba(0, 0, 0, 0.04);
   --control-hover: rgba(0, 0, 0, 0.08);
   --control-active: rgba(0, 0, 0, 0.12);
@@ -58,8 +59,9 @@
     --link-underline: #707070;
     --code-bg: #252525;
     --blockquote-border: #404040;
-    --highlight-bg: #4a4121;
-    --highlight-active: #665c2e;
+    --highlight-bg: #FFFF00;
+    --highlight-active: #FFFF00;
+    --highlight-text: #000000;
     --control-bg: rgba(255, 255, 255, 0.06);
     --control-hover: rgba(255, 255, 255, 0.1);
     --control-active: rgba(255, 255, 255, 0.14);
@@ -276,6 +278,14 @@
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.clip-status:hover {
+  background: var(--control-hover);
+  color: var(--text-secondary);
 }
 
 .clip-status-dot {
@@ -367,6 +377,7 @@
 /* Highlights */
 .reader-highlight {
   background: var(--highlight-bg);
+  color: var(--highlight-text);
   cursor: pointer;
   border-radius: 2px;
   padding: 1px 0;
@@ -557,6 +568,22 @@
 
 .font-mono {
   --font-body: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+/* Edit mode styles */
+.edit-mode .reader-mode-content {
+  outline: 2px dashed var(--border-color);
+  outline-offset: 8px;
+}
+
+.edit-mode .reader-highlight {
+  /* Disable highlight hover effects in edit mode */
+  pointer-events: none;
+  cursor: text;
+}
+
+.edit-mode .reader-mode-content:focus {
+  outline-color: var(--text-muted);
 }
 
 /* Responsive design */

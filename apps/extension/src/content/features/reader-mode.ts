@@ -9,6 +9,7 @@
 
 import styles from "./reader-mode.css";
 import type { LocalClip, Highlight } from "../../services/local-clips.js";
+import { showToast } from "../toast.js";
 
 // Reader mode state
 let readerModeActive = false;
@@ -26,6 +27,8 @@ let contentWrapper: HTMLElement | null = null;
 let settingsPanel: HTMLElement | null = null;
 let noteEditor: HTMLElement | null = null;
 let activeHighlightId: string | null = null;
+let editModeActive = false;
+let editModeBtn: HTMLButtonElement | null = null;
 
 // Settings defaults
 interface ReaderSettings {
@@ -277,7 +280,6 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
     if (checkResponse?.clip) {
       currentClipId = checkResponse.clip.id;
       currentHighlights = checkResponse.clip.highlights || [];
-      console.log("[Reader Mode] Page already clipped:", currentClipId, "with", currentHighlights.length, "highlights");
 
       // Restore saved highlights to the DOM
       restoreHighlights();
@@ -300,7 +302,6 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
     if (saveResponse?.success && saveResponse?.clipId) {
       currentClipId = saveResponse.clipId;
       currentHighlights = [];
-      console.log("[Reader Mode] Auto-clipped page:", currentClipId);
     } else {
       console.warn("[Reader Mode] Failed to save clip:", saveResponse?.error);
     }
@@ -316,21 +317,13 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
 function restoreHighlights(): void {
   if (!contentWrapper || currentHighlights.length === 0) return;
 
-  console.log("[Reader Mode] Restoring", currentHighlights.length, "highlights");
-
-  // Get all text nodes in the content
-  const textContent = contentWrapper.textContent || "";
-
   // Sort highlights by startOffset (process from end to start to preserve offsets)
   const sortedHighlights = [...currentHighlights].sort((a, b) => b.startOffset - a.startOffset);
 
   for (const highlight of sortedHighlights) {
     try {
       // Find the text in the content and wrap it
-      const result = findTextAndWrap(contentWrapper, highlight.text, highlight.id, highlight.note);
-      if (!result) {
-        console.warn("[Reader Mode] Could not restore highlight:", highlight.text.slice(0, 30));
-      }
+      findTextAndWrap(contentWrapper, highlight.text, highlight.id, highlight.note);
     } catch (error) {
       console.error("[Reader Mode] Error restoring highlight:", error);
     }
@@ -339,20 +332,18 @@ function restoreHighlights(): void {
 
 /**
  * Find text in the DOM and wrap it with a mark element
+ * Handles text that spans multiple text nodes
  */
 function findTextAndWrap(container: Element, searchText: string, highlightId: string, note?: string): boolean {
+  // First, try to find in a single text node (fast path)
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-
   let node: Text | null;
-  let found = false;
 
-  // Try to find the exact text
   while ((node = walker.nextNode() as Text | null)) {
     const nodeText = node.textContent || "";
     const index = nodeText.indexOf(searchText);
 
     if (index !== -1) {
-      // Split the text node and wrap the match
       const range = document.createRange();
       range.setStart(node, index);
       range.setEnd(node, index + searchText.length);
@@ -362,12 +353,60 @@ function findTextAndWrap(container: Element, searchText: string, highlightId: st
       mark.dataset.highlightId = highlightId;
 
       range.surroundContents(mark);
-      found = true;
-      break;
+      return true;
     }
   }
 
-  return found;
+  // Text spans multiple nodes - build a text node map
+  const textNodes: { node: Text; start: number; end: number }[] = [];
+  const walker2 = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  let pos = 0;
+
+  while ((node = walker2.nextNode() as Text | null)) {
+    const len = node.textContent?.length || 0;
+    textNodes.push({ node, start: pos, end: pos + len });
+    pos += len;
+  }
+
+  // Find where searchText starts in the combined text
+  const fullText = container.textContent || "";
+  const searchIndex = fullText.indexOf(searchText);
+
+  if (searchIndex === -1) {
+    return false;
+  }
+
+  const searchEnd = searchIndex + searchText.length;
+
+  // Find the nodes that contain the start and end of our search text
+  const startNodeInfo = textNodes.find(n => searchIndex >= n.start && searchIndex < n.end);
+  const endNodeInfo = textNodes.find(n => searchEnd > n.start && searchEnd <= n.end);
+
+  if (!startNodeInfo || !endNodeInfo) {
+    return false;
+  }
+
+  const startOffset = searchIndex - startNodeInfo.start;
+  const endOffset = searchEnd - endNodeInfo.start;
+
+  try {
+    const range = document.createRange();
+    range.setStart(startNodeInfo.node, startOffset);
+    range.setEnd(endNodeInfo.node, endOffset);
+
+    const mark = document.createElement("mark");
+    mark.className = "reader-highlight" + (note ? " has-note" : "");
+    mark.dataset.highlightId = highlightId;
+
+    // For cross-node ranges, we need to extract and wrap
+    const contents = range.extractContents();
+    mark.appendChild(contents);
+    range.insertNode(mark);
+
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
@@ -379,8 +418,25 @@ export async function activateReaderMode(): Promise<void> {
   }
 
   try {
-    // Extract article content
-    const { title, content } = extractArticleContent();
+    // Check if page is already clipped - use saved content if so
+    const existingClip = await checkForExistingClip();
+
+    let title: string;
+    let content: Element;
+
+    if (existingClip) {
+      // Use saved content from clip
+      title = existingClip.title;
+      content = document.createElement("div");
+      content.innerHTML = existingClip.dom_content;
+      currentClipId = existingClip.id;
+      currentHighlights = existingClip.highlights || [];
+    } else {
+      // Extract fresh content from the page
+      const extracted = extractArticleContent();
+      title = extracted.title;
+      content = extracted.content;
+    }
 
     // Load settings
     const settings = await loadSettings();
@@ -391,8 +447,17 @@ export async function activateReaderMode(): Promise<void> {
     // Hide the original page content
     hideOriginalContent();
 
-    // Auto-clip the page (await so currentClipId is set before user can select text)
-    await autoClipPage(title, content);
+    // If no existing clip, save a new one
+    if (!existingClip) {
+      await autoClipPage(title, content);
+    } else {
+      // Check if highlights are already in the DOM (from edited content)
+      const existingMarks = contentWrapper?.querySelectorAll(".reader-highlight");
+      if (!existingMarks || existingMarks.length === 0) {
+        // Restore highlights from the saved clip
+        restoreHighlights();
+      }
+    }
 
     // Remember this URL for auto-enter on refresh
     await rememberReaderModeUrl();
@@ -400,6 +465,31 @@ export async function activateReaderMode(): Promise<void> {
     readerModeActive = true;
   } catch (error) {
     console.error("[Reader Mode] Error activating reader mode:", error);
+  }
+}
+
+/**
+ * Check if page is already clipped and return the clip data
+ */
+async function checkForExistingClip(): Promise<{
+  id: string;
+  title: string;
+  dom_content: string;
+  highlights?: Highlight[];
+} | null> {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "checkExistingClip",
+      url: window.location.href,
+    });
+
+    if (response?.clip) {
+      return response.clip;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Reader Mode] Error checking for existing clip:", error);
+    return null;
   }
 }
 
@@ -560,6 +650,97 @@ function toggleSettings(): void {
 }
 
 /**
+ * Toggle edit mode on/off
+ */
+function toggleEditMode(): void {
+  if (!contentWrapper || !shadowRoot) return;
+
+  if (editModeActive) {
+    // Exiting edit mode - save the content
+    saveEditedContent();
+  } else {
+    // Entering edit mode
+    editModeActive = true;
+
+    // Toggle contentEditable on the content wrapper
+    contentWrapper.contentEditable = "true";
+
+    // Update button icon to checkmark
+    if (editModeBtn) {
+      editModeBtn.innerHTML = "✓";
+      editModeBtn.title = "Save Edits";
+      editModeBtn.setAttribute("aria-pressed", "true");
+    }
+
+    // Add edit-mode class on wrapper for visual indication
+    const wrapper = shadowRoot.querySelector(".reader-mode-wrapper");
+    if (wrapper) {
+      wrapper.classList.add("edit-mode");
+    }
+
+    // Hide note editor if open
+    if (noteEditor?.classList.contains("visible")) {
+      saveCurrentNote();
+    }
+  }
+}
+
+/**
+ * Save edited content and exit edit mode
+ */
+async function saveEditedContent(): Promise<void> {
+  if (!contentWrapper || !shadowRoot || !currentClipId) return;
+
+  try {
+    // Get the edited content
+    const domContent = contentWrapper.innerHTML;
+    const textContent = contentWrapper.textContent || "";
+
+    // Send update to background script
+    const response = await chrome.runtime.sendMessage({
+      action: "updateClipContent",
+      clipId: currentClipId,
+      domContent,
+      textContent,
+    });
+
+    if (response?.success) {
+      showToast("Edits saved");
+    } else {
+      showToast("Failed to save edits");
+      console.error("[Reader Mode] Failed to save edits:", response?.error);
+    }
+  } catch (error) {
+    console.error("[Reader Mode] Error saving edits:", error);
+    showToast("Failed to save edits");
+  }
+
+  // Exit edit mode regardless of save success
+  editModeActive = false;
+  contentWrapper.contentEditable = "false";
+
+  // Update button icon back to edit
+  if (editModeBtn) {
+    editModeBtn.innerHTML = "✎";
+    editModeBtn.title = "Edit Mode";
+    editModeBtn.setAttribute("aria-pressed", "false");
+  }
+
+  // Remove edit-mode class
+  const wrapper = shadowRoot.querySelector(".reader-mode-wrapper");
+  if (wrapper) {
+    wrapper.classList.remove("edit-mode");
+  }
+}
+
+/**
+ * Check if edit mode is active (used by selection listener)
+ */
+function isEditMode(): boolean {
+  return editModeActive;
+}
+
+/**
  * Create note editor element (positioned to the right of highlights)
  */
 function createNoteEditor(): HTMLElement {
@@ -599,9 +780,11 @@ async function createReaderModeUI(title: string, content: Element, settings: Rea
   toolbar.className = "reader-mode-toolbar";
 
   const settingsBtn = createToolbarButton("Aa", "Settings", toggleSettings);
+  editModeBtn = createToolbarButton("✎", "Edit Mode", toggleEditMode);
   const closeBtn = createToolbarButton("×", "Exit (Esc)", deactivateReaderMode);
 
   toolbar.appendChild(settingsBtn);
+  toolbar.appendChild(editModeBtn);
   toolbar.appendChild(closeBtn);
 
   // Create settings panel
@@ -619,10 +802,21 @@ async function createReaderModeUI(title: string, content: Element, settings: Rea
   titleElement.className = "reader-mode-title";
   titleElement.textContent = title;
 
-  // Add clip status indicator
-  const clipStatus = document.createElement("div");
+  // Add clip status indicator (clickable to open in viewer)
+  const clipStatus = document.createElement("a");
   clipStatus.className = "clip-status";
   clipStatus.innerHTML = '<span class="clip-status-dot"></span> Saved locally';
+  clipStatus.title = "Open in clip viewer";
+  clipStatus.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (currentClipId) {
+      chrome.runtime.sendMessage({
+        action: "openClipViewer",
+        clipId: currentClipId,
+      });
+    }
+  });
 
   header.appendChild(titleElement);
   header.appendChild(clipStatus);
@@ -656,10 +850,15 @@ async function createReaderModeUI(title: string, content: Element, settings: Rea
  * Get current selection (works within shadow DOM)
  */
 function getSelection(): Selection | null {
-  // Try shadowRoot.getSelection first (for closed shadow DOM), fallback to window
+  // Try shadowRoot.getSelection first (for shadow DOM)
   if (shadowRoot && typeof (shadowRoot as any).getSelection === "function") {
-    return (shadowRoot as any).getSelection();
+    const shadowSelection = (shadowRoot as any).getSelection();
+    if (shadowSelection && !shadowSelection.isCollapsed) {
+      return shadowSelection;
+    }
   }
+
+  // Fallback to window.getSelection
   return window.getSelection();
 }
 
@@ -671,22 +870,23 @@ function setupSelectionListener(): void {
 
   // Listen on the shadowRoot for mouseup events
   shadowRoot.addEventListener("mouseup", async (e) => {
+    // Skip highlighting in edit mode - allow normal text editing
+    if (isEditMode()) {
+      return;
+    }
+
     // Small delay to let the selection finalize
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     const selection = getSelection();
-    console.log("[Reader Mode] Selection detected:", selection?.toString()?.trim()?.slice(0, 50));
-    console.log("[Reader Mode] currentClipId:", currentClipId);
 
     if (!selection || selection.isCollapsed || !selection.toString().trim()) {
-      console.log("[Reader Mode] No valid selection");
       return;
     }
 
     // Check if selection is within our content wrapper
     const anchorNode = selection.anchorNode;
     if (!anchorNode || !contentWrapper?.contains(anchorNode)) {
-      console.log("[Reader Mode] Selection not in content wrapper");
       return;
     }
 
@@ -700,15 +900,12 @@ function setupSelectionListener(): void {
  */
 async function createHighlightFromSelection(selection: Selection): Promise<void> {
   const text = selection.toString().trim();
-  console.log("[Reader Mode] Creating highlight for:", text?.slice(0, 50), "clipId:", currentClipId);
 
   if (!text || !currentClipId) {
-    console.log("[Reader Mode] Missing text or clipId, aborting highlight");
     return;
   }
 
   try {
-    console.log("[Reader Mode] Sending addHighlight message");
     const response = await chrome.runtime.sendMessage({
       action: "addHighlight",
       clipId: currentClipId,
@@ -719,15 +916,11 @@ async function createHighlightFromSelection(selection: Selection): Promise<void>
         color: "#fff3cd",
       },
     });
-    console.log("[Reader Mode] addHighlight response:", response);
 
     if (response?.success && response?.highlight) {
       currentHighlights.push(response.highlight);
       applyHighlightToDOM(selection, response.highlight.id);
       selection.removeAllRanges();
-      // Highlight is saved - user can click on it later to add a note
-    } else {
-      console.log("[Reader Mode] Highlight creation failed:", response?.error);
     }
   } catch (error) {
     console.error("[Reader Mode] Failed to create highlight:", error);
@@ -968,6 +1161,8 @@ export async function deactivateReaderMode(): Promise<void> {
     activeHighlightId = null;
     currentClipId = null;
     currentHighlights = [];
+    editModeActive = false;
+    editModeBtn = null;
   } catch (error) {
     console.error("[Reader Mode] Error deactivating reader mode:", error);
   }
