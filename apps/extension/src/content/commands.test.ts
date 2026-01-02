@@ -220,12 +220,8 @@ describe("README Documentation", () => {
       const shortcut = command.shortcut!;
 
       // Normalize to check for both formats
-      const macShortcut = shortcut.includes("Cmd")
-        ? shortcut
-        : shortcut.replace("Ctrl", "Cmd");
-      const winShortcut = shortcut.includes("Ctrl")
-        ? shortcut
-        : shortcut.replace("Cmd", "Ctrl");
+      const macShortcut = shortcut.includes("Cmd") ? shortcut : shortcut.replace("Ctrl", "Cmd");
+      const winShortcut = shortcut.includes("Ctrl") ? shortcut : shortcut.replace("Cmd", "Ctrl");
 
       const hasMacShortcut = readmeContent.includes(macShortcut);
       const hasWinShortcut = readmeContent.includes(winShortcut);
