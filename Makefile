@@ -7,22 +7,49 @@
 all: build
 
 #------------------------------------------------------------------------------
+# Spinner Helper
+#------------------------------------------------------------------------------
+
+# Usage: $(call spinner,Task Name,command to run)
+# Shows an animated spinner while the command runs, hides output unless there's an error
+define spinner
+	@tmpfile=$$(mktemp); \
+	$(2) > "$$tmpfile" 2>&1 & pid=$$!; \
+	frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'; \
+	while kill -0 $$pid 2>/dev/null; do \
+		for i in $$(seq 0 9); do \
+			printf "\r  $${frames:$$i:1} $(1)"; \
+			sleep 0.1; \
+		done; \
+	done; \
+	wait $$pid; status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		printf "\r  \033[32m✓\033[0m $(1)\n"; \
+	else \
+		printf "\r  \033[31m✗\033[0m $(1)\n"; \
+		cat "$$tmpfile"; \
+		rm -f "$$tmpfile"; \
+		exit $$status; \
+	fi; \
+	rm -f "$$tmpfile"
+endef
+
+#------------------------------------------------------------------------------
 # Production Build
 #------------------------------------------------------------------------------
 
 # Full production build: extension + chat sidepanel
 build: clean lint format extension chat
-	@echo "Build complete: apps/extension/dist/"
+	@echo ""
+	@echo "\033[32m✓\033[0m Build complete: apps/extension/dist/"
 
 # Build extension scripts and static assets
 extension:
-	@echo "Building extension..."
-	pnpm -F @repo/extension build
+	$(call spinner,Building extension...,pnpm -F @repo/extension build)
 
 # Build chat sidepanel (outputs to apps/extension/dist/sidepanel)
 chat:
-	@echo "Building chat sidepanel..."
-	pnpm -F @repo/chat build
+	$(call spinner,Building chat sidepanel...,pnpm -F @repo/chat build)
 
 #------------------------------------------------------------------------------
 # Development
@@ -57,20 +84,17 @@ dev: extension
 #------------------------------------------------------------------------------
 
 lint:
-	@echo "Linting..."
-	pnpm -F @repo/extension lint
+	$(call spinner,Linting...,pnpm -F @repo/extension lint)
 
 format:
-	@echo "Formatting..."
-	pnpm -F @repo/extension format
+	$(call spinner,Formatting...,pnpm -F @repo/extension format)
 
 #------------------------------------------------------------------------------
 # Utilities
 #------------------------------------------------------------------------------
 
 clean:
-	@echo "Cleaning build artifacts..."
-	rm -rf apps/extension/dist
+	$(call spinner,Cleaning build artifacts...,rm -rf apps/extension/dist)
 
 # Show available targets
 help:
