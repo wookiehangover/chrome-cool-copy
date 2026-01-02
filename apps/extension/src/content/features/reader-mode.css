@@ -71,6 +71,7 @@
   background: var(--bg-primary);
   min-height: 100vh;
   width: 100%;
+  position: relative;
 }
 
 /* Main container - optimal reading width */
@@ -80,6 +81,22 @@
   padding: 48px 24px 80px;
   background: var(--bg-secondary);
   min-height: 100vh;
+}
+
+/* Comments gutter - right side of the content */
+.comments-gutter {
+  position: absolute;
+  top: 0;
+  left: calc(50% + 340px + 24px); /* Content center + half width + gap */
+  width: 240px;
+  height: 100%;
+  pointer-events: none;
+}
+
+@media (max-width: 1100px) {
+  .comments-gutter {
+    display: none;
+  }
 }
 
 /* Toolbar - minimal, unobtrusive */
@@ -356,38 +373,67 @@
   transition: background 0.15s ease;
 }
 
-.reader-highlight:hover,
-.reader-highlight.active {
+.reader-highlight:hover {
   background: var(--highlight-active);
 }
 
-.reader-highlight.has-note::after {
-  content: "💬";
-  font-size: 10px;
-  margin-left: 2px;
-  opacity: 0.7;
+.reader-highlight.active {
+  background: var(--highlight-active);
+  anchor-name: --active-highlight;
 }
 
-/* Note editor - appears to the right of highlights */
+.reader-highlight.has-note {
+  border-bottom: 1px dashed var(--text-muted);
+}
+
+/* Note editor - Google Docs style comment in gutter */
 .note-editor {
-  position: fixed;
-  width: 200px;
+  position: absolute;
+  position-anchor: --active-highlight;
+  top: anchor(top);
+  left: anchor(right);
+  margin-left: 24px;
+  width: 220px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 12px;
   z-index: 1000;
   display: none;
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+/* Fallback positioning for browsers without anchor positioning */
+@supports not (anchor-name: --test) {
+  .note-editor {
+    position: fixed;
+  }
 }
 
 .note-editor.visible {
   display: block;
 }
 
+/* Connector line from highlight to comment */
+.note-editor::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 12px;
+  width: 24px;
+  height: 1px;
+  background: var(--border-color);
+}
+
 .note-textarea {
+  display: block;
   width: 100%;
-  min-height: 80px;
+  min-height: 60px;
   padding: 8px;
   border: 1px solid var(--border-light);
+  border-radius: 3px;
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: inherit;
@@ -395,6 +441,7 @@
   line-height: 1.4;
   resize: vertical;
   margin-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .note-textarea:focus {
@@ -414,12 +461,14 @@
 
 .note-save,
 .note-delete {
-  padding: 5px 10px;
+  padding: 4px 8px;
   background: var(--control-bg);
   border: none;
-  font-size: 12px;
+  border-radius: 3px;
+  font-size: 11px;
   cursor: pointer;
   color: var(--text-secondary);
+  transition: background 0.15s ease;
 }
 
 .note-save:hover {
@@ -433,13 +482,6 @@
 
 .note-delete:hover {
   background: rgba(200, 0, 0, 0.1);
-}
-
-/* Active highlight state */
-.reader-highlight.active {
-  background-color: #ffe066;
-  outline: 2px solid var(--text-muted);
-  outline-offset: 1px;
 }
 
 /* Code blocks - minimal styling */

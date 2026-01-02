@@ -277,7 +277,10 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
     if (checkResponse?.clip) {
       currentClipId = checkResponse.clip.id;
       currentHighlights = checkResponse.clip.highlights || [];
-      console.log("[Reader Mode] Page already clipped:", currentClipId);
+      console.log("[Reader Mode] Page already clipped:", currentClipId, "with", currentHighlights.length, "highlights");
+
+      // Restore saved highlights to the DOM
+      restoreHighlights();
       return;
     }
 
@@ -305,6 +308,66 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
     console.error("[Reader Mode] Auto-clip failed:", error);
     // Don't fail reader mode if clip fails
   }
+}
+
+/**
+ * Restore saved highlights to the DOM
+ */
+function restoreHighlights(): void {
+  if (!contentWrapper || currentHighlights.length === 0) return;
+
+  console.log("[Reader Mode] Restoring", currentHighlights.length, "highlights");
+
+  // Get all text nodes in the content
+  const textContent = contentWrapper.textContent || "";
+
+  // Sort highlights by startOffset (process from end to start to preserve offsets)
+  const sortedHighlights = [...currentHighlights].sort((a, b) => b.startOffset - a.startOffset);
+
+  for (const highlight of sortedHighlights) {
+    try {
+      // Find the text in the content and wrap it
+      const result = findTextAndWrap(contentWrapper, highlight.text, highlight.id, highlight.note);
+      if (!result) {
+        console.warn("[Reader Mode] Could not restore highlight:", highlight.text.slice(0, 30));
+      }
+    } catch (error) {
+      console.error("[Reader Mode] Error restoring highlight:", error);
+    }
+  }
+}
+
+/**
+ * Find text in the DOM and wrap it with a mark element
+ */
+function findTextAndWrap(container: Element, searchText: string, highlightId: string, note?: string): boolean {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+
+  let node: Text | null;
+  let found = false;
+
+  // Try to find the exact text
+  while ((node = walker.nextNode() as Text | null)) {
+    const nodeText = node.textContent || "";
+    const index = nodeText.indexOf(searchText);
+
+    if (index !== -1) {
+      // Split the text node and wrap the match
+      const range = document.createRange();
+      range.setStart(node, index);
+      range.setEnd(node, index + searchText.length);
+
+      const mark = document.createElement("mark");
+      mark.className = "reader-highlight" + (note ? " has-note" : "");
+      mark.dataset.highlightId = highlightId;
+
+      range.surroundContents(mark);
+      found = true;
+      break;
+    }
+  }
+
+  return found;
 }
 
 /**
@@ -660,14 +723,9 @@ async function createHighlightFromSelection(selection: Selection): Promise<void>
 
     if (response?.success && response?.highlight) {
       currentHighlights.push(response.highlight);
-      const markElement = applyHighlightToDOM(selection, response.highlight.id);
+      applyHighlightToDOM(selection, response.highlight.id);
       selection.removeAllRanges();
-
-      // Show note editor for this highlight
-      if (markElement) {
-        console.log("[Reader Mode] Showing note editor");
-        showNoteEditor(markElement, response.highlight.id, "");
-      }
+      // Highlight is saved - user can click on it later to add a note
     } else {
       console.log("[Reader Mode] Highlight creation failed:", response?.error);
     }
@@ -699,6 +757,13 @@ function applyHighlightToDOM(selection: Selection, highlightId: string): HTMLEle
 }
 
 /**
+ * Check if CSS anchor positioning is supported
+ */
+function supportsAnchorPositioning(): boolean {
+  return CSS.supports("anchor-name", "--test");
+}
+
+/**
  * Show note editor positioned to the right of a highlight
  */
 function showNoteEditor(markElement: HTMLElement, highlightId: string, existingNote: string): void {
@@ -706,15 +771,21 @@ function showNoteEditor(markElement: HTMLElement, highlightId: string, existingN
 
   activeHighlightId = highlightId;
 
-  // Position to the right of the highlight
-  const rect = markElement.getBoundingClientRect();
-  const wrapperRect = shadowRoot.querySelector(".reader-mode-wrapper")?.getBoundingClientRect();
+  // Clear previous active highlights and set new one
+  shadowRoot.querySelectorAll(".reader-highlight.active").forEach((el) => el.classList.remove("active"));
+  markElement.classList.add("active");
 
-  if (wrapperRect) {
-    // Position to the right margin
-    const rightEdge = Math.min(rect.right + 20, wrapperRect.right - 220);
-    noteEditor.style.left = `${rightEdge}px`;
-    noteEditor.style.top = `${rect.top}px`;
+  // Fallback positioning for browsers without CSS anchor positioning
+  if (!supportsAnchorPositioning()) {
+    const rect = markElement.getBoundingClientRect();
+    const containerRect = shadowRoot.querySelector(".reader-mode-container")?.getBoundingClientRect();
+
+    if (containerRect) {
+      // Position to the right of the content container
+      const leftPos = containerRect.right + 24;
+      noteEditor.style.left = `${leftPos}px`;
+      noteEditor.style.top = `${rect.top + window.scrollY}px`;
+    }
   }
 
   // Set existing note value
@@ -725,10 +796,6 @@ function showNoteEditor(markElement: HTMLElement, highlightId: string, existingN
   }
 
   noteEditor.classList.add("visible");
-
-  // Mark the highlight as active
-  shadowRoot.querySelectorAll(".reader-highlight.active").forEach((el) => el.classList.remove("active"));
-  markElement.classList.add("active");
 }
 
 /**
@@ -747,7 +814,7 @@ function hideNoteEditor(): void {
  * Save the current note
  */
 async function saveCurrentNote(): Promise<void> {
-  if (!noteEditor || !activeHighlightId || !currentClipId) return;
+  if (!noteEditor || !activeHighlightId || !currentClipId || !shadowRoot) return;
 
   const textarea = noteEditor.querySelector(".note-textarea") as HTMLTextAreaElement;
   const note = textarea?.value || "";
@@ -763,6 +830,16 @@ async function saveCurrentNote(): Promise<void> {
     // Update local state
     const hl = currentHighlights.find((h) => h.id === activeHighlightId);
     if (hl) hl.note = note;
+
+    // Update has-note class on the mark element
+    const markElement = shadowRoot.querySelector(`[data-highlight-id="${activeHighlightId}"]`);
+    if (markElement) {
+      if (note) {
+        markElement.classList.add("has-note");
+      } else {
+        markElement.classList.remove("has-note");
+      }
+    }
 
     hideNoteEditor();
   } catch (error) {
