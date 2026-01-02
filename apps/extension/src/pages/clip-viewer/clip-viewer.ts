@@ -3,6 +3,8 @@
  * Displays a saved clip with the same UX as reader mode
  */
 
+export {};
+
 interface ClipHighlight {
   id: string;
   text: string;

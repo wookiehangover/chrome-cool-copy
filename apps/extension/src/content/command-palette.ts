@@ -45,16 +45,25 @@ function fuzzyMatch(query: string, text: string): boolean {
 }
 
 /**
+ * Get commands that are currently visible based on context
+ */
+function getVisibleCommands(): Command[] {
+  return allCommands.filter((cmd) => !cmd.isVisible || cmd.isVisible());
+}
+
+/**
  * Filter commands based on search query
  */
 function filterCommands(query: string): Command[] {
+  const visibleCommands = getVisibleCommands();
+
   if (!query.trim()) {
-    return allCommands;
+    return visibleCommands;
   }
 
   const results = [];
 
-  const extactMatch = allCommands.find((cmd) =>
+  const extactMatch = visibleCommands.find((cmd) =>
     cmd.name.toLowerCase().includes(query.toLowerCase()),
   );
 
@@ -62,9 +71,9 @@ function filterCommands(query: string): Command[] {
     results.push(extactMatch);
   }
 
-  const fuzzyMatches = allCommands.filter((cmd) => fuzzyMatch(query, cmd.name));
+  const fuzzyMatches = visibleCommands.filter((cmd) => fuzzyMatch(query, cmd.name));
 
-  const descriptionMatches = allCommands.filter(
+  const descriptionMatches = visibleCommands.filter(
     (cmd) => cmd.description && fuzzyMatch(query, cmd.description),
   );
 
@@ -209,8 +218,8 @@ export function openCommandPalette(): void {
     closeCommandPalette();
   });
 
-  // Initial render
-  filteredCommands = allCommands;
+  // Initial render with visible commands only
+  filteredCommands = getVisibleCommands();
   renderCommandPalette();
 
   // Open as modal and focus search input

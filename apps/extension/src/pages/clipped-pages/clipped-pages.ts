@@ -3,6 +3,8 @@
  * Manages display and interaction with locally stored clips
  */
 
+export {};
+
 interface LocalClip {
   id: string;
   url: string;

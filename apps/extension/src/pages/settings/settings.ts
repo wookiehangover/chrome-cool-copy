@@ -3,6 +3,8 @@
  * Handles saving and loading AgentDB and AI Gateway configuration
  */
 
+export {};
+
 interface AgentDBConfig {
   baseUrl: string;
   apiKey: string;

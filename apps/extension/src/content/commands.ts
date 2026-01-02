@@ -13,6 +13,7 @@ import {
 } from "./features/dark-mode-manager.js";
 import { openDarkModePanel } from "./features/dark-mode-panel.js";
 import { toggleBannerState } from "./features/grokipedia-banner.js";
+import { isWikipediaPage } from "./features/wikipedia-detector.js";
 import { showToast } from "./toast.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { toggleReaderMode } from "./features/reader-mode.js";
@@ -26,6 +27,8 @@ export interface Command {
   description?: string;
   shortcut?: string;
   action: () => void | Promise<void>;
+  /** Optional function to determine if command should be visible in the palette */
+  isVisible?: () => boolean;
 }
 
 /**
@@ -186,6 +189,7 @@ export const commandRegistry: Command[] = [
     name: "Toggle Grokipedia Banner",
     description: "Toggle Grokipedia banner on Wikipedia pages",
     shortcut: "",
+    isVisible: isWikipediaPage,
     action: async () => {
       const newState = await toggleBannerState();
       const message = newState ? "Grokipedia Banner: Enabled" : "Grokipedia Banner: Disabled";
