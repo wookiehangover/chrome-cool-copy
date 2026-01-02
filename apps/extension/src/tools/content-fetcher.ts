@@ -31,6 +31,74 @@ interface ScrapedPage {
 }
 
 /**
+ * Normalize a URL for comparison (removes trailing slashes, hash fragments, etc.)
+ */
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Remove hash fragment and trailing slash for comparison
+    return `${parsed.origin}${parsed.pathname.replace(/\/$/, "")}${parsed.search}`;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Scrape content from the current active tab
+ */
+async function scrapeCurrentTab(
+  tabId: number,
+  options?: { signal?: AbortSignal },
+): Promise<FetchContentResult> {
+  try {
+    // Check if aborted
+    if (options?.signal?.aborted) {
+      return { error: "Request aborted" };
+    }
+
+    // Send message to content script to scrape the page
+    const response = await new Promise<{
+      success: boolean;
+      scrapedPage?: ScrapedPage;
+      error?: string;
+    }>((resolve) => {
+      chrome.tabs.sendMessage(tabId, { action: "scrapePage" }, (response) => {
+        if (chrome.runtime.lastError) {
+          resolve({
+            success: false,
+            error: chrome.runtime.lastError.message || "Failed to communicate with page",
+          });
+        } else {
+          resolve(response || { success: false, error: "No response from content script" });
+        }
+      });
+    });
+
+    if (!response.success || !response.scrapedPage) {
+      return { error: response.error || "Failed to scrape page" };
+    }
+
+    const scraped = response.scrapedPage;
+
+    return {
+      content: scraped.content,
+      metadata: {
+        title: scraped.title,
+        url: scraped.url,
+        excerpt: scraped.excerpt,
+        siteName: scraped.siteName,
+        byline: scraped.byline,
+      },
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return { error: "Request aborted" };
+    }
+    return { error: error instanceof Error ? error.message : "Failed to fetch content" };
+  }
+}
+
+/**
  * Wait for a tab to finish loading
  */
 function waitForTabLoad(tabId: number, timeoutMs = 30000): Promise<void> {
@@ -148,6 +216,7 @@ async function scrapeUrlViaTab(
 /**
  * Fetch content from a URL
  * Uses tab-based scraping for full JavaScript rendering and DOM access
+ * If the URL matches the current active tab, scrapes that directly instead of opening a new tab
  */
 export async function fetchContent(
   url: string,
@@ -160,7 +229,19 @@ export async function fetchContent(
       return { error: "Only HTTP and HTTPS URLs are supported" };
     }
 
-    console.log("[Content Fetcher] Scraping URL via tab:", url);
+    // Check if the URL matches the current active tab
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab?.id && activeTab.url) {
+      const normalizedRequestUrl = normalizeUrl(url);
+      const normalizedActiveUrl = normalizeUrl(activeTab.url);
+
+      if (normalizedRequestUrl === normalizedActiveUrl) {
+        console.log("[Content Fetcher] URL matches active tab, scraping directly");
+        return await scrapeCurrentTab(activeTab.id, options);
+      }
+    }
+
+    console.log("[Content Fetcher] Scraping URL via new tab:", url);
     return await scrapeUrlViaTab(url, options);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
