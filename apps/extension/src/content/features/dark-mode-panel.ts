@@ -125,6 +125,40 @@ function createDivider(): HTMLDivElement {
 }
 
 /**
+ * Create a toggle switch row
+ */
+function createToggleRow(
+  label: string,
+  value: boolean,
+  onChange: (value: boolean) => void,
+): HTMLDivElement {
+  const row = document.createElement("div");
+  row.className = "dark-mode-panel-row";
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "dark-mode-panel-label";
+  labelEl.textContent = label;
+
+  const toggle = document.createElement("div");
+  toggle.className = `dark-mode-panel-toggle${value ? " active" : ""}`;
+
+  const thumb = document.createElement("div");
+  thumb.className = "dark-mode-panel-toggle-thumb";
+  toggle.appendChild(thumb);
+
+  toggle.addEventListener("click", () => {
+    const newValue = !toggle.classList.contains("active");
+    toggle.classList.toggle("active", newValue);
+    onChange(newValue);
+  });
+
+  row.appendChild(labelEl);
+  row.appendChild(toggle);
+
+  return row;
+}
+
+/**
  * Open the dark mode adjustment panel
  */
 export function openDarkModePanel(): void {
@@ -192,6 +226,17 @@ export function openDarkModePanel(): void {
     updateDarkModeSettings({ grayscale: value });
   });
 
+  // Preserve images toggle
+  const preserveImagesRow = createToggleRow(
+    "Preserve Images",
+    settings.preserveImages,
+    (value) => {
+      updateDarkModeSettings({ preserveImages: value });
+    },
+  );
+
+  body.appendChild(preserveImagesRow);
+  body.appendChild(createDivider());
   body.appendChild(brightnessRow);
   body.appendChild(contrastRow);
   body.appendChild(createDivider());

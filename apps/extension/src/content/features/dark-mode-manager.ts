@@ -13,6 +13,7 @@ export interface DarkModeSettings {
   sepia: number; // 0-100, default 0
   grayscale: number; // 0-100, default 0
   mixColor: string; // hex color, default #fff (unused in backdrop-filter approach)
+  preserveImages: boolean; // true = counter-invert images to preserve original colors
 }
 
 interface DarkModePreferences {
@@ -29,11 +30,15 @@ const defaultSettings: DarkModeSettings = {
   sepia: 0,
   grayscale: 0,
   mixColor: "#ffffff",
+  preserveImages: true,
 };
 
-// DOM element for the dark mode overlay
+// DOM elements for the dark mode overlay and image preservation
 let overlayElement: HTMLDivElement | null = null;
+let imagePreserveStyleElement: HTMLStyleElement | null = null;
 let isActive = false;
+
+const IMAGE_PRESERVE_STYLE_ID = "dark-mode-image-preserve";
 
 let currentDomain: string = "";
 let currentPreference: DarkModePreference = "off";
@@ -132,7 +137,43 @@ function cleanupDarkMode(): void {
     overlayElement.remove();
     overlayElement = null;
   }
+  if (imagePreserveStyleElement) {
+    imagePreserveStyleElement.remove();
+    imagePreserveStyleElement = null;
+  }
   isActive = false;
+}
+
+/**
+ * Create or update the style element for preserving images
+ * Applies counter-inversion to images so they appear in original colors
+ */
+function updateImagePreserveStyle(enabled: boolean): void {
+  if (enabled) {
+    if (!imagePreserveStyleElement) {
+      imagePreserveStyleElement = document.createElement("style");
+      imagePreserveStyleElement.id = IMAGE_PRESERVE_STYLE_ID;
+      document.head.appendChild(imagePreserveStyleElement);
+    }
+    // Counter-invert images, videos, and other media elements
+    // This cancels out the backdrop-filter invert, preserving original colors
+    imagePreserveStyleElement.textContent = `
+      img,
+      video,
+      picture,
+      canvas,
+      svg,
+      [style*="background-image"],
+      iframe {
+        filter: invert(1) !important;
+      }
+    `;
+  } else {
+    if (imagePreserveStyleElement) {
+      imagePreserveStyleElement.remove();
+      imagePreserveStyleElement = null;
+    }
+  }
 }
 
 /**
@@ -290,7 +331,8 @@ function isWhite(hex: string): boolean {
 function applySettingsToDOM(): void {
   if (!overlayElement) return;
 
-  const { brightness, contrast, sepia, grayscale, mixColor } = currentSettings;
+  const { brightness, contrast, sepia, grayscale, mixColor, preserveImages } =
+    currentSettings;
 
   // Build backdrop-filter string
   // Order matters: invert first, then adjust contrast/brightness
@@ -320,6 +362,9 @@ function applySettingsToDOM(): void {
   } else {
     overlayElement.style.background = "transparent";
   }
+
+  // Apply image preservation (counter-invert images)
+  updateImagePreserveStyle(preserveImages);
 }
 
 /**

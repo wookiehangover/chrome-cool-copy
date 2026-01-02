@@ -198,3 +198,34 @@
   background: var(--panel-border);
   margin: 12px 0;
 }
+
+/* Toggle switch */
+.dark-mode-panel-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--panel-slider-bg);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dark-mode-panel-toggle.active {
+  background: #4a9eff;
+}
+
+.dark-mode-panel-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--panel-bg);
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode-panel-toggle.active .dark-mode-panel-toggle-thumb {
+  transform: translateX(16px);
+}
