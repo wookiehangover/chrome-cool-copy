@@ -155,6 +155,61 @@ body {
   font-size: 11px;
   color: var(--text-muted);
   margin-bottom: 8px;
+  align-items: center;
+}
+
+/* Sync Status Badges */
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sync-synced {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.sync-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.sync-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.sync-local {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sync-synced {
+    background-color: #166534;
+    color: #dcfce7;
+  }
+
+  .sync-pending {
+    background-color: #92400e;
+    color: #fef3c7;
+  }
+
+  .sync-error {
+    background-color: #991b1b;
+    color: #fee2e2;
+  }
+
+  .sync-local {
+    background-color: #3730a3;
+    color: #e0e7ff;
+  }
 }
 
 .page-card-preview {

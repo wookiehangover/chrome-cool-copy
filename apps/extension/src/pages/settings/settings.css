@@ -104,10 +104,39 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.optional-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: #e0e7ff;
+  color: #3730a3;
+  border-radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .optional-badge {
+    background-color: #3730a3;
+    color: #e0e7ff;
+  }
 }
 
 .form-group {

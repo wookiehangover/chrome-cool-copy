@@ -6,9 +6,10 @@ if (typeof process === "undefined") {
   (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process = { env: {} };
 }
 
-import { initializeDatabase, saveWebpage } from "./services/database";
 import { streamText, generateText, createGateway, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
+import { saveLocalClip } from "./services/local-clips";
+import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
 
 /**
  * Vercel AI Gateway configuration
@@ -460,42 +461,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Return true to indicate we'll send response asynchronously
       return true;
     } else if (message.action === "savePageToDatabase") {
-      // Handle page clip request - save to AgentDB
+      // Handle page clip request - local-first storage with optional AgentDB sync
       (async () => {
         try {
-          // Get AgentDB config from chrome.storage.sync
-          const storageData = await new Promise<{
-            agentdbConfig?: {
-              baseUrl: string;
-              apiKey: string;
-              token: string;
-              dbName: string;
-              dbType?: "sqlite" | "duckdb";
-            };
-          }>((resolve) => {
-            chrome.storage.sync.get(["agentdbConfig"], (result) => {
-              resolve(result);
-            });
-          });
-
-          const config = storageData.agentdbConfig;
-          if (
-            !config ||
-            !config.baseUrl ||
-            !config.apiKey ||
-            !config.token ||
-            !config.dbName
-          ) {
-            throw new Error(
-              "AgentDB configuration not found. Please configure AgentDB settings.",
-            );
-          }
-
-          // Initialize database connection
-          await initializeDatabase(config);
-
-          // Save the webpage
-          const webpage = {
+          // Save locally first (always works)
+          const clipInput = {
             url: message.url,
             title: message.title,
             dom_content: message.domContent,
@@ -503,15 +473,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             metadata: message.metadata || {},
           };
 
-          await saveWebpage(webpage);
+          const savedClip = await saveLocalClip(clipInput);
+          console.log("[Clean Link Copy] Clip saved locally:", savedClip.id);
+
+          // Try to sync to AgentDB if configured (non-blocking)
+          const agentdbConfigured = await isAgentDBConfigured();
+          if (agentdbConfigured) {
+            // Sync in background - don't block the response
+            syncClipToAgentDB(savedClip).catch((error) => {
+              console.warn(
+                "[Clean Link Copy] AgentDB sync failed (clip still saved locally):",
+                error
+              );
+            });
+          }
 
           sendResponse({
             success: true,
-            message: "Page clipped successfully",
+            message: agentdbConfigured
+              ? "Page clipped successfully (syncing to AgentDB)"
+              : "Page clipped successfully (stored locally)",
+            clipId: savedClip.id,
           });
         } catch (error) {
           console.error(
-            "[Clean Link Copy] Error saving page to database:",
+            "[Clean Link Copy] Error saving page:",
             error,
           );
           sendResponse({

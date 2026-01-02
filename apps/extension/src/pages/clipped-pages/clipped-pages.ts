@@ -1,26 +1,28 @@
 /**
  * Clipped Pages Viewer
- * Manages display and interaction with clipped pages from AgentDB
+ * Manages display and interaction with locally stored clips
+ * With optional AgentDB sync status display
  */
 
-interface Page {
+type SyncStatus = "pending" | "synced" | "error" | "local-only";
+
+interface LocalClip {
   id: string;
-  title?: string;
   url: string;
-  text_content?: string;
-  created_at?: string;
+  title: string;
+  dom_content: string;
+  text_content: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  sync_status: SyncStatus;
+  sync_error?: string;
+  agentdb_id?: string;
 }
 
-interface AgentDBConfig {
-  baseUrl: string;
-  apiKey: string;
-  token: string;
-  dbName: string;
-  dbType: string;
-}
-
-let allPages: Page[] = [];
+let allClips: LocalClip[] = [];
 let pendingDeleteId: string | null = null;
+let agentdbConfigured = false;
 
 // DOM Elements
 const pagesContainer = document.getElementById('pagesContainer') as HTMLDivElement;
@@ -50,74 +52,89 @@ async function loadPages(): Promise<void> {
   try {
     showLoadingState();
 
-    // Get AgentDB config from chrome.storage.sync
-    const config = await getAgentDBConfig();
-    if (!config) {
-      throw new Error('AgentDB configuration not found. Please configure AgentDB settings.');
-    }
+    // Check if AgentDB is configured (for sync status display)
+    agentdbConfigured = await checkAgentDBConfigured();
 
-    // Dynamically import and initialize database service
-    const databaseUrl = chrome.runtime.getURL('services/database.js');
-    const { initializeDatabase, getWebpages } = await import(databaseUrl);
-    await initializeDatabase(config);
+    // Load clips from local storage (primary source)
+    const localClipsUrl = chrome.runtime.getURL('services/local-clips.js');
+    const { getLocalClips } = await import(localClipsUrl);
+    allClips = await getLocalClips();
 
-    // Fetch all webpages
-    allPages = await getWebpages();
-
-    // Display pages
-    if (allPages.length === 0) {
+    // Display clips
+    if (allClips.length === 0) {
       showEmptyState();
     } else {
-      showPages(allPages);
+      showClips(allClips);
       hideLoadingState();
     }
   } catch (error) {
-    console.error('[Clipped Pages] Error loading pages:', error);
+    console.error('[Clipped Pages] Error loading clips:', error);
     showErrorState(error instanceof Error ? error.message : String(error));
   }
 }
 
-function getAgentDBConfig(): Promise<AgentDBConfig | null> {
+async function checkAgentDBConfigured(): Promise<boolean> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(['agentdbConfig'], (result: Record<string, unknown>) => {
-      resolve((result.agentdbConfig as AgentDBConfig | undefined) || null);
+      const config = result.agentdbConfig as { baseUrl?: string; apiKey?: string; token?: string; dbName?: string } | undefined;
+      resolve(Boolean(config?.baseUrl && config?.apiKey && config?.token && config?.dbName));
     });
   });
 }
 
-function showPages(pages: Page[]): void {
+function showClips(clips: LocalClip[]): void {
   pagesContainer.innerHTML = '';
   hideLoadingState();
   hideErrorState();
   emptyState.style.display = 'none';
 
-  pages.forEach((page) => {
-    const card = createPageCard(page);
+  clips.forEach((clip) => {
+    const card = createClipCard(clip);
     pagesContainer.appendChild(card);
   });
 }
 
-function createPageCard(page: Page): HTMLDivElement {
+function getSyncStatusBadge(status: SyncStatus, hasAgentDB: boolean): string {
+  if (!hasAgentDB) {
+    return '<span class="sync-badge sync-local" title="Stored locally">💾 Local</span>';
+  }
+  switch (status) {
+    case 'synced':
+      return '<span class="sync-badge sync-synced" title="Synced to AgentDB">☁️ Synced</span>';
+    case 'pending':
+      return '<span class="sync-badge sync-pending" title="Pending sync to AgentDB">⏳ Pending</span>';
+    case 'error':
+      return '<span class="sync-badge sync-error" title="Sync failed">⚠️ Error</span>';
+    case 'local-only':
+      return '<span class="sync-badge sync-local" title="Stored locally only">💾 Local</span>';
+    default:
+      return '';
+  }
+}
+
+function createClipCard(clip: LocalClip): HTMLDivElement {
   const card = document.createElement('div');
   card.className = 'page-card';
 
-  const timestamp = page.created_at ? new Date(page.created_at).toLocaleDateString() : 'Unknown';
-  const preview = (page.text_content || '').substring(0, 150).trim();
+  const timestamp = clip.created_at ? new Date(clip.created_at).toLocaleDateString() : 'Unknown';
+  const preview = (clip.text_content || '').substring(0, 150).trim();
+  const syncBadge = getSyncStatusBadge(clip.sync_status, agentdbConfigured);
 
   card.innerHTML = `
     <div class="page-card-header">
       <div style="flex: 1;">
-        <div class="page-card-title">${escapeHtml(page.title || 'Untitled')}</div>
-        <div class="page-card-url">${escapeHtml(page.url)}</div>
+        <div class="page-card-title">${escapeHtml(clip.title || 'Untitled')}</div>
+        <div class="page-card-url">${escapeHtml(clip.url)}</div>
       </div>
     </div>
     <div class="page-card-meta">
       <span>📅 ${timestamp}</span>
+      ${syncBadge}
     </div>
     ${preview ? `<div class="page-card-preview">${escapeHtml(preview)}...</div>` : ''}
     <div class="page-card-actions">
-      <button class="button button-secondary expand-button" data-id="${page.id}">View</button>
-      <button class="button button-danger delete-button" data-id="${page.id}">Delete</button>
+      <button class="button button-secondary expand-button" data-id="${clip.id}">View</button>
+      <button class="button button-danger delete-button" data-id="${clip.id}">Delete</button>
     </div>
   `;
 
@@ -127,18 +144,18 @@ function createPageCard(page: Page): HTMLDivElement {
 
   expandBtn.addEventListener('click', (e: Event): void => {
     e.stopPropagation();
-    expandPage(page);
+    expandClip(clip);
   });
 
   deleteBtn.addEventListener('click', (e: Event): void => {
     e.stopPropagation();
-    openConfirmModal(page.id);
+    openConfirmModal(clip.id);
   });
 
   return card;
 }
 
-function expandPage(page: Page): void {
+function expandClip(clip: LocalClip): void {
   // Create a new window/tab to display full content
   const newWindow = window.open('', '_blank');
   if (!newWindow) {
@@ -150,7 +167,7 @@ function expandPage(page: Page): void {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${escapeHtml(page.title || 'Clipped Page')}</title>
+      <title>${escapeHtml(clip.title || 'Clipped Page')}</title>
       <style>
         body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; line-height: 1.6; }
         .header { border-bottom: 2px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 24px; }
@@ -161,11 +178,11 @@ function expandPage(page: Page): void {
     </head>
     <body>
       <div class="header">
-        <h1>${escapeHtml(page.title || 'Untitled')}</h1>
-        <p><a href="${escapeHtml(page.url)}" target="_blank">${escapeHtml(page.url)}</a></p>
+        <h1>${escapeHtml(clip.title || 'Untitled')}</h1>
+        <p><a href="${escapeHtml(clip.url)}" target="_blank">${escapeHtml(clip.url)}</a></p>
       </div>
       <div class="content">
-        <pre style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(page.text_content || '')}</pre>
+        <pre style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(clip.text_content || '')}</pre>
       </div>
     </body>
     </html>
@@ -175,21 +192,21 @@ function expandPage(page: Page): void {
 
 function filterPages(): void {
   const query = searchInput.value.toLowerCase();
-  const filtered = allPages.filter((page) => {
-    const title = (page.title || '').toLowerCase();
-    const url = (page.url || '').toLowerCase();
+  const filtered = allClips.filter((clip) => {
+    const title = (clip.title || '').toLowerCase();
+    const url = (clip.url || '').toLowerCase();
     return title.includes(query) || url.includes(query);
   });
 
   if (filtered.length === 0) {
-    pagesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">No pages match your search.</div>';
+    pagesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">No clips match your search.</div>';
   } else {
-    showPages(filtered);
+    showClips(filtered);
   }
 }
 
-function openConfirmModal(pageId: string): void {
-  pendingDeleteId = pageId;
+function openConfirmModal(clipId: string): void {
+  pendingDeleteId = clipId;
   confirmModal.style.display = 'flex';
 }
 
@@ -202,19 +219,16 @@ async function confirmDelete(): Promise<void> {
   if (!pendingDeleteId) return;
 
   try {
-    const config = await getAgentDBConfig();
-    if (!config) throw new Error('AgentDB configuration not found.');
-
-    const databaseUrl = chrome.runtime.getURL('services/database.js');
-    const { initializeDatabase, deleteWebpage } = await import(databaseUrl);
-    await initializeDatabase(config);
-    await deleteWebpage(pendingDeleteId);
+    // Delete from local storage and optionally from AgentDB
+    const clipsSyncUrl = chrome.runtime.getURL('services/clips-sync.js');
+    const { deleteClipWithSync } = await import(clipsSyncUrl);
+    await deleteClipWithSync(pendingDeleteId);
 
     closeConfirmModal();
     loadPages();
   } catch (error) {
-    console.error('[Clipped Pages] Error deleting page:', error);
-    alert('Failed to delete page: ' + (error instanceof Error ? error.message : String(error)));
+    console.error('[Clipped Pages] Error deleting clip:', error);
+    alert('Failed to delete clip: ' + (error instanceof Error ? error.message : String(error)));
   }
 }
 

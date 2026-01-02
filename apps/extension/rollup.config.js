@@ -41,6 +41,28 @@ export default [
     plugins: [...nodePlugins, typescript(tsConfig)],
   },
 
+  // Local clips storage service - ES module
+  {
+    input: "src/services/local-clips.ts",
+    output: {
+      file: "dist/services/local-clips.js",
+      format: "es",
+      sourcemap: true,
+    },
+    plugins: [typescript(tsConfig)],
+  },
+
+  // Clips sync service - ES module
+  {
+    input: "src/services/clips-sync.ts",
+    output: {
+      file: "dist/services/clips-sync.js",
+      format: "es",
+      sourcemap: true,
+    },
+    plugins: [...nodePlugins, typescript(tsConfig)],
+  },
+
   // Background service worker - ES module with node polyfills
   {
     input: "src/background.ts",

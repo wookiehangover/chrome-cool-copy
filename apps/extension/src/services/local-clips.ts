@@ -1,0 +1,154 @@
+/**
+ * Local Clips Storage Service
+ * Manages local storage of clipped pages using chrome.storage.local
+ * This is the primary storage mechanism - AgentDB sync is optional
+ */
+
+/**
+ * Sync status for a clip
+ */
+export type SyncStatus = "pending" | "synced" | "error" | "local-only";
+
+/**
+ * Local clip data structure
+ */
+export interface LocalClip {
+  id: string;
+  url: string;
+  title: string;
+  dom_content: string;
+  text_content: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  sync_status: SyncStatus;
+  sync_error?: string;
+  agentdb_id?: string; // ID in AgentDB if synced
+}
+
+/**
+ * Input for creating a new clip
+ */
+export interface ClipInput {
+  url: string;
+  title: string;
+  dom_content: string;
+  text_content: string;
+  metadata?: Record<string, unknown>;
+}
+
+const STORAGE_KEY = "local_clips";
+
+/**
+ * Generate a unique ID for a clip
+ */
+function generateId(): string {
+  return `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Get all local clips
+ */
+export async function getLocalClips(): Promise<LocalClip[]> {
+  const result = await chrome.storage.local.get([STORAGE_KEY]);
+  const clips = (result[STORAGE_KEY] as LocalClip[] | undefined) || [];
+  // Sort by created_at descending (newest first)
+  return clips.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+/**
+ * Get a single clip by ID
+ */
+export async function getLocalClip(id: string): Promise<LocalClip | null> {
+  const clips = await getLocalClips();
+  return clips.find((c) => c.id === id) || null;
+}
+
+/**
+ * Save a new clip locally
+ */
+export async function saveLocalClip(input: ClipInput): Promise<LocalClip> {
+  const clips = await getLocalClips();
+  const now = new Date().toISOString();
+
+  const newClip: LocalClip = {
+    id: generateId(),
+    url: input.url,
+    title: input.title,
+    dom_content: input.dom_content,
+    text_content: input.text_content,
+    metadata: input.metadata,
+    created_at: now,
+    updated_at: now,
+    sync_status: "pending",
+  };
+
+  clips.push(newClip);
+  await chrome.storage.local.set({ [STORAGE_KEY]: clips });
+
+  console.log("[Local Clips] Saved clip:", newClip.id, newClip.url);
+  return newClip;
+}
+
+/**
+ * Update a clip's sync status
+ */
+export async function updateClipSyncStatus(
+  id: string,
+  status: SyncStatus,
+  agentdbId?: string,
+  error?: string,
+): Promise<void> {
+  const clips = await getLocalClips();
+  const index = clips.findIndex((c) => c.id === id);
+
+  if (index === -1) {
+    console.warn("[Local Clips] Clip not found for sync update:", id);
+    return;
+  }
+
+  clips[index] = {
+    ...clips[index],
+    sync_status: status,
+    updated_at: new Date().toISOString(),
+    ...(agentdbId && { agentdb_id: agentdbId }),
+    ...(error && { sync_error: error }),
+  };
+
+  await chrome.storage.local.set({ [STORAGE_KEY]: clips });
+  console.log("[Local Clips] Updated sync status:", id, status);
+}
+
+/**
+ * Delete a clip locally
+ */
+export async function deleteLocalClip(id: string): Promise<boolean> {
+  const clips = await getLocalClips();
+  const index = clips.findIndex((c) => c.id === id);
+
+  if (index === -1) {
+    console.warn("[Local Clips] Clip not found for deletion:", id);
+    return false;
+  }
+
+  clips.splice(index, 1);
+  await chrome.storage.local.set({ [STORAGE_KEY]: clips });
+
+  console.log("[Local Clips] Deleted clip:", id);
+  return true;
+}
+
+/**
+ * Get clips that need syncing (status is "pending")
+ */
+export async function getPendingClips(): Promise<LocalClip[]> {
+  const clips = await getLocalClips();
+  return clips.filter((c) => c.sync_status === "pending");
+}
+
+/**
+ * Mark a clip as local-only (won't be synced)
+ */
+export async function markAsLocalOnly(id: string): Promise<void> {
+  await updateClipSyncStatus(id, "local-only");
+}

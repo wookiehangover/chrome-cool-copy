@@ -83,14 +83,18 @@ async function loadSettings(): Promise<void> {
 async function saveSettings(e: Event): Promise<void> {
   e.preventDefault();
 
-  // Build AgentDB config
-  const agentdbConfig: AgentDBConfig = {
+  const agentdbApiKey = apiKeyInput.value.trim();
+  const agentdbToken = tokenInput.value.trim();
+
+  // Build AgentDB config - only if credentials are provided
+  // AgentDB is optional - clips work locally without it
+  const agentdbConfig: AgentDBConfig | null = (agentdbApiKey && agentdbToken) ? {
     baseUrl: AGENTDB_BASE_URL,
-    apiKey: apiKeyInput.value.trim(),
-    token: tokenInput.value.trim(),
+    apiKey: agentdbApiKey,
+    token: agentdbToken,
     dbName: dbNameInput.value.trim() || 'webpages',
     dbType: dbTypeSelect.value,
-  };
+  } : null;
 
   // Build Vercel AI Gateway config
   const aiGatewayConfig: VercelAIGatewayConfig = {
@@ -98,23 +102,29 @@ async function saveSettings(e: Event): Promise<void> {
     model: aiGatewayModelInput.value.trim() || 'anthropic/claude-sonnet-4',
   };
 
-  // Validate required fields
-  if (!agentdbConfig.apiKey || !agentdbConfig.token) {
-    showStatus('Please fill in all AgentDB required fields', 'error');
-    return;
-  }
-
+  // Only validate AI Gateway - AgentDB is optional
   if (!aiGatewayConfig.apiKey || !aiGatewayConfig.model) {
     showStatus('Please fill in all Vercel AI Gateway required fields', 'error');
     return;
   }
 
   try {
-    await chrome.storage.sync.set({
-      agentdbConfig,
-      aiGatewayConfig
-    });
-    showStatus('Settings saved successfully', 'success');
+    const storageData: Record<string, unknown> = { aiGatewayConfig };
+
+    // Only save agentdbConfig if it's configured
+    if (agentdbConfig) {
+      storageData.agentdbConfig = agentdbConfig;
+    } else {
+      // Remove agentdbConfig if cleared
+      await chrome.storage.sync.remove(['agentdbConfig']);
+    }
+
+    await chrome.storage.sync.set(storageData);
+
+    const message = agentdbConfig
+      ? 'Settings saved successfully (clips will sync to AgentDB)'
+      : 'Settings saved successfully (clips stored locally only)';
+    showStatus(message, 'success');
   } catch (error) {
     console.error('[Settings] Error saving settings:', error);
     showStatus('Failed to save settings: ' + (error instanceof Error ? error.message : String(error)), 'error');

@@ -82,11 +82,6 @@ All features are accessible through a unified **Command Palette** (`Cmd+Shift+P`
 ### Settings
 - **Settings**: Access via Command Palette to configure extension options
 
-### User Experience
-- **Toast Notifications**: Displays confirmation messages for all actions
-- **Error Handling**: User-friendly error messages for configuration or database issues
-- **Works Everywhere**: Functions on any webpage
-
 ## Installation
 
 ### Install from Source

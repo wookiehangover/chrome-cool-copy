@@ -17,23 +17,24 @@
       <form id="settingsForm">
         <!-- AgentDB Configuration Section -->
         <div class="settings-section">
-          <h2 class="section-title">AgentDB Configuration</h2>
+          <h2 class="section-title">AgentDB Configuration <span class="optional-badge">Optional</span></h2>
+          <p class="section-description">Clips are stored locally by default. Configure AgentDB to sync clips across devices.</p>
 
           <div class="form-group">
             <label for="apiKey">API Key</label>
-            <input type="password" id="apiKey" name="apiKey" placeholder="Your API key" required>
+            <input type="password" id="apiKey" name="apiKey" placeholder="Your API key (optional)">
             <p class="form-hint">Your AgentDB API key</p>
           </div>
 
           <div class="form-group">
             <label for="token">Token</label>
-            <input type="password" id="token" name="token" placeholder="Your token" required>
+            <input type="password" id="token" name="token" placeholder="Your token (optional)">
             <p class="form-hint">Your AgentDB authentication token</p>
           </div>
 
           <div class="form-group">
             <label for="dbName">Database Name</label>
-            <input type="text" id="dbName" name="dbName" placeholder="webpages" required>
+            <input type="text" id="dbName" name="dbName" placeholder="webpages">
             <p class="form-hint">Name of the database to store clipped pages</p>
           </div>
 

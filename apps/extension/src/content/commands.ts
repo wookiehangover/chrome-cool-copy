@@ -71,7 +71,7 @@ export const commandRegistry: Command[] = [
   {
     id: "clip-page",
     name: "Clip page",
-    description: "Clip current page to AgentDB",
+    description: "Save current page locally (syncs to AgentDB if configured)",
     shortcut: "",
     action: async () => {
       try {
