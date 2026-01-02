@@ -199,4 +199,3 @@ export function initializeGrokipediaBanner(): void {
     console.error("[Grokipedia Banner] Initialization failed:", error);
   }
 }
-

@@ -27,7 +27,7 @@ export function isWikipediaPage(): boolean {
 export function getWikipediaArticleTitle(url: string = window.location.href): string | null {
   try {
     const urlObj = new URL(url);
-    
+
     // Only process Wikipedia URLs
     if (!/^[a-z]{2,}\.wikipedia\.org$/.test(urlObj.hostname)) {
       return null;
@@ -35,10 +35,10 @@ export function getWikipediaArticleTitle(url: string = window.location.href): st
 
     // Extract the pathname and remove leading slash
     const pathname = urlObj.pathname;
-    
+
     // Wikipedia article URLs follow the pattern: /wiki/Article_Title
     // or /w/index.php?title=Article_Title for old-style URLs
-    
+
     // Handle standard wiki URLs: /wiki/Article_Title
     const wikiMatch = pathname.match(/^\/wiki\/(.+)$/);
     if (wikiMatch) {
@@ -114,11 +114,10 @@ export function isWikipediaSpecialPage(title: string | null): boolean {
  */
 export function getWikipediaArticle(url: string = window.location.href): string | null {
   const title = getWikipediaArticleTitle(url);
-  
+
   if (isWikipediaSpecialPage(title)) {
     return null;
   }
 
   return title;
 }
-

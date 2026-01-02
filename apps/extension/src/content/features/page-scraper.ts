@@ -131,4 +131,3 @@ export function scrapePage(): ScrapedPage {
     characterCount: content.length,
   };
 }
-

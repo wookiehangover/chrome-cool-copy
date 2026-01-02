@@ -27,12 +27,12 @@ function getSelectedText(): string {
  */
 function extractTextContent(): string {
   const textContent = document.body?.innerText || "";
-  
+
   // If text is already under limit, return as-is
   if (textContent.length <= MAX_CONTEXT_CHARS) {
     return textContent;
   }
-  
+
   // Truncate to limit and add ellipsis
   return textContent.substring(0, MAX_CONTEXT_CHARS - 3) + "...";
 }
@@ -44,7 +44,7 @@ function extractTextContent(): string {
 export function buildPageContext(): PageContext {
   const selectedText = getSelectedText();
   const textContent = extractTextContent();
-  
+
   const context: PageContext = {
     title: document.title,
     url: window.location.href,
@@ -52,7 +52,7 @@ export function buildPageContext(): PageContext {
     selectedText,
     characterCount: textContent.length,
   };
-  
+
   return context;
 }
 
@@ -63,13 +63,13 @@ export function formatContextAsSystemMessage(context: PageContext): string {
   let message = `You are assisting with content from a web page.\n\n`;
   message += `Page Title: ${context.title}\n`;
   message += `Page URL: ${context.url}\n`;
-  
+
   if (context.selectedText) {
     message += `\nUser Selected Text:\n${context.selectedText}\n`;
   }
-  
+
   message += `\nPage Content:\n${context.textContent}`;
-  
+
   return message;
 }
 
@@ -80,13 +80,12 @@ export function formatContextAsUserPrefix(context: PageContext): string {
   let prefix = `[Page Context]\n`;
   prefix += `Title: ${context.title}\n`;
   prefix += `URL: ${context.url}\n`;
-  
+
   if (context.selectedText) {
     prefix += `Selected: ${context.selectedText}\n`;
   }
-  
+
   prefix += `\n`;
-  
+
   return prefix;
 }
-

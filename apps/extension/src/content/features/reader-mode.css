@@ -30,17 +30,17 @@
   --link-underline: #808080;
   --code-bg: #f5f5f5;
   --blockquote-border: #d0d0d0;
-  --highlight-bg: #FFFF00;
-  --highlight-active: #FFFF00;
+  --highlight-bg: #ffff00;
+  --highlight-active: #ffff00;
   --highlight-text: #000000;
   --control-bg: rgba(0, 0, 0, 0.04);
   --control-hover: rgba(0, 0, 0, 0.08);
   --control-active: rgba(0, 0, 0, 0.12);
 
   /* Typography - user customizable */
-  --font-body: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --font-serif: Georgia, 'Times New Roman', serif;
-  --font-mono: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  --font-body: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-mono: "SF Mono", "Monaco", "Consolas", monospace;
   --font-size-base: 16px;
   --line-height: 1.6;
 }
@@ -59,8 +59,8 @@
     --link-underline: #707070;
     --code-bg: #252525;
     --blockquote-border: #404040;
-    --highlight-bg: #FFFF00;
-    --highlight-active: #FFFF00;
+    --highlight-bg: #ffff00;
+    --highlight-active: #ffff00;
     --highlight-text: #000000;
     --control-bg: rgba(255, 255, 255, 0.06);
     --control-hover: rgba(255, 255, 255, 0.1);
@@ -123,7 +123,9 @@
   cursor: pointer;
   color: var(--text-muted);
   font-size: 14px;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .reader-mode-btn:hover {
@@ -280,7 +282,9 @@
   margin-top: 12px;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .clip-status:hover {
@@ -321,12 +325,28 @@
   letter-spacing: -0.01em;
 }
 
-.reader-mode-content h1 { font-size: 1.5em; }
-.reader-mode-content h2 { font-size: 1.25em; }
-.reader-mode-content h3 { font-size: 1.125em; }
-.reader-mode-content h4 { font-size: 1em; }
-.reader-mode-content h5 { font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.05em; }
-.reader-mode-content h6 { font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.05em; }
+.reader-mode-content h1 {
+  font-size: 1.5em;
+}
+.reader-mode-content h2 {
+  font-size: 1.25em;
+}
+.reader-mode-content h3 {
+  font-size: 1.125em;
+}
+.reader-mode-content h4 {
+  font-size: 1em;
+}
+.reader-mode-content h5 {
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.reader-mode-content h6 {
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
 .reader-mode-content p {
   margin: 0 0 1.25em 0;
@@ -559,15 +579,15 @@
 
 /* Font family classes */
 .font-sans {
-  --font-body: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 }
 
 .font-serif {
-  --font-body: Georgia, 'Times New Roman', serif;
+  --font-body: Georgia, "Times New Roman", serif;
 }
 
 .font-mono {
-  --font-body: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  --font-body: "SF Mono", "Monaco", "Consolas", monospace;
 }
 
 /* Edit mode styles */

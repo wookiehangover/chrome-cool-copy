@@ -117,13 +117,13 @@ function extractArticleContent(): { title: string; content: Element; images: str
   // Try to find the main content using semantic HTML and common patterns
   const mainContent = findMainContent();
   const cleanedContent = cleanContent(mainContent);
-  
+
   // Extract title
   const title = extractTitle();
-  
+
   // Extract images from the article
   const images = extractImages(cleanedContent);
-  
+
   return { title, content: cleanedContent, images };
 }
 
@@ -334,7 +334,12 @@ function restoreHighlights(): void {
  * Find text in the DOM and wrap it with a mark element
  * Handles text that spans multiple text nodes
  */
-function findTextAndWrap(container: Element, searchText: string, highlightId: string, note?: string): boolean {
+function findTextAndWrap(
+  container: Element,
+  searchText: string,
+  highlightId: string,
+  note?: string,
+): boolean {
   // First, try to find in a single text node (fast path)
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let node: Text | null;
@@ -379,8 +384,8 @@ function findTextAndWrap(container: Element, searchText: string, highlightId: st
   const searchEnd = searchIndex + searchText.length;
 
   // Find the nodes that contain the start and end of our search text
-  const startNodeInfo = textNodes.find(n => searchIndex >= n.start && searchIndex < n.end);
-  const endNodeInfo = textNodes.find(n => searchEnd > n.start && searchEnd <= n.end);
+  const startNodeInfo = textNodes.find((n) => searchIndex >= n.start && searchIndex < n.end);
+  const endNodeInfo = textNodes.find((n) => searchEnd > n.start && searchEnd <= n.end);
 
   if (!startNodeInfo || !endNodeInfo) {
     return false;
@@ -553,11 +558,7 @@ function createSettingsPanel(settings: ReaderSettings): HTMLElement {
     btn.className = `font-btn ${settings.fontFamily === font.id ? "active" : ""}`;
     btn.textContent = font.label;
     btn.style.fontFamily =
-      font.id === "sans"
-        ? "sans-serif"
-        : font.id === "serif"
-          ? "Georgia, serif"
-          : "monospace";
+      font.id === "sans" ? "sans-serif" : font.id === "serif" ? "Georgia, serif" : "monospace";
     btn.addEventListener("click", () => updateFontFamily(font.id));
     fontButtons.appendChild(btn);
   });
@@ -759,7 +760,11 @@ function createNoteEditor(): HTMLElement {
 /**
  * Create the reader mode UI with Shadow DOM
  */
-async function createReaderModeUI(title: string, content: Element, settings: ReaderSettings): Promise<void> {
+async function createReaderModeUI(
+  title: string,
+  content: Element,
+  settings: ReaderSettings,
+): Promise<void> {
   readerModeContainer = document.createElement("div");
   readerModeContainer.id = "reader-mode-root";
 
@@ -965,13 +970,17 @@ function showNoteEditor(markElement: HTMLElement, highlightId: string, existingN
   activeHighlightId = highlightId;
 
   // Clear previous active highlights and set new one
-  shadowRoot.querySelectorAll(".reader-highlight.active").forEach((el) => el.classList.remove("active"));
+  shadowRoot
+    .querySelectorAll(".reader-highlight.active")
+    .forEach((el) => el.classList.remove("active"));
   markElement.classList.add("active");
 
   // Fallback positioning for browsers without CSS anchor positioning
   if (!supportsAnchorPositioning()) {
     const rect = markElement.getBoundingClientRect();
-    const containerRect = shadowRoot.querySelector(".reader-mode-container")?.getBoundingClientRect();
+    const containerRect = shadowRoot
+      .querySelector(".reader-mode-container")
+      ?.getBoundingClientRect();
 
     if (containerRect) {
       // Position to the right of the content container
@@ -1000,7 +1009,9 @@ function hideNoteEditor(): void {
   noteEditor.classList.remove("visible");
   activeHighlightId = null;
 
-  shadowRoot.querySelectorAll(".reader-highlight.active").forEach((el) => el.classList.remove("active"));
+  shadowRoot
+    .querySelectorAll(".reader-highlight.active")
+    .forEach((el) => el.classList.remove("active"));
 }
 
 /**

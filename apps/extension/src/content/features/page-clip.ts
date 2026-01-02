@@ -70,7 +70,8 @@ export function buildPageClipPayload(): PageClipPayload {
     domContent,
     textContent,
     metadata: {
-      description: document.querySelector('meta[name="description"]')?.getAttribute("content") || "",
+      description:
+        document.querySelector('meta[name="description"]')?.getAttribute("content") || "",
       keywords: document.querySelector('meta[name="keywords"]')?.getAttribute("content") || "",
       author: document.querySelector('meta[name="author"]')?.getAttribute("content") || "",
       ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute("content") || "",

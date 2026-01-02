@@ -22,21 +22,17 @@ export async function requestPageContext(): Promise<PageContext | null> {
           return;
         }
 
-        chrome.tabs.sendMessage(
-          tabs[0].id,
-          { action: "getPageContext" },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.error(
-                "[Page Context] Failed to get context:",
-                chrome.runtime.lastError.message,
-              );
-              resolve({ success: false, error: chrome.runtime.lastError.message });
-            } else {
-              resolve(response || { success: false, error: "No response" });
-            }
-          },
-        );
+        chrome.tabs.sendMessage(tabs[0].id, { action: "getPageContext" }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "[Page Context] Failed to get context:",
+              chrome.runtime.lastError.message,
+            );
+            resolve({ success: false, error: chrome.runtime.lastError.message });
+          } else {
+            resolve(response || { success: false, error: "No response" });
+          }
+        });
       });
     });
 
@@ -62,7 +58,7 @@ export async function requestPageContext(): Promise<PageContext | null> {
 export function connectToContentScript(): chrome.runtime.Port | null {
   try {
     const port = chrome.runtime.connect({ name: "page-context-channel" });
-    
+
     port.onDisconnect.addListener(() => {
       console.log("[Page Context] Connection to content script closed");
     });
@@ -118,4 +114,3 @@ export function broadcastPageContextUpdate(context: PageContext): void {
     console.error("[Page Context] Error broadcasting update:", error);
   }
 }
-

@@ -77,9 +77,7 @@ function setCachedResult(title: string, exists: boolean): void {
  * @param articleTitle - The article title to check
  * @returns Promise<boolean> - true if page exists, false otherwise
  */
-export async function checkGrokipediaPageExists(
-  articleTitle: string
-): Promise<boolean> {
+export async function checkGrokipediaPageExists(articleTitle: string): Promise<boolean> {
   if (!articleTitle || typeof articleTitle !== "string") {
     return false;
   }
@@ -105,10 +103,7 @@ export async function checkGrokipediaPageExists(
     return exists;
   } catch (error) {
     // Handle errors gracefully
-    console.error(
-      `Error checking Grokipedia page for "${articleTitle}":`,
-      error
-    );
+    console.error(`Error checking Grokipedia page for "${articleTitle}":`, error);
     // Return false on error to fail silently
     return false;
   }
@@ -130,4 +125,3 @@ export function clearGrokipediaCache(): void {
     console.error("Error clearing Grokipedia cache:", error);
   }
 }
-

@@ -7,8 +7,8 @@
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c --watch",
-    "lint": "oxlint src/**/*.ts",
-    "format": "oxfmt src/**/*.ts",
+    "lint": "oxlint src",
+    "format": "oxfmt src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -227,13 +227,9 @@ export function openDarkModePanel(): void {
   });
 
   // Preserve images toggle
-  const preserveImagesRow = createToggleRow(
-    "Preserve Images",
-    settings.preserveImages,
-    (value) => {
-      updateDarkModeSettings({ preserveImages: value });
-    },
-  );
+  const preserveImagesRow = createToggleRow("Preserve Images", settings.preserveImages, (value) => {
+    updateDarkModeSettings({ preserveImages: value });
+  });
 
   body.appendChild(preserveImagesRow);
   body.appendChild(createDivider());

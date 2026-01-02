@@ -34,7 +34,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
   background: var(--bg);
   color: var(--text-primary);
   line-height: 1.5;
@@ -192,7 +192,7 @@ body {
 }
 
 kbd {
-  font-family: 'SF Mono', Monaco, monospace;
+  font-family: "SF Mono", Monaco, monospace;
   font-size: 11px;
   color: var(--text-secondary);
 }
@@ -213,7 +213,9 @@ kbd {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state {

@@ -8,8 +8,8 @@
     "watch": "vite build --watch",
     "dev": "vite",
     "preview": "vite preview",
-    "lint": "oxlint src/**/*.ts",
-    "format": "oxfmt src/**/*.ts"
+    "lint": "oxlint src",
+    "format": "oxfmt src"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.18",

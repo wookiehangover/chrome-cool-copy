@@ -17,33 +17,33 @@ interface LocalClip {
 let allClips: LocalClip[] = [];
 let pendingDeleteId: string | null = null;
 
-const pagesContainer = document.getElementById('pagesContainer') as HTMLDivElement;
-const emptyState = document.getElementById('emptyState') as HTMLDivElement;
-const loadingState = document.getElementById('loadingState') as HTMLDivElement;
-const errorState = document.getElementById('errorState') as HTMLDivElement;
-const searchInput = document.getElementById('searchInput') as HTMLInputElement;
-const confirmModal = document.getElementById('confirmModal') as HTMLDivElement;
-const cancelButton = document.getElementById('cancelButton') as HTMLButtonElement;
-const confirmButton = document.getElementById('confirmButton') as HTMLButtonElement;
-const retryButton = document.getElementById('retryButton') as HTMLButtonElement;
+const pagesContainer = document.getElementById("pagesContainer") as HTMLDivElement;
+const emptyState = document.getElementById("emptyState") as HTMLDivElement;
+const loadingState = document.getElementById("loadingState") as HTMLDivElement;
+const errorState = document.getElementById("errorState") as HTMLDivElement;
+const searchInput = document.getElementById("searchInput") as HTMLInputElement;
+const confirmModal = document.getElementById("confirmModal") as HTMLDivElement;
+const cancelButton = document.getElementById("cancelButton") as HTMLButtonElement;
+const confirmButton = document.getElementById("confirmButton") as HTMLButtonElement;
+const retryButton = document.getElementById("retryButton") as HTMLButtonElement;
 
-document.addEventListener('DOMContentLoaded', (): void => {
+document.addEventListener("DOMContentLoaded", (): void => {
   loadPages();
   setupEventListeners();
 });
 
 function setupEventListeners(): void {
-  searchInput.addEventListener('input', filterPages);
-  cancelButton.addEventListener('click', closeConfirmModal);
-  confirmButton.addEventListener('click', confirmDelete);
-  retryButton.addEventListener('click', loadPages);
+  searchInput.addEventListener("input", filterPages);
+  cancelButton.addEventListener("click", closeConfirmModal);
+  confirmButton.addEventListener("click", confirmDelete);
+  retryButton.addEventListener("click", loadPages);
 }
 
 async function loadPages(): Promise<void> {
   try {
     showLoadingState();
 
-    const localClipsUrl = chrome.runtime.getURL('services/local-clips.js');
+    const localClipsUrl = chrome.runtime.getURL("services/local-clips.js");
     const { getLocalClips } = await import(localClipsUrl);
     allClips = await getLocalClips();
 
@@ -54,16 +54,16 @@ async function loadPages(): Promise<void> {
       hideLoadingState();
     }
   } catch (error) {
-    console.error('[Clipped Pages] Error loading clips:', error);
+    console.error("[Clipped Pages] Error loading clips:", error);
     showErrorState(error instanceof Error ? error.message : String(error));
   }
 }
 
 function showClips(clips: LocalClip[]): void {
-  pagesContainer.innerHTML = '';
+  pagesContainer.innerHTML = "";
   hideLoadingState();
   hideErrorState();
-  emptyState.style.display = 'none';
+  emptyState.style.display = "none";
 
   clips.forEach((clip) => {
     const card = createClipCard(clip);
@@ -72,32 +72,32 @@ function showClips(clips: LocalClip[]): void {
 }
 
 function createClipCard(clip: LocalClip): HTMLDivElement {
-  const card = document.createElement('div');
-  card.className = 'page-card';
+  const card = document.createElement("div");
+  card.className = "page-card";
 
-  const timestamp = clip.created_at ? new Date(clip.created_at).toLocaleDateString() : 'Unknown';
-  const preview = (clip.text_content || '').substring(0, 150).trim();
+  const timestamp = clip.created_at ? new Date(clip.created_at).toLocaleDateString() : "Unknown";
+  const preview = (clip.text_content || "").substring(0, 150).trim();
 
   card.innerHTML = `
     <div class="page-card-header">
-      <div class="page-card-title">${escapeHtml(clip.title || 'Untitled')}</div>
+      <div class="page-card-title">${escapeHtml(clip.title || "Untitled")}</div>
       <div class="page-card-url">${escapeHtml(clip.url)}</div>
     </div>
     <div class="page-card-meta">
       <span>${timestamp}</span>
     </div>
-    ${preview ? `<div class="page-card-preview">${escapeHtml(preview)}...</div>` : ''}
+    ${preview ? `<div class="page-card-preview">${escapeHtml(preview)}...</div>` : ""}
     <div class="page-card-actions">
       <button class="button button-danger delete-button" data-id="${clip.id}">Delete</button>
     </div>
   `;
 
-  card.addEventListener('click', (): void => {
+  card.addEventListener("click", (): void => {
     expandClip(clip);
   });
 
-  const deleteBtn = card.querySelector('.delete-button') as HTMLButtonElement;
-  deleteBtn.addEventListener('click', (e: Event): void => {
+  const deleteBtn = card.querySelector(".delete-button") as HTMLButtonElement;
+  deleteBtn.addEventListener("click", (e: Event): void => {
     e.stopPropagation();
     openConfirmModal(clip.id);
   });
@@ -107,20 +107,23 @@ function createClipCard(clip: LocalClip): HTMLDivElement {
 
 function expandClip(clip: LocalClip): void {
   // Open the clip viewer page
-  const viewerUrl = chrome.runtime.getURL(`pages/clip-viewer.html?id=${encodeURIComponent(clip.id)}`);
-  window.open(viewerUrl, '_blank');
+  const viewerUrl = chrome.runtime.getURL(
+    `pages/clip-viewer.html?id=${encodeURIComponent(clip.id)}`,
+  );
+  window.open(viewerUrl, "_blank");
 }
 
 function filterPages(): void {
   const query = searchInput.value.toLowerCase();
   const filtered = allClips.filter((clip) => {
-    const title = (clip.title || '').toLowerCase();
-    const url = (clip.url || '').toLowerCase();
+    const title = (clip.title || "").toLowerCase();
+    const url = (clip.url || "").toLowerCase();
     return title.includes(query) || url.includes(query);
   });
 
   if (filtered.length === 0) {
-    pagesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">No clips match your search.</div>';
+    pagesContainer.innerHTML =
+      '<div style="text-align: center; padding: 40px; color: #6b7280;">No clips match your search.</div>';
   } else {
     showClips(filtered);
   }
@@ -128,11 +131,11 @@ function filterPages(): void {
 
 function openConfirmModal(clipId: string): void {
   pendingDeleteId = clipId;
-  confirmModal.style.display = 'flex';
+  confirmModal.style.display = "flex";
 }
 
 function closeConfirmModal(): void {
-  confirmModal.style.display = 'none';
+  confirmModal.style.display = "none";
   pendingDeleteId = null;
 }
 
@@ -141,52 +144,51 @@ async function confirmDelete(): Promise<void> {
 
   try {
     // Delete from local storage and optionally from AgentDB
-    const clipsSyncUrl = chrome.runtime.getURL('services/clips-sync.js');
+    const clipsSyncUrl = chrome.runtime.getURL("services/clips-sync.js");
     const { deleteClipWithSync } = await import(clipsSyncUrl);
     await deleteClipWithSync(pendingDeleteId);
 
     closeConfirmModal();
     loadPages();
   } catch (error) {
-    console.error('[Clipped Pages] Error deleting clip:', error);
-    alert('Failed to delete clip: ' + (error instanceof Error ? error.message : String(error)));
+    console.error("[Clipped Pages] Error deleting clip:", error);
+    alert("Failed to delete clip: " + (error instanceof Error ? error.message : String(error)));
   }
 }
 
 function showLoadingState(): void {
-  loadingState.style.display = 'block';
-  pagesContainer.innerHTML = '';
-  emptyState.style.display = 'none';
-  errorState.style.display = 'none';
+  loadingState.style.display = "block";
+  pagesContainer.innerHTML = "";
+  emptyState.style.display = "none";
+  errorState.style.display = "none";
 }
 
 function hideLoadingState(): void {
-  loadingState.style.display = 'none';
+  loadingState.style.display = "none";
 }
 
 function showEmptyState(): void {
-  emptyState.style.display = 'block';
-  pagesContainer.innerHTML = '';
-  errorState.style.display = 'none';
-  loadingState.style.display = 'none';
+  emptyState.style.display = "block";
+  pagesContainer.innerHTML = "";
+  errorState.style.display = "none";
+  loadingState.style.display = "none";
 }
 
 function showErrorState(message: string): void {
-  errorState.style.display = 'block';
-  const errorMessageEl = document.getElementById('errorMessage') as HTMLDivElement;
+  errorState.style.display = "block";
+  const errorMessageEl = document.getElementById("errorMessage") as HTMLDivElement;
   errorMessageEl.textContent = message;
-  pagesContainer.innerHTML = '';
-  emptyState.style.display = 'none';
-  loadingState.style.display = 'none';
+  pagesContainer.innerHTML = "";
+  emptyState.style.display = "none";
+  loadingState.style.display = "none";
 }
 
 function hideErrorState(): void {
-  errorState.style.display = 'none';
+  errorState.style.display = "none";
 }
 
 function escapeHtml(text: string): string {
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
-

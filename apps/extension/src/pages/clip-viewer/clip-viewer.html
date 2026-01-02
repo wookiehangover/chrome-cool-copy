@@ -1,75 +1,81 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Clip Viewer</title>
-  <link rel="stylesheet" href="./clip-viewer.css">
-</head>
-<body>
-  <div class="viewer-wrapper">
-    <!-- Toolbar -->
-    <div class="viewer-toolbar">
-      <button class="viewer-btn" id="backBtn" title="Back to clips">Back</button>
-      <div class="toolbar-spacer"></div>
-      <button class="viewer-btn" id="settingsBtn" title="Settings">Aa</button>
-      <button class="viewer-btn" id="openUrlBtn" title="Open original page">Open URL</button>
-    </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clip Viewer</title>
+    <link rel="stylesheet" href="./clip-viewer.css" />
+  </head>
+  <body>
+    <div class="viewer-wrapper">
+      <!-- Toolbar -->
+      <div class="viewer-toolbar">
+        <button class="viewer-btn" id="backBtn" title="Back to clips">Back</button>
+        <div class="toolbar-spacer"></div>
+        <button class="viewer-btn" id="settingsBtn" title="Settings">Aa</button>
+        <button class="viewer-btn" id="openUrlBtn" title="Open original page">Open URL</button>
+      </div>
 
-    <!-- Settings Panel -->
-    <div class="settings-panel" id="settingsPanel">
-      <div class="settings-group">
-        <label class="settings-label">Font</label>
-        <div class="settings-buttons">
-          <button class="settings-btn" data-font="sans">Sans</button>
-          <button class="settings-btn" data-font="serif">Serif</button>
-          <button class="settings-btn" data-font="mono">Mono</button>
+      <!-- Settings Panel -->
+      <div class="settings-panel" id="settingsPanel">
+        <div class="settings-group">
+          <label class="settings-label">Font</label>
+          <div class="settings-buttons">
+            <button class="settings-btn" data-font="sans">Sans</button>
+            <button class="settings-btn" data-font="serif">Serif</button>
+            <button class="settings-btn" data-font="mono">Mono</button>
+          </div>
+        </div>
+        <div class="settings-group">
+          <label class="settings-label">Size</label>
+          <input
+            type="range"
+            id="fontSizeSlider"
+            min="14"
+            max="22"
+            value="16"
+            class="settings-slider"
+          />
         </div>
       </div>
-      <div class="settings-group">
-        <label class="settings-label">Size</label>
-        <input type="range" id="fontSizeSlider" min="14" max="22" value="16" class="settings-slider">
+
+      <!-- Main Content -->
+      <div class="viewer-container">
+        <header class="viewer-header">
+          <h1 class="viewer-title" id="clipTitle">Loading...</h1>
+          <a class="viewer-url" id="clipUrl" href="#" target="_blank"></a>
+          <div class="viewer-meta" id="clipMeta"></div>
+        </header>
+        <div class="viewer-content" id="clipContent">
+          <!-- Clip content will be rendered here -->
+        </div>
+      </div>
+
+      <!-- Comments Gutter -->
+      <div class="comments-gutter" id="commentsGutter"></div>
+
+      <!-- Note Editor -->
+      <div class="note-editor" id="noteEditor">
+        <textarea class="note-textarea" id="noteTextarea" placeholder="Add a note..."></textarea>
+        <div class="note-actions">
+          <button class="note-save" id="noteSave">Save</button>
+          <button class="note-delete" id="noteDelete">Delete</button>
+        </div>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="viewer-container">
-      <header class="viewer-header">
-        <h1 class="viewer-title" id="clipTitle">Loading...</h1>
-        <a class="viewer-url" id="clipUrl" href="#" target="_blank"></a>
-        <div class="viewer-meta" id="clipMeta"></div>
-      </header>
-      <div class="viewer-content" id="clipContent">
-        <!-- Clip content will be rendered here -->
-      </div>
+    <!-- Loading State -->
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+      <p>Loading clip...</p>
     </div>
 
-    <!-- Comments Gutter -->
-    <div class="comments-gutter" id="commentsGutter"></div>
-
-    <!-- Note Editor -->
-    <div class="note-editor" id="noteEditor">
-      <textarea class="note-textarea" id="noteTextarea" placeholder="Add a note..."></textarea>
-      <div class="note-actions">
-        <button class="note-save" id="noteSave">Save</button>
-        <button class="note-delete" id="noteDelete">Delete</button>
-      </div>
+    <!-- Error State -->
+    <div class="error-state" id="errorState" style="display: none;">
+      <p class="error-message" id="errorMessage">Clip not found</p>
+      <button class="viewer-btn" id="errorBackBtn">Back to clips</button>
     </div>
-  </div>
 
-  <!-- Loading State -->
-  <div class="loading-state" id="loadingState">
-    <div class="spinner"></div>
-    <p>Loading clip...</p>
-  </div>
-
-  <!-- Error State -->
-  <div class="error-state" id="errorState" style="display: none;">
-    <p class="error-message" id="errorMessage">Clip not found</p>
-    <button class="viewer-btn" id="errorBackBtn">Back to clips</button>
-  </div>
-
-  <script src="./clip-viewer.js"></script>
-</body>
+    <script src="./clip-viewer.js"></script>
+  </body>
 </html>
-

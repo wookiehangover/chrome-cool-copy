@@ -207,8 +207,7 @@ function disableDarkMode(): void {
 function applyDarkMode(): void {
   const isSystemDark = darkModeMediaQuery?.matches ?? false;
   const shouldEnable =
-    currentPreference === "always" ||
-    (currentPreference === "system" && isSystemDark);
+    currentPreference === "always" || (currentPreference === "system" && isSystemDark);
 
   if (shouldEnable) {
     enableDarkMode();
@@ -257,9 +256,7 @@ export async function initializeDarkMode(): Promise<void> {
  * Set dark mode preference for current domain
  * Setting to 'off' clears the domain from storage entirely
  */
-export async function setDarkModePreference(
-  preference: DarkModePreference,
-): Promise<void> {
+export async function setDarkModePreference(preference: DarkModePreference): Promise<void> {
   try {
     currentPreference = preference;
     const prefs = await loadPreferences();
@@ -331,8 +328,7 @@ function isWhite(hex: string): boolean {
 function applySettingsToDOM(): void {
   if (!overlayElement) return;
 
-  const { brightness, contrast, sepia, grayscale, mixColor, preserveImages } =
-    currentSettings;
+  const { brightness, contrast, sepia, grayscale, mixColor, preserveImages } = currentSettings;
 
   // Build backdrop-filter string
   // Order matters: invert first, then adjust contrast/brightness

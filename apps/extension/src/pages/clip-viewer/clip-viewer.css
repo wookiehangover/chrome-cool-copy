@@ -26,9 +26,9 @@
   --control-bg: rgba(0, 0, 0, 0.04);
   --control-hover: rgba(0, 0, 0, 0.08);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --font-serif: 'Georgia', 'Times New Roman', serif;
-  --font-mono: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-serif: "Georgia", "Times New Roman", serif;
+  --font-mono: "SF Mono", "Monaco", "Menlo", monospace;
   --font-size: 16px;
 }
 
@@ -60,8 +60,12 @@ body {
   background: var(--bg-primary);
 }
 
-body.font-serif { font-family: var(--font-serif); }
-body.font-mono { font-family: var(--font-mono); }
+body.font-serif {
+  font-family: var(--font-serif);
+}
+body.font-mono {
+  font-family: var(--font-mono);
+}
 
 /* Main wrapper */
 .viewer-wrapper {
@@ -103,7 +107,9 @@ body.font-mono { font-family: var(--font-mono); }
   color: var(--text-muted);
   font-size: 13px;
   font-family: inherit;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .viewer-btn:hover {
@@ -202,9 +208,15 @@ body.font-mono { font-family: var(--font-mono); }
   color: var(--text-primary);
 }
 
-.viewer-content h1 { font-size: 1.5em; }
-.viewer-content h2 { font-size: 1.3em; }
-.viewer-content h3 { font-size: 1.1em; }
+.viewer-content h1 {
+  font-size: 1.5em;
+}
+.viewer-content h2 {
+  font-size: 1.3em;
+}
+.viewer-content h3 {
+  font-size: 1.1em;
+}
 
 .viewer-content p {
   margin: 0 0 1em;
@@ -429,7 +441,9 @@ body.font-mono { font-family: var(--font-mono); }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error state */

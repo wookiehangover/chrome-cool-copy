@@ -3,7 +3,9 @@
 // Polyfill process.env for Vercel AI SDK (required in Chrome extension context)
 declare const process: { env: Record<string, string | undefined> } | undefined;
 if (typeof process === "undefined") {
-  (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process = { env: {} };
+  (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process = {
+    env: {},
+  };
 }
 
 import { streamText, generateText, createGateway, stepCountIs } from "ai";
@@ -32,20 +34,14 @@ function sendMessageToTab(tabId: number, message: { action: string }): void {
   chrome.tabs.sendMessage(tabId, message, (response: { success?: boolean } | undefined) => {
     // Check for errors
     if (chrome.runtime.lastError) {
-      console.error(
-        "[Clean Link Copy] Failed to send message:",
-        chrome.runtime.lastError.message,
-      );
+      console.error("[Clean Link Copy] Failed to send message:", chrome.runtime.lastError.message);
       // Silently fail - the user will see the error in the content script if it's available
       return;
     }
 
     // Log successful response
     if (response && response.success) {
-      console.log(
-        "[Clean Link Copy] Message sent successfully:",
-        message.action,
-      );
+      console.log("[Clean Link Copy] Message sent successfully:", message.action);
     }
   });
 }
@@ -72,12 +68,9 @@ async function captureAndCropImage(bounds: ElementBounds, devicePixelRatio = 1):
     const tab = tabs[0];
 
     // Capture the visible tab as PNG
-    const screenshotDataUrl = await chrome.tabs.captureVisibleTab(
-      tab.windowId,
-      {
-        format: "png",
-      },
-    );
+    const screenshotDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+      format: "png",
+    });
 
     // Convert data URL to blob, then create ImageBitmap (service workers don't have Image)
     const screenshotResponse = await fetch(screenshotDataUrl);
@@ -107,21 +100,12 @@ async function captureAndCropImage(bounds: ElementBounds, devicePixelRatio = 1):
     const clampedBounds = {
       left: Math.max(0, Math.min(scaledBounds.left, image.width)),
       top: Math.max(0, Math.min(scaledBounds.top, image.height)),
-      width: Math.min(
-        scaledBounds.width,
-        image.width - Math.max(0, scaledBounds.left),
-      ),
-      height: Math.min(
-        scaledBounds.height,
-        image.height - Math.max(0, scaledBounds.top),
-      ),
+      width: Math.min(scaledBounds.width, image.width - Math.max(0, scaledBounds.left)),
+      height: Math.min(scaledBounds.height, image.height - Math.max(0, scaledBounds.top)),
     };
 
     // Create an offscreen canvas for cropping at the scaled size
-    const canvas = new OffscreenCanvas(
-      clampedBounds.width,
-      clampedBounds.height,
-    );
+    const canvas = new OffscreenCanvas(clampedBounds.width, clampedBounds.height);
     const ctx = canvas.getContext("2d");
 
     if (!ctx) {
@@ -152,10 +136,7 @@ async function captureAndCropImage(bounds: ElementBounds, devicePixelRatio = 1):
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error(
-      "[Clean Link Copy] Error capturing and cropping image:",
-      error,
-    );
+    console.error("[Clean Link Copy] Error capturing and cropping image:", error);
     throw error;
   }
 }
@@ -175,13 +156,7 @@ interface PageInfo {
  * Uses rate limiting to avoid exceeding MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND
  */
 async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<string> {
-  const {
-    scrollWidth,
-    scrollHeight,
-    viewportWidth,
-    viewportHeight,
-    devicePixelRatio,
-  } = pageInfo;
+  const { scrollWidth, scrollHeight, viewportWidth, viewportHeight, devicePixelRatio } = pageInfo;
 
   // Rate limit: Chrome allows ~2 captureVisibleTab calls per second
   // Use 600ms delay to stay safely under the limit
@@ -208,15 +183,7 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
   const rows = Math.ceil(scrollHeight / viewportHeight);
   const totalCaptures = cols * rows;
 
-  console.log(
-    "[Clean Link Copy] Will capture",
-    cols,
-    "x",
-    rows,
-    "=",
-    totalCaptures,
-    "screenshots",
-  );
+  console.log("[Clean Link Copy] Will capture", cols, "x", rows, "=", totalCaptures, "screenshots");
 
   // Create the final canvas at full page size (scaled by devicePixelRatio)
   const finalWidth = Math.round(scrollWidth * devicePixelRatio);
@@ -250,12 +217,9 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       // Capture the visible viewport
-      const screenshotDataUrl = await chrome.tabs.captureVisibleTab(
-        tab.windowId,
-        {
-          format: "png",
-        },
-      );
+      const screenshotDataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
+        format: "png",
+      });
 
       // Convert to ImageBitmap
       const response = await fetch(screenshotDataUrl);
@@ -269,14 +233,8 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
       // Calculate how much of this screenshot to use (handle edge cases)
       const remainingWidth = scrollWidth - scrollX;
       const remainingHeight = scrollHeight - scrollY;
-      const srcWidth = Math.min(
-        image.width,
-        Math.round(remainingWidth * devicePixelRatio),
-      );
-      const srcHeight = Math.min(
-        image.height,
-        Math.round(remainingHeight * devicePixelRatio),
-      );
+      const srcWidth = Math.min(image.width, Math.round(remainingWidth * devicePixelRatio));
+      const srcHeight = Math.min(image.height, Math.round(remainingHeight * devicePixelRatio));
 
       // Draw this piece onto the final canvas
       finalCtx.drawImage(
@@ -323,10 +281,7 @@ chrome.commands.onCommand.addListener((command) => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     // Handle query errors
     if (chrome.runtime.lastError) {
-      console.error(
-        "[Clean Link Copy] Failed to query tabs:",
-        chrome.runtime.lastError.message,
-      );
+      console.error("[Clean Link Copy] Failed to query tabs:", chrome.runtime.lastError.message);
       return;
     }
 
@@ -380,10 +335,7 @@ async function checkGrokipediaExists(articleTitle: string): Promise<boolean> {
     });
     return response.ok;
   } catch (error) {
-    console.error(
-      `[Grokipedia] Error checking page for "${articleTitle}":`,
-      error,
-    );
+    console.error(`[Grokipedia] Error checking page for "${articleTitle}":`, error);
     return false;
   }
 }
@@ -398,10 +350,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: true, exists });
         })
         .catch((error) => {
-          console.error(
-            "[Grokipedia] Error in checkGrokipediaExists handler:",
-            error,
-          );
+          console.error("[Grokipedia] Error in checkGrokipediaExists handler:", error);
           sendResponse({ success: false, exists: false, error: error.message });
         });
       return true;
@@ -415,10 +364,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         })
         .catch((error) => {
-          console.error(
-            "[Clean Link Copy] Error in captureElement handler:",
-            error,
-          );
+          console.error("[Clean Link Copy] Error in captureElement handler:", error);
           sendResponse({
             success: false,
             error: error.message,
@@ -448,10 +394,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         })
         .catch((error: unknown) => {
-          console.error(
-            "[Clean Link Copy] Error in captureFullPage handler:",
-            error,
-          );
+          console.error("[Clean Link Copy] Error in captureFullPage handler:", error);
           // Try to restore scroll position even on error
           chrome.tabs.sendMessage(tabId, {
             action: "scrollTo",
@@ -489,7 +432,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             syncClipToAgentDB(savedClip).catch((error) => {
               console.warn(
                 "[Clean Link Copy] AgentDB sync failed (clip still saved locally):",
-                error
+                error,
               );
             });
           }
@@ -502,10 +445,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             clipId: savedClip.id,
           });
         } catch (error) {
-          console.error(
-            "[Clean Link Copy] Error saving page:",
-            error,
-          );
+          console.error("[Clean Link Copy] Error saving page:", error);
           sendResponse({
             success: false,
             error: error instanceof Error ? error.message : String(error),
@@ -607,7 +547,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === "openClipViewer") {
       // Open clip viewer in a new tab
       const viewerUrl = chrome.runtime.getURL(
-        `pages/clip-viewer.html?id=${encodeURIComponent(message.clipId)}`
+        `pages/clip-viewer.html?id=${encodeURIComponent(message.clipId)}`,
       );
       chrome.tabs.create({ url: viewerUrl });
       return false;
@@ -658,17 +598,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               ? {
                   promptTokens: result.usage.inputTokens ?? 0,
                   completionTokens: result.usage.outputTokens ?? 0,
-                  totalTokens:
-                    (result.usage.inputTokens ?? 0) +
-                    (result.usage.outputTokens ?? 0),
+                  totalTokens: (result.usage.inputTokens ?? 0) + (result.usage.outputTokens ?? 0),
                 }
               : undefined,
           });
         } catch (error) {
-          console.error(
-            "[Vercel AI Gateway] Error in aiRequest handler:",
-            error,
-          );
+          console.error("[Vercel AI Gateway] Error in aiRequest handler:", error);
           sendResponse({
             success: false,
             error: error instanceof Error ? error.message : String(error),
@@ -750,8 +685,7 @@ chrome.runtime.onConnect.addListener((port) => {
       if (!config || !config.apiKey || !config.model) {
         port.postMessage({
           type: "error",
-          error:
-            "Vercel AI Gateway configuration not found. Please configure settings.",
+          error: "Vercel AI Gateway configuration not found. Please configure settings.",
         });
         return;
       }
@@ -764,10 +698,7 @@ chrome.runtime.onConnect.addListener((port) => {
         return;
       }
 
-      console.log(
-        "[Vercel AI Gateway] Starting streaming request for model:",
-        config.model,
-      );
+      console.log("[Vercel AI Gateway] Starting streaming request for model:", config.model);
 
       const gateway = createGateway({
         apiKey: config.apiKey,
@@ -851,10 +782,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
       port.postMessage({ type: "done" });
     } catch (error) {
-      console.error(
-        "[Vercel AI Gateway] Error in streaming handler:",
-        error,
-      );
+      console.error("[Vercel AI Gateway] Error in streaming handler:", error);
       port.postMessage({
         type: "error",
         error: error instanceof Error ? error.message : String(error),
