@@ -1,12 +1,16 @@
 # Cool Copy - Chrome Extension
 
-A Chrome extension that adds cool copy features to Chrome, including:
-- copying clean URLs without tracking parameters
-- copying markdown formatted links
-- copying any element on the page to the clipboard
-- **clipping entire web pages to AgentDB for persistent storage and later retrieval**
+A Chrome extension that adds productivity features to Chrome, including:
+- Copying clean URLs without tracking parameters
+- Copying markdown formatted links
+- Copying any element on the page to the clipboard
+- Clipping entire web pages to AgentDB for persistent storage
+- Reader mode for distraction-free reading
+- Dark mode for any website
+- AI-powered chat assistant
+- Grokipedia integration for Wikipedia pages
 
-All features are accessible through a unified **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`) with fuzzy search, or via preserved keyboard shortcuts for frequently used actions.
+All features are accessible through a unified **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`) with fuzzy search, or via keyboard shortcuts for frequently used actions.
 
 ## Features
 
@@ -16,22 +20,57 @@ All features are accessible through a unified **Command Palette** (`Cmd+Shift+P`
 - Keyboard navigation (arrow keys, Enter to execute, Escape to close)
 - Displays keyboard shortcuts next to commands
 - Works on all pages
-- Clean, minimal design inspired by Dieter Rams principles
+- Clean, minimal design
 
 ### Copy Features
-- **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux) - Direct shortcut or via Command Palette
-- **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux) - Direct shortcut or via Command Palette
-- **Copy element**: Access via Command Palette - Select any element on the page to copy to clipboard
+- **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux)
+  - Copies the current URL without tracking parameters
+- **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux)
+  - Copies a markdown formatted link to the current page
+- **Copy element**: Access via Command Palette
+  - Select any element on the page to copy to clipboard
+
+### Reader Mode
+- **Toggle Reader Mode**: `Cmd+Shift+R` (macOS) / `Ctrl+Shift+R` (Windows/Linux)
+- Distraction-free reading experience
+- Automatically extracts main article content
+- Filters out navigation, ads, sidebars, and other non-essential elements
+- Clean, centered typography optimized for readability
+- Dark mode support (follows system preferences)
+- Shadow DOM isolation for consistent styling
+- ESC key or close button to exit
+
+### Dark Mode
+- **Dark Mode: Toggle**: Toggle dark mode on/off for the current domain
+- **Dark Mode: Follow System**: Automatically follow system dark mode preference
+- **Dark Mode: Adjust**: Fine-tune dark mode settings including:
+  - Brightness adjustment
+  - Contrast adjustment
+  - Sepia filter
+  - Grayscale filter
+- Per-domain settings are saved and automatically applied on revisit
 
 ### Page Clipper
-- **Clip current page**: Access via Command Palette - Saves the entire page to AgentDB
-- **Persistent storage**: Pages are saved to AgentDB for later retrieval
-- **Full content capture**: Captures both DOM content and text content
-- **Metadata extraction**: Automatically extracts page title, description, keywords, and Open Graph data
-- **Clipped pages viewer**: Access all clipped pages via the extension popup or Command Palette
-- **Search and filter**: Find clipped pages by title or URL
-- **View full content**: Expand any clipped page to view its complete text content
-- **Delete pages**: Remove clipped pages with confirmation
+- **Clip page**: Access via Command Palette - Saves the entire page to AgentDB
+- **View clipped pages**: Open the clipped pages viewer in a new tab
+- **Open side panel**: View clipped pages in a side panel
+- Features:
+  - Persistent storage in AgentDB
+  - Full content capture (DOM and text content)
+  - Metadata extraction (title, description, keywords, Open Graph data)
+  - Search and filter clipped pages
+  - View full content of any clipped page
+  - Delete pages with confirmation
+
+### AI Chat
+- **Open Chat**: `Cmd+Shift+A` (macOS) / `Ctrl+Shift+A` (Windows/Linux)
+- Opens an AI-powered chat assistant in the side panel
+- Interact with AI while browsing any webpage
+
+### Grokipedia Integration
+- **Toggle Grokipedia Banner**: Enable/disable Grokipedia banner on Wikipedia pages
+- Automatically detects Wikipedia article pages
+- Shows a banner linking to the corresponding Grokipedia page when available
 
 ### URL Cleaning
 - **Automatic URL Cleaning**: Removes common tracking parameters including:
@@ -39,6 +78,9 @@ All features are accessible through a unified **Command Palette** (`Cmd+Shift+P`
   - Facebook tracking (`fbclid`, `fb_action_ids`, etc.)
   - Google tracking (`gclid`, `gclsrc`, `dclid`, etc.)
   - Other common trackers (`ref`, `source`, `msclkid`, etc.)
+
+### Settings
+- **Settings**: Access via Command Palette to configure extension options
 
 ### User Experience
 - **Toast Notifications**: Displays confirmation messages for all actions
@@ -120,45 +162,34 @@ The Command Palette is the primary interface for accessing all extension feature
 - **Copy clean URL** - Copy the current URL without tracking parameters
 - **Copy markdown link** - Copy a markdown formatted link to the current page
 - **Copy element** - Select any element on the page to copy to clipboard
+- **Reader mode** - Toggle distraction-free reading mode
 - **Clip page** - Save the entire page to AgentDB
 - **View clipped pages** - Open the clipped pages viewer
+- **Open side panel** - Open the clipped pages side panel
+- **Open Chat** - Open AI chat assistant in side panel
+- **Dark Mode: Toggle** - Toggle dark mode on/off for current domain
+- **Dark Mode: Follow System** - Follow system dark mode preference
+- **Dark Mode: Adjust** - Open dark mode adjustment panel
+- **Toggle Grokipedia Banner** - Enable/disable Grokipedia banner on Wikipedia
 - **Settings** - Open extension settings
 
-### Quick Keyboard Shortcuts
+### Keyboard Shortcuts
 
-For frequently used actions, you can use direct keyboard shortcuts:
-
-1. Navigate to any webpage
-2. Press the keyboard shortcut for the desired action:
-   - **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux)
-   - **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux)
-3. A toast notification confirms the action
-4. The content is copied to your clipboard
-
-### Viewing Clipped Pages
-
-1. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
-2. Search for "View clipped pages" and press Enter
-3. The clipped pages viewer will open in a new tab
-4. In the clipped pages viewer:
-   - **Search**: Use the search box to find pages by title or URL
-   - **View**: Click the "View" button to see the full text content of a page
-   - **Delete**: Click the "Delete" button to remove a page (with confirmation)
+| Command | macOS | Windows/Linux |
+|---------|-------|---------------|
+| Open Command Palette | `Cmd+Shift+P` | `Ctrl+Shift+P` |
+| Copy clean URL | `Cmd+Shift+C` | `Ctrl+Shift+C` |
+| Copy markdown link | `Cmd+Shift+X` | `Ctrl+Shift+X` |
+| Reader mode | `Cmd+Shift+R` | `Ctrl+Shift+R` |
+| Open Chat | `Cmd+Shift+A` | `Ctrl+Shift+A` |
 
 ### Customizing Keyboard Shortcuts
 
-You can customize the keyboard shortcuts by:
+You can customize the keyboard shortcuts:
 1. Navigate to `chrome://extensions/shortcuts`
 2. Find "Cool Copy" in the list
 3. Click the pencil icon next to the command you want to customize
 4. Press your desired keyboard shortcut
-
-The default shortcuts are:
-- **Open Command Palette**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
-- **Copy clean URL**: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows/Linux)
-- **Copy markdown link**: `Cmd+Shift+X` (macOS) / `Ctrl+Shift+X` (Windows/Linux)
-
-**Note:** The "Copy element" and "Clip page" commands are now accessed through the Command Palette instead of direct keyboard shortcuts, making the extension more extensible and reducing keyboard shortcut conflicts.
 
 ## AgentDB Setup
 
@@ -259,40 +290,35 @@ https://example.com/article
 - `src/background.ts` - Background service worker handling keyboard shortcuts and page capture
 - `src/content/index.ts` - Content script entry point for message handling
 - `src/content/command-palette.ts` - Command palette UI component and logic
-- `src/content/command-palette.css` - Command palette styling
 - `src/content/commands.ts` - Command registry and definitions
-- `src/content/url-cleaner.ts` - URL cleaning logic
-- `src/content/markdown.ts` - Markdown link generation
-- `src/content/element-picker.ts` - Element selection and capture
-- `src/content/clipboard.ts` - Clipboard operations
 - `src/content/toast.ts` - Toast notification display
 - `src/services/database.ts` - AgentDB integration for page storage
-- `src/styles.css` - Toast notification styling
+
+#### Features (`src/content/features/`)
+- `url-cleaner.ts` - URL cleaning logic
+- `markdown.ts` - Markdown link generation
+- `element-picker.ts` - Element selection and capture
+- `page-clip.ts` - Page clipping functionality
+- `reader-mode.ts` - Reader mode implementation
+- `reader-mode.css` - Reader mode styling
+- `dark-mode-manager.ts` - Dark mode state management
+- `dark-mode-panel.ts` - Dark mode adjustment panel
+- `grokipedia-banner.ts` - Grokipedia banner for Wikipedia
+- `wikipedia-detector.ts` - Wikipedia page detection
+- `grokipedia-checker.ts` - Grokipedia page existence check
 
 #### UI Pages
 - `src/pages/popup/` - Extension popup UI
-  - `popup.ts` - Popup script
-  - `popup.html` - Popup markup
-  - `popup.css` - Popup styles
 - `src/pages/clipped-pages/` - Clipped pages viewer
-  - `clipped-pages.ts` - Clipped pages script
-  - `clipped-pages.html` - Clipped pages markup
-  - `clipped-pages.css` - Clipped pages styles
 - `src/pages/settings/` - Settings page
-  - `settings.ts` - Settings script
-  - `settings.html` - Settings markup
-  - `settings.css` - Settings styles
+- `src/sidepanel/` - Side panel for chat and clipped pages
 
 ### Build Output (`dist/`)
-The `dist/` folder is generated by the build process and contains the complete, self-contained extension ready to load into Chrome. It includes:
-- Compiled JavaScript files from TypeScript sources
-- HTML and CSS files copied from `src/pages/`
-- Manifest configuration
-- Icons and vendor libraries
+The `dist/` folder is generated by the build process and contains the complete, self-contained extension ready to load into Chrome.
 
 ### Assets
 - `icons/` - Extension icons (16x16, 48x48, 128x128)
-- `vendor/` - Third-party libraries (html2canvas, turndown)
+- `vendor/` - Third-party libraries (turndown)
 
 ## Privacy
 
