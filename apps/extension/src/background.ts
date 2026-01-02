@@ -8,7 +8,13 @@ if (typeof process === "undefined") {
 
 import { streamText, generateText, createGateway, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
-import { saveLocalClip } from "./services/local-clips";
+import {
+  saveLocalClip,
+  isUrlClipped,
+  addHighlight,
+  updateHighlightNote,
+  deleteHighlight,
+} from "./services/local-clips";
 import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
 
 /**
@@ -508,6 +514,72 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })();
 
       // Return true to indicate we'll send response asynchronously
+      return true;
+    } else if (message.action === "checkExistingClip") {
+      // Check if URL is already clipped
+      (async () => {
+        try {
+          const existingClip = await isUrlClipped(message.url);
+          sendResponse({
+            success: true,
+            clip: existingClip,
+          });
+        } catch (error) {
+          console.error("[Clean Link Copy] Error checking clip:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "addHighlight") {
+      // Add highlight to a clip
+      (async () => {
+        try {
+          const highlight = await addHighlight(message.clipId, message.highlight);
+          sendResponse({
+            success: true,
+            highlight,
+          });
+        } catch (error) {
+          console.error("[Clean Link Copy] Error adding highlight:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "updateHighlightNote") {
+      // Update highlight note
+      (async () => {
+        try {
+          await updateHighlightNote(message.clipId, message.highlightId, message.note);
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error("[Clean Link Copy] Error updating highlight:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "deleteHighlight") {
+      // Delete highlight from a clip
+      (async () => {
+        try {
+          await deleteHighlight(message.clipId, message.highlightId);
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error("[Clean Link Copy] Error deleting highlight:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
       return true;
     } else if (message.action === "aiRequest") {
       // Handle non-streaming AI request - forward to Vercel AI Gateway

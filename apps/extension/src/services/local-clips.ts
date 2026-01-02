@@ -10,6 +10,19 @@
 export type SyncStatus = "pending" | "synced" | "error" | "local-only";
 
 /**
+ * A text highlight within a clipped page
+ */
+export interface Highlight {
+  id: string;
+  text: string; // The highlighted text
+  startOffset: number; // Character offset from start of text_content
+  endOffset: number;
+  color: string; // Highlight color (default: yellow)
+  note?: string; // Optional annotation/comment
+  created_at: string;
+}
+
+/**
  * Local clip data structure
  */
 export interface LocalClip {
@@ -19,6 +32,7 @@ export interface LocalClip {
   dom_content: string;
   text_content: string;
   metadata?: Record<string, unknown>;
+  highlights?: Highlight[]; // User highlights and annotations
   created_at: string;
   updated_at: string;
   sync_status: SyncStatus;
@@ -151,4 +165,120 @@ export async function getPendingClips(): Promise<LocalClip[]> {
  */
 export async function markAsLocalOnly(id: string): Promise<void> {
   await updateClipSyncStatus(id, "local-only");
+}
+
+/**
+ * Add a highlight to a clip
+ */
+export async function addHighlight(
+  clipId: string,
+  highlight: Omit<Highlight, "id" | "created_at">,
+): Promise<Highlight | null> {
+  const clips = await getLocalClips();
+  const index = clips.findIndex((c) => c.id === clipId);
+
+  if (index === -1) {
+    console.warn("[Local Clips] Clip not found for highlight:", clipId);
+    return null;
+  }
+
+  const newHighlight: Highlight = {
+    id: `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    ...highlight,
+    created_at: new Date().toISOString(),
+  };
+
+  clips[index] = {
+    ...clips[index],
+    highlights: [...(clips[index].highlights || []), newHighlight],
+    updated_at: new Date().toISOString(),
+  };
+
+  await chrome.storage.local.set({ [STORAGE_KEY]: clips });
+  console.log("[Local Clips] Added highlight:", newHighlight.id);
+  return newHighlight;
+}
+
+/**
+ * Update a highlight's note
+ */
+export async function updateHighlightNote(
+  clipId: string,
+  highlightId: string,
+  note: string,
+): Promise<boolean> {
+  const clips = await getLocalClips();
+  const clipIndex = clips.findIndex((c) => c.id === clipId);
+
+  if (clipIndex === -1) return false;
+
+  const highlights = clips[clipIndex].highlights || [];
+  const hlIndex = highlights.findIndex((h) => h.id === highlightId);
+
+  if (hlIndex === -1) return false;
+
+  highlights[hlIndex] = { ...highlights[hlIndex], note };
+  clips[clipIndex] = {
+    ...clips[clipIndex],
+    highlights,
+    updated_at: new Date().toISOString(),
+  };
+
+  await chrome.storage.local.set({ [STORAGE_KEY]: clips });
+  return true;
+}
+
+/**
+ * Delete a highlight from a clip
+ */
+export async function deleteHighlight(clipId: string, highlightId: string): Promise<boolean> {
+  const clips = await getLocalClips();
+  const clipIndex = clips.findIndex((c) => c.id === clipId);
+
+  if (clipIndex === -1) return false;
+
+  const highlights = clips[clipIndex].highlights || [];
+  const hlIndex = highlights.findIndex((h) => h.id === highlightId);
+
+  if (hlIndex === -1) return false;
+
+  highlights.splice(hlIndex, 1);
+  clips[clipIndex] = {
+    ...clips[clipIndex],
+    highlights,
+    updated_at: new Date().toISOString(),
+  };
+
+  await chrome.storage.local.set({ [STORAGE_KEY]: clips });
+  return true;
+}
+
+/**
+ * Check if a URL has already been clipped
+ */
+export async function isUrlClipped(url: string): Promise<LocalClip | null> {
+  const clips = await getLocalClips();
+  return clips.find((c) => c.url === url) || null;
+}
+
+/**
+ * Update an existing clip (for re-clipping or updating content)
+ */
+export async function updateLocalClip(
+  id: string,
+  updates: Partial<Pick<LocalClip, "title" | "dom_content" | "text_content" | "metadata">>,
+): Promise<LocalClip | null> {
+  const clips = await getLocalClips();
+  const index = clips.findIndex((c) => c.id === id);
+
+  if (index === -1) return null;
+
+  clips[index] = {
+    ...clips[index],
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+
+  await chrome.storage.local.set({ [STORAGE_KEY]: clips });
+  return clips[index];
 }

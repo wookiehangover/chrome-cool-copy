@@ -14,7 +14,7 @@ import { initializeGrokipediaBanner } from "./features/grokipedia-banner.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { buildPageContext, type PageContext } from "./features/page-context.js";
 import { scrapePage, type ScrapedPage } from "./features/page-scraper.js";
-import { toggleReaderMode } from "./features/reader-mode.js";
+import { toggleReaderMode, initReaderMode } from "./features/reader-mode.js";
 
 /**
  * Message type for communication with background script
@@ -211,3 +211,6 @@ initializeDarkModeFeature();
 
 // Initialize Grokipedia banner feature
 initializeGrokipediaBannerFeature();
+
+// Check if we should auto-enter reader mode for this page
+initReaderMode();
