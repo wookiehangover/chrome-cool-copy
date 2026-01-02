@@ -5,151 +5,88 @@
 }
 
 :root {
-  --text-primary: #000;
-  --text-secondary: #666;
-  --text-muted: #999;
-  --border-color: #e5e5e5;
+  --text-primary: #1d1d1f;
+  --text-secondary: #86868b;
   --bg-page: #fff;
-  --bg-card: #fff;
-  --bg-hover: #f5f5f5;
-  --bg-active: #eee;
-  --accent: #000;
-  --accent-hover: #222;
-  --kbd-bg: #f5f5f5;
-  --kbd-text: #333;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(0, 0, 0, 0.08);
+  --divider: rgba(0, 0, 0, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text-primary: #f0f0f0;
-    --text-secondary: #a0a0a0;
-    --text-muted: #707070;
-    --border-color: #333;
-    --bg-page: #1a1a1a;
-    --bg-card: #1a1a1a;
-    --bg-hover: #252525;
-    --bg-active: #2a2a2a;
-    --accent: #fff;
-    --accent-hover: #ddd;
-    --kbd-bg: #2a2a2a;
-    --kbd-text: #ccc;
+    --text-primary: #f5f5f7;
+    --text-secondary: #86868b;
+    --bg-page: #1d1d1f;
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --bg-active: rgba(255, 255, 255, 0.12);
+    --divider: rgba(255, 255, 255, 0.1);
   }
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  font-size: 13px;
   background: var(--bg-page);
   color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
 }
 
 .popup-container {
-  width: 280px;
+  width: 200px;
+  padding: 6px;
 }
 
-.popup-header {
-  padding: 24px 20px 16px;
-  border-bottom: 1px solid var(--border-color);
+.popup-menu {
+  display: flex;
+  flex-direction: column;
 }
 
-.popup-title {
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-
-.popup-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-.popup-content {
-  padding: 16px 20px 20px;
-}
-
-.popup-description {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
-  line-height: 1.5;
-}
-
-.button {
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 400;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-  text-align: center;
-  background: var(--bg-card);
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
   color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
 }
 
-.button:hover {
+.menu-item:hover {
   background: var(--bg-hover);
 }
 
-.button:active {
+.menu-item:active {
   background: var(--bg-active);
 }
 
-.button-primary {
-  background: var(--accent);
-  color: var(--bg-page);
-  border-color: var(--accent);
-  margin-bottom: 8px;
-}
-
-.button-primary:hover {
-  background: var(--accent-hover);
-}
-
-.button-primary:active {
-  background: var(--bg-active);
-}
-
-.button-secondary {
-  margin-bottom: 16px;
-}
-
-.shortcuts-section {
-  border-top: 1px solid var(--border-color);
-  padding-top: 16px;
-}
-
-.shortcuts-title {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 10px;
-}
-
-.shortcuts-list {
-  list-style: none;
-  font-size: 12px;
+.menu-item svg {
+  flex-shrink: 0;
   color: var(--text-secondary);
 }
 
-.shortcuts-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
+.menu-item:hover svg {
+  color: var(--text-primary);
 }
 
-kbd {
-  background: var(--kbd-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  padding: 2px 6px;
-  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-  font-size: 10px;
-  color: var(--kbd-text);
+.menu-divider {
+  height: 1px;
+  margin: 6px 10px;
+  background: var(--divider);
+}
+
+.menu-item-secondary {
+  color: var(--text-secondary);
+}
+
+.menu-item-secondary span {
+  font-size: 12px;
 }
 

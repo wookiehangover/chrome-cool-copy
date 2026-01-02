@@ -98,6 +98,18 @@ export default [
     plugins: [...nodePlugins, typescript(tsConfig)],
   },
 
+  // Clip viewer - ES module
+  {
+    input: "src/pages/clip-viewer/clip-viewer.ts",
+    output: {
+      file: "dist/pages/clip-viewer.js",
+      format: "es",
+      sourcemap: true,
+      inlineDynamicImports: true,
+    },
+    plugins: [...nodePlugins, typescript(tsConfig)],
+  },
+
   // Settings page - ES module with static asset copying
   {
     input: "src/pages/settings/settings.ts",
@@ -115,10 +127,12 @@ export default [
           // HTML files
           { src: "src/pages/popup/popup.html", dest: "dist/pages" },
           { src: "src/pages/clipped-pages/clipped-pages.html", dest: "dist/pages" },
+          { src: "src/pages/clip-viewer/clip-viewer.html", dest: "dist/pages" },
           { src: "src/pages/settings/settings.html", dest: "dist/pages" },
           // CSS files
           { src: "src/pages/popup/popup.css", dest: "dist/pages" },
           { src: "src/pages/clipped-pages/clipped-pages.css", dest: "dist/pages" },
+          { src: "src/pages/clip-viewer/clip-viewer.css", dest: "dist/pages" },
           { src: "src/pages/settings/settings.css", dest: "dist/pages" },
           { src: "src/styles.css", dest: "dist" },
           // Vendor files

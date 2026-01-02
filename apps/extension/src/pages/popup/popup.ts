@@ -1,32 +1,29 @@
 /**
  * Popup script for Cool Copy extension
- * Handles navigation to the clipped pages viewer
  */
 
 document.addEventListener('DOMContentLoaded', (): void => {
-  const viewClippedPagesBtn = document.getElementById('viewClippedPagesBtn');
-  const openSettingsBtn = document.getElementById('openSettingsBtn');
+  document.getElementById('openChatBtn')?.addEventListener('click', async (): Promise<void> => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      chrome.sidePanel.open({ tabId: tab.id });
+    }
+    window.close();
+  });
 
-  if (viewClippedPagesBtn) {
-    viewClippedPagesBtn.addEventListener('click', (): void => {
-      // Open clipped-pages.html in a new tab
-      const clippedPagesUrl = chrome.runtime.getURL('pages/clipped-pages.html');
-      chrome.tabs.create({ url: clippedPagesUrl });
+  document.getElementById('viewClippedPagesBtn')?.addEventListener('click', (): void => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('pages/clipped-pages.html') });
+    window.close();
+  });
 
-      // Close the popup after opening the viewer
-      window.close();
-    });
-  }
+  document.getElementById('openSettingsBtn')?.addEventListener('click', (): void => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('pages/settings.html') });
+    window.close();
+  });
 
-  if (openSettingsBtn) {
-    openSettingsBtn.addEventListener('click', (): void => {
-      // Open settings.html in a new tab
-      const settingsUrl = chrome.runtime.getURL('pages/settings.html');
-      chrome.tabs.create({ url: settingsUrl });
-
-      // Close the popup after opening settings
-      window.close();
-    });
-  }
+  document.getElementById('openShortcutsBtn')?.addEventListener('click', (): void => {
+    chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+    window.close();
+  });
 });
 
