@@ -26,8 +26,8 @@ interface DarkModeSettingsStorage {
 }
 
 const defaultSettings: DarkModeSettings = {
-  brightness: 100,
-  contrast: 100,
+  brightness: 90,
+  contrast: 80,
   sepia: 0,
   grayscale: 0,
   mixColor: "#ffffff",
