@@ -1,7 +1,7 @@
 # Chrome Cool Copy - Build System
 # All build outputs go to apps/extension/dist (the loadable extension directory)
 
-.PHONY: build clean lint format dev watch-extension watch-chat help extension chat
+.PHONY: build clean lint format dev watch-extension watch-chat help extension chat typecheck
 
 # Default target
 all: build
@@ -39,7 +39,7 @@ endef
 #------------------------------------------------------------------------------
 
 # Full production build: extension + chat sidepanel
-build: clean lint format extension chat
+build: clean lint typecheck format extension chat
 	@echo ""
 	@echo "\033[32m✓\033[0m Build complete: apps/extension/dist/"
 
@@ -88,6 +88,9 @@ lint:
 
 format:
 	$(call spinner,Formatting...,pnpm -F @repo/extension format)
+
+typecheck:
+	$(call spinner,Typechecking...,pnpm -F @repo/extension typecheck)
 
 #------------------------------------------------------------------------------
 # Utilities

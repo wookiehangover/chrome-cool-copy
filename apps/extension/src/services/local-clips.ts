@@ -164,7 +164,7 @@ export async function updateHighlightNote(
   if (clipIndex === -1) return false;
 
   const highlights = clips[clipIndex].highlights || [];
-  const hlIndex = highlights.findIndex((h) => h.id === highlightId);
+  const hlIndex = highlights.findIndex((h: Highlight) => h.id === highlightId);
 
   if (hlIndex === -1) return false;
 
@@ -189,7 +189,7 @@ export async function deleteHighlight(clipId: string, highlightId: string): Prom
   if (clipIndex === -1) return false;
 
   const highlights = clips[clipIndex].highlights || [];
-  const hlIndex = highlights.findIndex((h) => h.id === highlightId);
+  const hlIndex = highlights.findIndex((h: Highlight) => h.id === highlightId);
 
   if (hlIndex === -1) return false;
 

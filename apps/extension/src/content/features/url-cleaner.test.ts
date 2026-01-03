@@ -46,8 +46,7 @@ describe("URL Cleaner", () => {
       });
 
       it("should remove multiple UTM parameters", () => {
-        const url =
-          "https://example.com/page?utm_source=google&utm_medium=cpc&utm_campaign=summer";
+        const url = "https://example.com/page?utm_source=google&utm_medium=cpc&utm_campaign=summer";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/page");
       });
@@ -92,8 +91,7 @@ describe("URL Cleaner", () => {
       });
 
       it("should remove multiple Facebook parameters", () => {
-        const url =
-          "https://example.com/page?fbclid=IwAR1234&fb_action_ids=123&fb_source=feed";
+        const url = "https://example.com/page?fbclid=IwAR1234&fb_action_ids=123&fb_source=feed";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/page");
       });
@@ -131,8 +129,7 @@ describe("URL Cleaner", () => {
       });
 
       it("should remove multiple Google parameters", () => {
-        const url =
-          "https://example.com/page?gclid=CjwK&gclsrc=aw.ds&dclid=123&gbraid=0AAA";
+        const url = "https://example.com/page?gclid=CjwK&gclsrc=aw.ds&dclid=123&gbraid=0AAA";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/page");
       });
@@ -317,21 +314,16 @@ describe("URL Cleaner", () => {
       });
 
       it("should preserve multiple legitimate parameters", () => {
-        const url =
-          "https://example.com/products?category=electronics&sort=price&page=2";
+        const url = "https://example.com/products?category=electronics&sort=price&page=2";
         const result = cleanUrl(url);
-        expect(result).toBe(
-          "https://example.com/products?category=electronics&sort=price&page=2"
-        );
+        expect(result).toBe("https://example.com/products?category=electronics&sort=price&page=2");
       });
 
       it("should preserve legitimate params while removing tracking params", () => {
         const url =
           "https://example.com/products?category=electronics&utm_source=google&page=2&utm_medium=cpc";
         const result = cleanUrl(url);
-        expect(result).toBe(
-          "https://example.com/products?category=electronics&page=2"
-        );
+        expect(result).toBe("https://example.com/products?category=electronics&page=2");
       });
     });
 
@@ -355,8 +347,7 @@ describe("URL Cleaner", () => {
       });
 
       it("should preserve complex hash fragment", () => {
-        const url =
-          "https://example.com/page?utm_source=google&page=2#section-with-dashes";
+        const url = "https://example.com/page?utm_source=google&page=2#section-with-dashes";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/page?page=2#section-with-dashes");
       });
@@ -400,23 +391,20 @@ describe("URL Cleaner", () => {
       });
 
       it("should handle URL with special characters in legitimate params", () => {
-        const url =
-          "https://example.com/search?q=hello%20world&utm_source=google";
+        const url = "https://example.com/search?q=hello%20world&utm_source=google";
         const result = cleanUrl(url);
         // URLSearchParams converts %20 to + in toString()
         expect(result).toBe("https://example.com/search?q=hello+world");
       });
 
       it("should handle URL with encoded special characters", () => {
-        const url =
-          "https://example.com/search?q=test%2Bquery&utm_source=google";
+        const url = "https://example.com/search?q=test%2Bquery&utm_source=google";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/search?q=test%2Bquery");
       });
 
       it("should handle URL with multiple values for same param", () => {
-        const url =
-          "https://example.com/search?tag=javascript&tag=typescript&utm_source=google";
+        const url = "https://example.com/search?tag=javascript&tag=typescript&utm_source=google";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/search?tag=javascript&tag=typescript");
       });
@@ -466,22 +454,19 @@ describe("URL Cleaner", () => {
       });
 
       it("should clean Google search result URL", () => {
-        const url =
-          "https://example.com/page?q=test&ved=2ahUKEwi&usg=AOvVaw&ei=123&sa=X";
+        const url = "https://example.com/page?q=test&ved=2ahUKEwi&usg=AOvVaw&ei=123&sa=X";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/page?q=test");
       });
 
       it("should clean Facebook shared link", () => {
-        const url =
-          "https://example.com/article?fbclid=IwAR1234567890&utm_source=facebook";
+        const url = "https://example.com/article?fbclid=IwAR1234567890&utm_source=facebook";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/article");
       });
 
       it("should clean Twitter/X shared link", () => {
-        const url =
-          "https://example.com/page?twclid=123456789&utm_source=twitter";
+        const url = "https://example.com/page?twclid=123456789&utm_source=twitter";
         const result = cleanUrl(url);
         expect(result).toBe("https://example.com/page");
       });
@@ -497,9 +482,7 @@ describe("URL Cleaner", () => {
         const url =
           "https://shop.example.com/products?category=shoes&sort=price&page=2&utm_source=google&utm_medium=cpc&utm_campaign=summer&gclid=CjwK&fbclid=IwAR";
         const result = cleanUrl(url);
-        expect(result).toBe(
-          "https://shop.example.com/products?category=shoes&sort=price&page=2"
-        );
+        expect(result).toBe("https://shop.example.com/products?category=shoes&sort=price&page=2");
       });
     });
   });
@@ -542,4 +525,3 @@ describe("URL Cleaner", () => {
     });
   });
 });
-

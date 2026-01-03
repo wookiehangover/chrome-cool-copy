@@ -487,7 +487,7 @@ export function generateSelector(element: Element): string {
     selector += classes;
 
     // Always add nth-child for disambiguation (like Chrome DevTools)
-    const parent = current.parentElement;
+    const parent: Element | null = current.parentElement;
     if (parent) {
       const siblings = Array.from(parent.children);
       const index = siblings.indexOf(current) + 1;

@@ -109,21 +109,24 @@ describe("Type Detection", () => {
     describe("Text-heavy detection", () => {
       it("should detect text-heavy paragraph as text type", () => {
         const p = document.createElement("p");
-        p.textContent = "This is a long paragraph with lots of text content that should be considered text-heavy.";
+        p.textContent =
+          "This is a long paragraph with lots of text content that should be considered text-heavy.";
         document.body.appendChild(p);
         expect(detectElementType(p)).toBe("text");
       });
 
       it("should detect text-heavy div as text type", () => {
         const div = document.createElement("div");
-        div.textContent = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+        div.textContent =
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
         document.body.appendChild(div);
         expect(detectElementType(div)).toBe("text");
       });
 
       it("should detect article with text content as text type", () => {
         const article = document.createElement("article");
-        article.innerHTML = "<p>First paragraph with content.</p><p>Second paragraph with more content.</p>";
+        article.innerHTML =
+          "<p>First paragraph with content.</p><p>Second paragraph with more content.</p>";
         document.body.appendChild(article);
         expect(detectElementType(article)).toBe("text");
       });
@@ -350,4 +353,3 @@ describe("Type Detection", () => {
     });
   });
 });
-

@@ -14,6 +14,7 @@
     "lint": "pnpm -F @repo/extension lint",
     "format": "pnpm -F @repo/extension format",
     "clean": "rm -rf apps/extension/dist",
-    "test": "pnpm -F @repo/extension test"
+    "test": "pnpm -F @repo/extension test",
+    "typecheck": "pnpm -F @repo/extension typecheck"
   }
 }

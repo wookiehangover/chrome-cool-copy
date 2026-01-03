@@ -248,11 +248,7 @@ function handleExclusionClick(event: MouseEvent): void {
 
   const element = document.elementFromPoint(event.clientX, event.clientY);
 
-  if (
-    element &&
-    element.tagName !== "HTML" &&
-    element.tagName !== "BODY"
-  ) {
+  if (element && element.tagName !== "HTML" && element.tagName !== "BODY") {
     const selector = generateSelector(element);
     addExcludedSelector(selector);
     showToast("Element excluded from dark mode");

@@ -231,7 +231,7 @@ function handleHighlightClick(e: Event): void {
   mark.classList.add("active");
   activeHighlightId = highlightId;
 
-  const highlight = currentClip.highlights?.find((h) => h.id === highlightId);
+  const highlight = currentClip.highlights?.find((h: Highlight) => h.id === highlightId);
   noteTextarea.value = highlight?.note || "";
 
   showNoteEditor(mark);
@@ -342,7 +342,7 @@ async function saveNote(): Promise<void> {
     });
 
     // Update local state
-    const hl = currentClip.highlights?.find((h) => h.id === activeHighlightId);
+    const hl = currentClip.highlights?.find((h: Highlight) => h.id === activeHighlightId);
     if (hl) hl.note = note;
 
     // Update has-note class
@@ -383,7 +383,9 @@ async function deleteHighlight(): Promise<void> {
 
     // Remove from local state
     if (currentClip.highlights) {
-      currentClip.highlights = currentClip.highlights.filter((h) => h.id !== activeHighlightId);
+      currentClip.highlights = currentClip.highlights.filter(
+        (h: Highlight) => h.id !== activeHighlightId,
+      );
     }
 
     hideNoteEditor();

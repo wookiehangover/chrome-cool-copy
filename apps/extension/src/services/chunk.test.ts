@@ -209,8 +209,7 @@ describe("Text Chunking", () => {
         const text = "Some text";
         const result = getSmartChunks(text);
 
-        const uuidRegex =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         result.forEach((chunk) => {
           expect(chunk.citationUUID).toMatch(uuidRegex);
         });
@@ -286,4 +285,3 @@ describe("Text Chunking", () => {
     });
   });
 });
-

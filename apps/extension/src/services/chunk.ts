@@ -21,9 +21,9 @@ export async function truncateAndGetChunks(text: string): Promise<{
 
 export type ChunkOptions = {
   /** Minimum characters per chunk */
-  minChars: number;
+  minChars?: number;
   /** Maximum characters per chunk */
-  maxChars: number;
+  maxChars?: number;
 };
 
 export function getSmartChunks(
