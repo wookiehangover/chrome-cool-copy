@@ -249,11 +249,12 @@ describe("README Documentation", () => {
     expect(readmeContent).toContain("Ctrl+Shift+P");
   });
 
-  it("should include an Available Commands section", () => {
-    expect(readmeContent).toContain("Available Commands");
+  it("should include a Features section documenting commands", () => {
+    expect(readmeContent).toContain("## Features");
   });
 
-  it("should include a Keyboard Shortcuts section", () => {
-    expect(readmeContent).toContain("Keyboard Shortcuts");
+  it("should document keyboard shortcuts for commands", () => {
+    expect(readmeContent).toContain("Cmd+Shift+C");
+    expect(readmeContent).toContain("Ctrl+Shift+C");
   });
 });
