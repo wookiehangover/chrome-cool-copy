@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import { generateSessionId } from "@repo/shared/utils";
 
 /**
  * Conversation session stored in chrome.storage.local
@@ -20,10 +21,9 @@ const CURRENT_SESSION_KEY = "current_session_id";
 
 /**
  * Generate a unique session ID
+ * Re-exported from @repo/shared/utils for convenience
  */
-export function generateSessionId(): string {
-  return crypto.randomUUID();
-}
+export { generateSessionId } from "@repo/shared/utils";
 
 /**
  * Get all conversation sessions from storage

@@ -12,7 +12,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "lib": ["ES2015", "ESNext"],
+    "lib": ["ES2015", "ESNext", "DOM"],
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts"],

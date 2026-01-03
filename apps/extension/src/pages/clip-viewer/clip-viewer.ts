@@ -4,6 +4,7 @@
  */
 
 import type { LocalClip, Highlight } from "@repo/shared";
+import { escapeHtml } from "@repo/shared/utils";
 
 export {};
 
@@ -431,10 +432,4 @@ function showError(message: string): void {
   loadingState.style.display = "none";
   errorState.style.display = "flex";
   errorMessage.textContent = message;
-}
-
-function escapeHtml(text: string): string {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
 }

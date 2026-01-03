@@ -5,17 +5,11 @@
  */
 
 import type { SyncStatus, Highlight, LocalClip, ClipInput } from "@repo/shared";
+import { generateClipId } from "@repo/shared/utils";
 
 export type { SyncStatus, Highlight, LocalClip, ClipInput } from "@repo/shared";
 
 const STORAGE_KEY = "local_clips";
-
-/**
- * Generate a unique ID for a clip
- */
-function generateId(): string {
-  return `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-}
 
 /**
  * Get all local clips
@@ -43,7 +37,7 @@ export async function saveLocalClip(input: ClipInput): Promise<LocalClip> {
   const now = new Date().toISOString();
 
   const newClip: LocalClip = {
-    id: generateId(),
+    id: generateClipId(),
     url: input.url,
     title: input.title,
     dom_content: input.dom_content,
