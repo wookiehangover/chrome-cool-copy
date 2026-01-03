@@ -16,6 +16,7 @@ import {
   addHighlight,
   updateHighlightNote,
   deleteHighlight,
+  updateLocalClip,
 } from "./services/local-clips";
 import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
 
@@ -525,7 +526,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Update clip content (from reader mode edit)
       (async () => {
         try {
-          const { updateLocalClip } = await import("./services/local-clips.js");
           const result = await updateLocalClip(message.clipId, {
             dom_content: message.domContent,
             text_content: message.textContent,
