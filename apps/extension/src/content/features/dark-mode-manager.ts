@@ -14,6 +14,7 @@ export interface DarkModeSettings {
   grayscale: number; // 0-100, default 0
   mixColor: string; // hex color, default #fff (unused in backdrop-filter approach)
   preserveImages: boolean; // true = counter-invert images to preserve original colors
+  excludedSelectors: string[]; // CSS selectors for elements to exclude from dark mode
 }
 
 interface DarkModePreferences {
@@ -31,6 +32,7 @@ const defaultSettings: DarkModeSettings = {
   grayscale: 0,
   mixColor: "#ffffff",
   preserveImages: true,
+  excludedSelectors: [],
 };
 
 // DOM elements for the dark mode overlay and image preservation
@@ -145,26 +147,44 @@ function cleanupDarkMode(): void {
 }
 
 /**
- * Create or update the style element for preserving images
- * Applies counter-inversion to images so they appear in original colors
+ * Create or update the style element for preserving images and excluded elements
+ * Applies counter-inversion to images and excluded selectors so they appear in original colors
  */
-function updateImagePreserveStyle(enabled: boolean): void {
-  if (enabled) {
+function updateImagePreserveStyle(preserveImages: boolean, excludedSelectors: string[]): void {
+  const hasExclusions = excludedSelectors.length > 0;
+
+  if (preserveImages || hasExclusions) {
     if (!imagePreserveStyleElement) {
       imagePreserveStyleElement = document.createElement("style");
       imagePreserveStyleElement.id = IMAGE_PRESERVE_STYLE_ID;
       document.head.appendChild(imagePreserveStyleElement);
     }
-    // Counter-invert images, videos, and other media elements
+
+    // Build the selector list
+    const selectors: string[] = [];
+
+    // Add image/media selectors if preserveImages is enabled
+    if (preserveImages) {
+      selectors.push(
+        "img",
+        "video",
+        "picture",
+        "canvas",
+        "svg",
+        '[style*="background-image"]',
+        "iframe",
+      );
+    }
+
+    // Add user-defined excluded selectors
+    if (hasExclusions) {
+      selectors.push(...excludedSelectors);
+    }
+
+    // Counter-invert selected elements
     // This cancels out the backdrop-filter invert, preserving original colors
     imagePreserveStyleElement.textContent = `
-      img,
-      video,
-      picture,
-      canvas,
-      svg,
-      [style*="background-image"],
-      iframe {
+      ${selectors.join(",\n      ")} {
         filter: invert(1) !important;
       }
     `;
@@ -292,9 +312,13 @@ export function getCurrentDomain(): string {
 
 /**
  * Check if dark mode is currently active
+ * Checks both the isActive flag and the presence of the overlay element in the DOM
  */
 export function isDarkModeActive(): boolean {
-  return isActive;
+  // Check both the flag and verify the overlay is actually in the DOM
+  // The overlay could be detached by page scripts or other extensions
+  const overlayInDOM = overlayElement !== null && document.body.contains(overlayElement);
+  return isActive || overlayInDOM;
 }
 
 /**
@@ -328,7 +352,8 @@ function isWhite(hex: string): boolean {
 function applySettingsToDOM(): void {
   if (!overlayElement) return;
 
-  const { brightness, contrast, sepia, grayscale, mixColor, preserveImages } = currentSettings;
+  const { brightness, contrast, sepia, grayscale, mixColor, preserveImages, excludedSelectors } =
+    currentSettings;
 
   // Build backdrop-filter string
   // Order matters: invert first, then adjust contrast/brightness
@@ -359,8 +384,8 @@ function applySettingsToDOM(): void {
     overlayElement.style.background = "transparent";
   }
 
-  // Apply image preservation (counter-invert images)
-  updateImagePreserveStyle(preserveImages);
+  // Apply image preservation and excluded selectors (counter-invert)
+  updateImagePreserveStyle(preserveImages, excludedSelectors);
 }
 
 /**
@@ -409,8 +434,124 @@ export function updateDarkModeSettings(partial: Partial<DarkModeSettings>): void
 
 /**
  * Load domain-specific settings on initialization
+ * Merges saved settings with defaults to handle missing fields from older versions
  */
 async function loadDomainSettings(): Promise<void> {
   const allSettings = await loadSettings();
-  currentSettings = allSettings[currentDomain] || { ...defaultSettings };
+  const savedSettings = allSettings[currentDomain];
+  // Merge with defaults to ensure all fields exist (handles schema migrations)
+  currentSettings = savedSettings
+    ? { ...defaultSettings, ...savedSettings }
+    : { ...defaultSettings };
+}
+
+/**
+ * Generate a unique CSS selector for an element
+ * Mimics Chrome DevTools "Copy selector" behavior for maximum specificity
+ */
+export function generateSelector(element: Element): string {
+  // If element has an ID, use it (most specific)
+  if (element.id) {
+    return `#${CSS.escape(element.id)}`;
+  }
+
+  // Build a path-based selector like Chrome DevTools
+  const path: string[] = [];
+  let current: Element | null = element;
+
+  while (current && current !== document.body && current !== document.documentElement) {
+    let selector = current.tagName.toLowerCase();
+
+    // If this element has an ID, use it and stop
+    if (current.id) {
+      path.unshift(`#${CSS.escape(current.id)}`);
+      break;
+    }
+
+    // Add classes for specificity (filter out dynamic/generated classes)
+    const classes = Array.from(current.classList)
+      .filter((c) => {
+        // Filter out classes that look auto-generated (common patterns)
+        return (
+          c.length > 0 &&
+          !c.match(/^[a-z]{1,2}-[a-f0-9]{4,}$/i) && // e.g., "sc-abc123"
+          !c.match(/^_[a-zA-Z0-9]+_[a-z0-9]+$/i) && // CSS modules style
+          !c.match(/^css-[a-z0-9]+$/i) && // emotion/styled-components
+          !c.match(/^[A-Z][a-zA-Z]+-[a-zA-Z]+-[a-zA-Z0-9]+$/) // MUI style
+        );
+      })
+      .slice(0, 3) // Limit to first 3 classes for readability
+      .map((c) => `.${CSS.escape(c)}`)
+      .join("");
+
+    selector += classes;
+
+    // Always add nth-child for disambiguation (like Chrome DevTools)
+    const parent = current.parentElement;
+    if (parent) {
+      const siblings = Array.from(parent.children);
+      const index = siblings.indexOf(current) + 1;
+      selector += `:nth-child(${index})`;
+    }
+
+    path.unshift(selector);
+    current = parent;
+  }
+
+  // If path is empty, we're at body
+  if (path.length === 0) {
+    return "body";
+  }
+
+  // Prepend "body > " if we didn't hit an ID
+  const firstPart = path[0];
+  if (!firstPart.startsWith("#")) {
+    path.unshift("body");
+  }
+
+  return path.join(" > ");
+}
+
+/**
+ * Add a selector to the excluded selectors list
+ */
+export function addExcludedSelector(selector: string): void {
+  if (!currentSettings.excludedSelectors.includes(selector)) {
+    currentSettings.excludedSelectors = [...currentSettings.excludedSelectors, selector];
+    applySettingsToDOM();
+    debouncedSaveSettings();
+  }
+}
+
+/**
+ * Remove a selector from the excluded selectors list
+ */
+export function removeExcludedSelector(selector: string): void {
+  const index = currentSettings.excludedSelectors.indexOf(selector);
+  if (index !== -1) {
+    currentSettings.excludedSelectors = currentSettings.excludedSelectors.filter(
+      (s) => s !== selector,
+    );
+    applySettingsToDOM();
+    debouncedSaveSettings();
+  }
+}
+
+/**
+ * Update an excluded selector (replace old with new)
+ */
+export function updateExcludedSelector(oldSelector: string, newSelector: string): void {
+  const index = currentSettings.excludedSelectors.indexOf(oldSelector);
+  if (index !== -1 && newSelector.trim()) {
+    currentSettings.excludedSelectors[index] = newSelector.trim();
+    applySettingsToDOM();
+    debouncedSaveSettings();
+  }
+}
+
+/**
+ * Get the current list of excluded selectors
+ */
+export function getExcludedSelectors(): string[] {
+  return [...currentSettings.excludedSelectors];
 }
