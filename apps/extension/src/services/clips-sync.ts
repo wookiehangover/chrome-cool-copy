@@ -4,7 +4,12 @@
  */
 
 import type { LocalClip } from "@repo/shared";
-import { getPendingClips, updateClipSyncStatus, getLocalClip } from "./local-clips";
+import {
+  getPendingClips,
+  updateClipSyncStatus,
+  getLocalClip,
+  deleteLocalClip,
+} from "./local-clips";
 import { initializeDatabase, saveWebpage, deleteWebpage } from "./database";
 
 /**
@@ -135,7 +140,6 @@ export async function deleteFromAgentDB(agentdbId: string): Promise<void> {
 export async function deleteClipWithSync(
   localId: string,
 ): Promise<{ localDeleted: boolean; agentdbDeleted: boolean }> {
-  const { deleteLocalClip } = await import("./local-clips");
   const clip = await getLocalClip(localId);
 
   let agentdbDeleted = false;
