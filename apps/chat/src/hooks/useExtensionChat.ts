@@ -1,13 +1,8 @@
 import { useMemo, useEffect, useState, useCallback, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
+import type { PageContext } from "@repo/shared";
 import { ChromeExtensionTransport } from "@/lib/chrome-extension-transport";
-
-interface PageContext {
-  url: string;
-  title: string;
-  textContent?: string; // Optional - AI will use browse tool to fetch content when needed
-}
 
 interface UseExtensionChatOptions {
   pageContext?: PageContext | null;

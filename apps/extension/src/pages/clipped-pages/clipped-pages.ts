@@ -3,18 +3,9 @@
  * Manages display and interaction with locally stored clips
  */
 
-export {};
+import type { LocalClip } from "@repo/shared";
 
-interface LocalClip {
-  id: string;
-  url: string;
-  title: string;
-  dom_content: string;
-  text_content: string;
-  metadata?: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-}
+export {};
 
 let allClips: LocalClip[] = [];
 let pendingDeleteId: string | null = null;

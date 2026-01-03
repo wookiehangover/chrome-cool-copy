@@ -3,16 +3,11 @@
  * Extracts lightweight page context for AI prompts with size limits
  */
 
+export type { PageContext } from "@repo/shared";
+import type { PageContext } from "@repo/shared";
+
 // 10k character limit for context
 const MAX_CONTEXT_CHARS = 10_000;
-
-export interface PageContext {
-  title: string;
-  url: string;
-  textContent: string;
-  selectedText: string;
-  characterCount: number;
-}
 
 /**
  * Get the currently selected text on the page

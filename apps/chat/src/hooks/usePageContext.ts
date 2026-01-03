@@ -1,9 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-
-export interface PageContext {
-  url: string
-  title: string
-}
+import type { PageContext } from '@repo/shared'
 
 interface UsePageContextReturn {
   pageContext: PageContext | null

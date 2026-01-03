@@ -5,7 +5,7 @@
 
 import type { Command } from "./commands.js";
 import { showToast } from "./toast.js";
-import styles from "./command-palette.css";
+import styles from "./command-palette.css?raw";
 
 let commandPaletteOpen = false;
 let selectedCommandIndex = 0;

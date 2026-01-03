@@ -1,7 +1,4 @@
-interface PageContext {
-  url: string
-  title: string
-}
+import type { PageContext } from '@repo/shared'
 
 interface PageContextBadgeProps {
   context: PageContext
@@ -40,6 +37,3 @@ export function PageContextBadge({ context, onClear }: PageContextBadgeProps) {
     </div>
   )
 }
-
-export type { PageContext }
-

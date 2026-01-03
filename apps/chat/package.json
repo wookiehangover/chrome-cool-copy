@@ -24,6 +24,7 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
+    "@repo/shared": "workspace:*",
     "@ai-sdk/react": "^3.0.0",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",

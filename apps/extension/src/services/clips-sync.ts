@@ -3,7 +3,8 @@
  * Handles optional synchronization of local clips to AgentDB
  */
 
-import { LocalClip, getPendingClips, updateClipSyncStatus, getLocalClip } from "./local-clips";
+import type { LocalClip } from "@repo/shared";
+import { getPendingClips, updateClipSyncStatus, getLocalClip } from "./local-clips";
 import { initializeDatabase, saveWebpage, deleteWebpage } from "./database";
 
 /**

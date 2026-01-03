@@ -7,8 +7,8 @@
  * Uses Shadow DOM for complete style isolation
  */
 
-import styles from "./reader-mode.css";
-import type { LocalClip, Highlight } from "../../services/local-clips.js";
+import styles from "./reader-mode.css?raw";
+import type { LocalClip, Highlight } from "@repo/shared";
 import { showToast } from "../toast.js";
 
 // Reader mode state

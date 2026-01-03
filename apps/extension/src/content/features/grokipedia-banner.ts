@@ -4,7 +4,7 @@
  * only when a corresponding Grokipedia page exists
  */
 
-import styles from "./grokipedia-banner.css";
+import styles from "./grokipedia-banner.css?raw";
 import { getWikipediaArticle } from "./wikipedia-detector.js";
 import { checkGrokipediaPageExists } from "./grokipedia-checker.js";
 

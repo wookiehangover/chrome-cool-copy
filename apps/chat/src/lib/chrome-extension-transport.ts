@@ -1,10 +1,6 @@
 import type { ChatTransport } from "ai";
 import type { UIMessage, UIMessageChunk } from "ai";
-
-interface PageContext {
-  url: string;
-  title: string;
-}
+import type { PageContext } from "@repo/shared";
 
 interface ChromeExtensionTransportOptions {
   pageContext?: PageContext | null;

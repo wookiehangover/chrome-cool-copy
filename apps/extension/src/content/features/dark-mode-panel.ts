@@ -9,7 +9,7 @@ import {
   updateDarkModeSettings,
 } from "./dark-mode-manager.js";
 import { showToast } from "../toast.js";
-import styles from "./dark-mode-panel.css";
+import styles from "./dark-mode-panel.css?raw";
 
 let panelElement: HTMLDivElement | null = null;
 let styleInjected = false;

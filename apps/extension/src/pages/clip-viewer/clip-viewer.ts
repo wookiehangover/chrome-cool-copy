@@ -3,29 +3,12 @@
  * Displays a saved clip with the same UX as reader mode
  */
 
+import type { LocalClip, Highlight } from "@repo/shared";
+
 export {};
 
-interface ClipHighlight {
-  id: string;
-  text: string;
-  startOffset: number;
-  endOffset: number;
-  color?: string;
-  note?: string;
-  created_at: string;
-}
-
-interface LocalClip {
-  id: string;
-  url: string;
-  title: string;
-  dom_content: string;
-  text_content: string;
-  metadata?: Record<string, unknown>;
-  highlights?: ClipHighlight[];
-  created_at: string;
-  updated_at: string;
-}
+// Alias for compatibility with existing code
+type ClipHighlight = Highlight;
 
 // State
 let currentClip: LocalClip | null = null;
@@ -278,6 +261,7 @@ async function createHighlight(selection: Selection, text: string): Promise<void
     text,
     startOffset,
     endOffset: startOffset + text.length,
+    color: "yellow", // Default highlight color
     created_at: new Date().toISOString(),
   };
 
