@@ -9,7 +9,8 @@ import {
 import type { UIMessage } from 'ai'
 import { useExtensionChat } from '@/hooks/useExtensionChat'
 import { useConversationStore } from '@/hooks/useConversationStore'
-import { usePageContext, type PageContext } from '@/hooks/usePageContext'
+import { usePageContext } from '@/hooks/usePageContext'
+import type { PageContext } from '@repo/shared'
 import { getRandomStrategy } from '@/constants/oblique-strategies'
 
 interface ChatContextValue {
