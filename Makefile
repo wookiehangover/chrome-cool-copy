@@ -1,7 +1,7 @@
 # Chrome Cool Copy - Build System
 # All build outputs go to apps/extension/dist (the loadable extension directory)
 
-.PHONY: build clean lint format dev watch-extension watch-chat help extension chat typecheck
+.PHONY: build clean lint format dev watch-extension watch-chat help extension chat typecheck checks
 
 # Default target
 all: build
@@ -39,7 +39,7 @@ endef
 #------------------------------------------------------------------------------
 
 # Full production build: extension + chat sidepanel
-build: clean lint typecheck format extension chat
+build: clean checks format extension chat
 	@echo ""
 	@echo "\033[32m✓\033[0m Build complete: apps/extension/dist/"
 
@@ -90,7 +90,49 @@ format:
 	$(call spinner,Formatting...,pnpm -F @repo/extension format)
 
 typecheck:
-	$(call spinner,Typechecking...,pnpm -F @repo/extension typecheck)
+	$(call spinner,Typechecking extension...,pnpm -F @repo/extension typecheck)
+	$(call spinner,Typechecking chat...,pnpm -F @repo/chat typecheck)
+
+# Run lint and typecheck in parallel
+checks:
+	@tmpdir=$$(mktemp -d); \
+	pnpm -F @repo/extension lint > "$$tmpdir/lint.out" 2>&1 & lint_pid=$$!; \
+	pnpm -F @repo/extension typecheck > "$$tmpdir/tc-ext.out" 2>&1 & tc_ext_pid=$$!; \
+	pnpm -F @repo/chat typecheck > "$$tmpdir/tc-chat.out" 2>&1 & tc_chat_pid=$$!; \
+	frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'; \
+	while kill -0 $$lint_pid 2>/dev/null || kill -0 $$tc_ext_pid 2>/dev/null || kill -0 $$tc_chat_pid 2>/dev/null; do \
+		for i in $$(seq 0 9); do \
+			printf "\r  $${frames:$$i:1} Running lint and typecheck..."; \
+			sleep 0.1; \
+		done; \
+	done; \
+	wait $$lint_pid; lint_status=$$?; \
+	wait $$tc_ext_pid; tc_ext_status=$$?; \
+	wait $$tc_chat_pid; tc_chat_status=$$?; \
+	failed=0; \
+	if [ $$lint_status -ne 0 ]; then \
+		printf "\r  \033[31m✗\033[0m Linting\n"; \
+		cat "$$tmpdir/lint.out"; \
+		failed=1; \
+	else \
+		printf "\r  \033[32m✓\033[0m Linting\n"; \
+	fi; \
+	if [ $$tc_ext_status -ne 0 ]; then \
+		printf "  \033[31m✗\033[0m Typechecking extension\n"; \
+		cat "$$tmpdir/tc-ext.out"; \
+		failed=1; \
+	else \
+		printf "  \033[32m✓\033[0m Typechecking extension\n"; \
+	fi; \
+	if [ $$tc_chat_status -ne 0 ]; then \
+		printf "  \033[31m✗\033[0m Typechecking chat\n"; \
+		cat "$$tmpdir/tc-chat.out"; \
+		failed=1; \
+	else \
+		printf "  \033[32m✓\033[0m Typechecking chat\n"; \
+	fi; \
+	rm -rf "$$tmpdir"; \
+	if [ $$failed -ne 0 ]; then exit 1; fi
 
 #------------------------------------------------------------------------------
 # Utilities
