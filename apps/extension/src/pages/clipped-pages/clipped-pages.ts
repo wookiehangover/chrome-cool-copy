@@ -5,6 +5,8 @@
 
 import type { LocalClip } from "@repo/shared";
 import { escapeHtml } from "@repo/shared/utils";
+import { getLocalClips } from "../../services/local-clips";
+import { deleteClipWithSync } from "../../services/clips-sync";
 
 export {};
 
@@ -37,8 +39,6 @@ async function loadPages(): Promise<void> {
   try {
     showLoadingState();
 
-    const localClipsUrl = chrome.runtime.getURL("services/local-clips.js");
-    const { getLocalClips } = await import(localClipsUrl);
     allClips = await getLocalClips();
 
     if (allClips.length === 0) {
@@ -138,8 +138,6 @@ async function confirmDelete(): Promise<void> {
 
   try {
     // Delete from local storage and optionally from AgentDB
-    const clipsSyncUrl = chrome.runtime.getURL("services/clips-sync.js");
-    const { deleteClipWithSync } = await import(clipsSyncUrl);
     await deleteClipWithSync(pendingDeleteId);
 
     closeConfirmModal();

@@ -5,6 +5,7 @@
 
 import type { LocalClip, Highlight } from "@repo/shared";
 import { escapeHtml } from "@repo/shared/utils";
+import { getLocalClip } from "../../services/local-clips";
 
 export {};
 
@@ -49,8 +50,6 @@ async function init(): Promise<void> {
 }
 
 async function loadClip(clipId: string): Promise<void> {
-  const localClipsUrl = chrome.runtime.getURL("services/local-clips.js");
-  const { getLocalClip } = await import(localClipsUrl);
   const clip = await getLocalClip(clipId);
 
   if (!clip) {

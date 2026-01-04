@@ -3,6 +3,8 @@
  * Handles saving and loading AgentDB and AI Gateway configuration
  */
 
+import { initializeDatabase, getWebpages } from "../../services/database";
+
 export {};
 
 interface AgentDBConfig {
@@ -161,8 +163,6 @@ async function testConnection(): Promise<void> {
   testConnectionBtn.disabled = true;
 
   try {
-    const databaseUrl = chrome.runtime.getURL("services/database.js");
-    const { initializeDatabase, getWebpages } = await import(databaseUrl);
     await initializeDatabase(config);
     await getWebpages();
     showStatus("Connection successful", "success");
