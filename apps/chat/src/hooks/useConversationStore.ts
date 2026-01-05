@@ -48,24 +48,13 @@ export function useConversationStore(): UseConversationStoreReturn {
     setSessions(allSessions);
   }, []);
 
-  // Load or create initial session
+  // Load sessions and create a new session on open
   const initializeStore = useCallback(async () => {
     setIsLoading(true);
     try {
       await loadSessions();
 
-      // Try to restore current session
-      const currentId = await getCurrentSessionId();
-      if (currentId) {
-        const session = await getSession(currentId);
-        if (session) {
-          setCurrentSession(session);
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // No current session, create a new one
+      // Always start with a new session when chat is opened
       const newSession = createNewSession();
       await saveSession(newSession);
       await setCurrentSessionId(newSession.id);
