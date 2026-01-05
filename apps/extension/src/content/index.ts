@@ -15,6 +15,7 @@ import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { buildPageContext, type PageContext } from "./features/page-context.js";
 import { scrapePage, type ScrapedPage } from "./features/page-scraper.js";
 import { toggleReaderMode, initReaderMode } from "./features/reader-mode.js";
+import { initConsoleCapture, getConsoleEntries, type ConsoleEntry } from "./features/console-capture.js";
 
 /**
  * Message type for communication with background script
@@ -34,6 +35,7 @@ interface MessageResponse {
   error?: string;
   context?: PageContext;
   scrapedPage?: ScrapedPage;
+  entries?: ConsoleEntry[];
 }
 
 // Listen for messages from the background script
@@ -161,6 +163,17 @@ chrome.runtime.onMessage.addListener(
           console.error("[Page Scraper] Error scraping page:", error);
           sendResponse({ success: false, error: errorMessage });
         }
+      } else if (message.action === "readConsole") {
+        // Handle console read request - return captured console entries
+        try {
+          const lines = message.lines ?? 20;
+          const entries = getConsoleEntries(lines);
+          sendResponse({ success: true, entries });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error("[Console Capture] Error reading console:", error);
+          sendResponse({ success: false, error: errorMessage });
+        }
       } else {
         console.warn("[Clean Link Copy] Unknown message action:", message.action);
         sendResponse({ success: false, error: "Unknown action" });
@@ -173,6 +186,17 @@ chrome.runtime.onMessage.addListener(
     return true; // Keep the message channel open for async response
   },
 );
+
+/**
+ * Initialize console capture feature
+ */
+function initializeConsoleCapture(): void {
+  try {
+    initConsoleCapture();
+  } catch (error) {
+    console.error("[Console Capture] Initialization failed:", error);
+  }
+}
 
 /**
  * Initialize command palette with available commands from the registry
@@ -202,6 +226,9 @@ function initializeGrokipediaBannerFeature(): void {
     console.error("[Grokipedia Banner] Initialization failed:", error);
   }
 }
+
+// Initialize console capture early in the lifecycle
+initializeConsoleCapture();
 
 // Initialize command palette when content script loads
 initializeCommandPalette();

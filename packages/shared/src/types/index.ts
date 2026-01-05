@@ -211,3 +211,18 @@ export interface PageContext {
   characterCount?: number;
 }
 
+/**
+ * Boost - Custom JavaScript code that runs on specific domains
+ */
+export interface Boost {
+  id: string;
+  name: string;
+  description: string;
+  domain: string; // Pattern: "github.com", "*.github.com", or "*"
+  code: string; // JavaScript source
+  enabled: boolean;
+  runMode: "auto" | "manual"; // auto = on page load, manual = command palette
+  createdAt: string; // ISO timestamp
+  updatedAt: string;
+}
+
