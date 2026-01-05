@@ -166,7 +166,7 @@ chrome.runtime.onMessage.addListener(
       } else if (message.action === "readConsole") {
         // Handle console read request - return captured console entries
         try {
-          const lines = message.lines ?? 20;
+          const lines = typeof message.lines === "number" ? message.lines : 20;
           const entries = getConsoleEntries(lines);
           sendResponse({ success: true, entries });
         } catch (error) {
