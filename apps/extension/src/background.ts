@@ -551,7 +551,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       );
       chrome.tabs.create({ url: viewerUrl });
       return false;
-    } else if (message.action === "aiRequest") {
+    } else if (message.action === "generateText") {
       // Handle non-streaming AI request - forward to Vercel AI Gateway
       // Supports tool calling with browse tool
       (async () => {
@@ -603,7 +603,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               : undefined,
           });
         } catch (error) {
-          console.error("[Vercel AI Gateway] Error in aiRequest handler:", error);
+          console.error("[Vercel AI Gateway] Error in generateText handler:", error);
           sendResponse({
             success: false,
             error: error instanceof Error ? error.message : String(error),
@@ -670,7 +670,7 @@ chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== "aiStream") return;
 
   port.onMessage.addListener(async (message) => {
-    if (message.action !== "aiRequestStream") return;
+    if (message.action !== "streamText") return;
 
     try {
       const storageData = await new Promise<{

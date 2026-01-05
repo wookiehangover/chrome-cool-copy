@@ -34,7 +34,7 @@ export async function generateTitle(messages: UIMessage[]): Promise<string> {
     console.log("[Title Generation] Sending request to background...");
     // Send title generation request to background script
     const response = await chrome.runtime.sendMessage({
-      action: "aiRequest",
+      action: "generateText",
       enableTools: false, // No tools needed for title generation
       maxTokens: 50,
       temperature: 0.7,

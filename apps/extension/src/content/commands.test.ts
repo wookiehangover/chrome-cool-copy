@@ -17,7 +17,7 @@ const BACKGROUND_HANDLED_ACTIONS = [
   "captureElement",
   "captureFullPage",
   "savePageToDatabase",
-  "aiRequest",
+  "generateText",
 ] as const;
 
 // Known message actions handled by content script (index.ts)

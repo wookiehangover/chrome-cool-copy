@@ -262,7 +262,7 @@ If the user asks about this page, use the browse tool to fetch and analyze its c
 
         // Send the request
         port.postMessage({
-          action: "aiRequestStream",
+          action: "streamText",
           messages: aiMessages,
         });
       },
