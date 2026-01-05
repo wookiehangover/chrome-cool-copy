@@ -24,6 +24,7 @@ import {
   getBoosts,
   toggleBoost,
   deleteBoost,
+  getBoostsForDomain,
 } from "./services/boosts";
 import type {
   GenerateTextRequest,
@@ -734,14 +735,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       (async () => {
         try {
-          const { id } = message;
-          if (!id) {
+          const { boostId } = message;
+          if (!boostId) {
             throw new Error("Boost ID is required");
           }
 
           // Get the boost code from storage
           const boosts = await getBoosts();
-          const boost = boosts.find((b) => b.id === id);
+          const boost = boosts.find((b) => b.id === boostId);
           if (!boost) {
             throw new Error("Boost not found");
           }
@@ -773,6 +774,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
         } catch (error) {
           console.error("[Boosts] Error in runBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "getAutoBoosts") {
+      // Handle auto-boosts request - return enabled auto-mode boosts for domain
+      (async () => {
+        try {
+          const { domain } = message;
+          if (!domain) {
+            throw new Error("Domain is required");
+          }
+
+          const boosts = await getBoostsForDomain(domain);
+          const autoBoosts = boosts.filter((b) => b.runMode === "auto");
+
+          sendResponse({ success: true, data: autoBoosts });
+        } catch (error) {
+          console.error("[Boosts] Error in getAutoBoosts handler:", error);
           sendResponse({
             success: false,
             error: error instanceof Error ? error.message : String(error),
@@ -886,6 +909,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } else {
           console.log("[Side Panel] Side panel opened for tab", tabId);
           sendResponse({ success: true });
+        }
+      });
+      return true;
+    }
+  } else if (message.action === "openSidePanelTo") {
+    // Open side panel and navigate to a specific path
+    const tabId = sender.tab?.id;
+    if (tabId !== undefined) {
+      chrome.sidePanel.open({ tabId }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log("[Side Panel] Side panel opened for tab", tabId, "navigating to", message.path);
+          // Send navigation message to the side panel
+          chrome.tabs.sendMessage(
+            tabId,
+            {
+              action: "navigate",
+              path: message.path,
+              params: message.params,
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.error("[Side Panel] Error sending navigation message:", chrome.runtime.lastError);
+                sendResponse({ success: false, error: chrome.runtime.lastError.message });
+              } else {
+                sendResponse({ success: true });
+              }
+            },
+          );
         }
       });
       return true;

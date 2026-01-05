@@ -62,6 +62,13 @@ There are many like it, but this one is mine.
 - Automatically detects Wikipedia article pages
 - Shows a banner linking to the corresponding Grokipedia page when available
 
+### Cool Boosts
+- **Create Boost**: Create a new custom boost for the current page
+- **Manage Boosts**: View and manage all your boosts
+- **Run Boost**: Execute manual-mode boosts from the command palette
+- Auto-run boosts on page load for domains you've configured
+- Custom JavaScript code that runs on specific domains
+
 ### Settings
 - **Settings**: Access via Command Palette to configure extension options
 

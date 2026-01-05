@@ -17,6 +17,8 @@ import { isWikipediaPage } from "./features/wikipedia-detector.js";
 import { showToast } from "./toast.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { toggleReaderMode } from "./features/reader-mode.js";
+import { getBoostsForDomain } from "../services/boosts.js";
+import type { Boost } from "@repo/shared";
 
 /**
  * Command interface defining the structure of a command
@@ -216,6 +218,51 @@ export const commandRegistry: Command[] = [
       });
     },
   },
+  {
+    id: "create-boost",
+    name: "Create Boost",
+    description: "Create a new boost for this page",
+    shortcut: "",
+    action: () => {
+      chrome.runtime.sendMessage(
+        {
+          action: "openSidePanelTo",
+          path: "/boosts/create",
+          params: { domain: window.location.hostname },
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("[Command Registry] Error opening boost creator:", chrome.runtime.lastError);
+            showToast("Failed to open boost creator");
+          } else if (response && response.success) {
+            showToast("Boost creator opened");
+          }
+        },
+      );
+    },
+  },
+  {
+    id: "manage-boosts",
+    name: "Manage Boosts",
+    description: "View and manage all boosts",
+    shortcut: "",
+    action: () => {
+      chrome.runtime.sendMessage(
+        {
+          action: "openSidePanelTo",
+          path: "/boosts",
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error("[Command Registry] Error opening boost manager:", chrome.runtime.lastError);
+            showToast("Failed to open boost manager");
+          } else if (response && response.success) {
+            showToast("Boost manager opened");
+          }
+        },
+      );
+    },
+  },
 ];
 
 /**
@@ -260,4 +307,54 @@ export function getAllCommands(): Command[] {
  */
 export function getCommandsWithShortcuts(): Command[] {
   return commandRegistry.filter((cmd) => cmd.shortcut);
+}
+
+/**
+ * Register dynamic boost commands for the current domain
+ * Fetches enabled manual-mode boosts matching the current domain
+ * and adds them to the command registry
+ */
+export async function registerDynamicBoostCommands(): Promise<void> {
+  try {
+    const hostname = window.location.hostname;
+    const boosts = await getBoostsForDomain(hostname);
+
+    // Filter for manual-mode boosts only
+    const manualBoosts = boosts.filter((b) => b.runMode === "manual");
+
+    // Create commands for each manual boost
+    const boostCommands: Command[] = manualBoosts.map((boost: Boost) => ({
+      id: `run-boost-${boost.id}`,
+      name: `Run Boost: ${boost.name}`,
+      description: boost.description || `Run ${boost.name} on this page`,
+      shortcut: "",
+      action: () => {
+        chrome.runtime.sendMessage(
+          {
+            action: "runBoost",
+            boostId: boost.id,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error("[Command Registry] Error running boost:", chrome.runtime.lastError);
+              showToast(`Failed to run boost: ${boost.name}`);
+            } else if (response && response.success) {
+              showToast(`Boost executed: ${boost.name}`);
+            } else if (response && response.error) {
+              showToast(`Boost error: ${response.error}`);
+            }
+          },
+        );
+      },
+    }));
+
+    // Add boost commands to the registry
+    commandRegistry.push(...boostCommands);
+
+    if (boostCommands.length > 0) {
+      console.log(`[Command Registry] Registered ${boostCommands.length} dynamic boost commands`);
+    }
+  } catch (error) {
+    console.error("[Command Registry] Error registering dynamic boost commands:", error);
+  }
 }
