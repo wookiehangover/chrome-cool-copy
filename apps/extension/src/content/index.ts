@@ -20,7 +20,6 @@ import {
   getConsoleEntries,
   type ConsoleEntry,
 } from "./features/console-capture.js";
-import { getBoostsForDomain } from "../services/boosts.js";
 
 /**
  * Message type for communication with background script
@@ -241,7 +240,31 @@ function initializeGrokipediaBannerFeature(): void {
 async function initializeAutoRunBoosts(): Promise<void> {
   try {
     const hostname = window.location.hostname;
-    const boosts = await getBoostsForDomain(hostname);
+
+    // Request boosts from background script via message passing
+    const boosts = await new Promise<Array<{ id: string; name: string; runMode: string }>>(
+      (resolve, reject) => {
+        chrome.runtime.sendMessage(
+          {
+            action: "getBoostsForDomain",
+            hostname,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error("[Auto-Run Boosts] Error fetching boosts:", chrome.runtime.lastError);
+              reject(chrome.runtime.lastError);
+            } else if (response && response.success) {
+              resolve(response.boosts || []);
+            } else if (response && response.error) {
+              console.error("[Auto-Run Boosts] Error fetching boosts:", response.error);
+              reject(new Error(response.error));
+            } else {
+              resolve([]);
+            }
+          },
+        );
+      },
+    );
 
     // Filter for auto-mode boosts only
     const autoBoosts = boosts.filter((b) => b.runMode === "auto");

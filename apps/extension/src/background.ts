@@ -784,6 +784,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       })();
       return true;
+    } else if (message.action === "getBoostsForDomain") {
+      // Handle boosts for domain request from content script
+      (async () => {
+        try {
+          const { hostname } = message;
+          if (!hostname) {
+            throw new Error("Hostname is required");
+          }
+
+          const boosts = await getBoostsForDomain(hostname);
+          sendResponse({ success: true, boosts });
+        } catch (error) {
+          console.error("[Boosts] Error in getBoostsForDomain handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
     } else if (message.action === "getAutoBoosts") {
       // Handle auto-boosts request - return enabled auto-mode boosts for domain
       (async () => {

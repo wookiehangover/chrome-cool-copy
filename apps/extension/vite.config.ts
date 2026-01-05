@@ -115,7 +115,8 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: {
-        content: resolve(__dirname, 'src/content/index.ts'),
+        // Content script is built separately with esbuild to ensure it's a self-contained IIFE
+        // without any imports or shared chunks
         background: resolve(__dirname, 'src/background.ts'),
         'services/database': resolve(__dirname, 'src/services/database.ts'),
         'services/local-clips': resolve(__dirname, 'src/services/local-clips.ts'),
@@ -139,15 +140,6 @@ export default defineConfig({
         },
         // Sanitize all filenames to avoid underscore prefixes and colons
         sanitizeFileName: (name) => name.replace(/^_+/, 'x').replace(/:/g, '-'),
-        // Prevent code splitting for content script - it needs to be a single self-contained file
-        manualChunks(id) {
-          // Bundle all content script dependencies into the content entry point
-          if (id.includes('src/content/')) {
-            return 'content';
-          }
-          // Don't split other modules
-          return undefined;
-        },
       },
     },
   },

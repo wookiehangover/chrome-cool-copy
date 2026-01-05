@@ -5,7 +5,8 @@
   "description": "Chrome extension for enhanced copy functionality",
   "private": true,
   "scripts": {
-    "build": "vite build",
+    "build": "pnpm build:content && vite build",
+    "build:content": "esbuild src/content/index.ts --bundle --format=iife --outfile=dist/content.js --sourcemap",
     "watch": "vite build --watch",
     "lint": "oxlint src",
     "format": "oxfmt src",
