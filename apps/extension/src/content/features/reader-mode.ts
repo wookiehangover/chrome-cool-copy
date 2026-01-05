@@ -8,8 +8,9 @@
  */
 
 import styles from "./reader-mode.css?raw";
-import type { LocalClip, Highlight } from "@repo/shared";
+import type { Highlight } from "@repo/shared";
 import { showToast } from "../toast.js";
+import { copyToClipboard } from "../clipboard.js";
 
 // Reader mode state
 let readerModeActive = false;
@@ -29,6 +30,7 @@ let noteEditor: HTMLElement | null = null;
 let activeHighlightId: string | null = null;
 let editModeActive = false;
 let editModeBtn: HTMLButtonElement | null = null;
+let exportBtn: HTMLButtonElement | null = null;
 
 // Settings defaults
 interface ReaderSettings {
@@ -328,6 +330,8 @@ function restoreHighlights(): void {
       console.error("[Reader Mode] Error restoring highlight:", error);
     }
   }
+
+  updateExportButtonVisibility();
 }
 
 /**
@@ -529,6 +533,59 @@ function createToolbarButton(icon: string, title: string, onClick: () => void): 
   btn.title = title;
   btn.addEventListener("click", onClick);
   return btn;
+}
+
+/**
+ * Export highlights and comments as markdown
+ */
+async function exportHighlights(): Promise<void> {
+  if (currentHighlights.length === 0) {
+    showToast("No highlights to export");
+    return;
+  }
+
+  // Get the title from the reader mode header
+  const titleElement = shadowRoot?.querySelector(".reader-mode-title");
+  const title = titleElement?.textContent || document.title;
+  const url = window.location.href;
+
+  // Build markdown output
+  const lines: string[] = [];
+
+  // Header with title and URL
+  lines.push(`[${title}](${url})`);
+  lines.push("");
+
+  // Sort highlights by their position in the document (startOffset)
+  const sortedHighlights = [...currentHighlights].sort((a, b) => a.startOffset - b.startOffset);
+
+  // Add each highlight as a blockquote with optional comment
+  for (const highlight of sortedHighlights) {
+    lines.push(`> ${highlight.text}`);
+    lines.push("");
+
+    if (highlight.note && highlight.note.trim()) {
+      lines.push(highlight.note.trim());
+      lines.push("");
+    }
+  }
+
+  const markdown = lines.join("\n").trim();
+
+  const success = await copyToClipboard(markdown);
+  if (success) {
+    showToast("Highlights copied");
+  } else {
+    showToast("Failed to copy");
+  }
+}
+
+/**
+ * Update export button visibility based on highlights
+ */
+function updateExportButtonVisibility(): void {
+  if (!exportBtn) return;
+  exportBtn.style.display = currentHighlights.length > 0 ? "" : "none";
 }
 
 /**
@@ -786,10 +843,14 @@ async function createReaderModeUI(
 
   const settingsBtn = createToolbarButton("Aa", "Settings", toggleSettings);
   editModeBtn = createToolbarButton("✎", "Edit Mode", toggleEditMode);
+  const exportIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></svg>`;
+  exportBtn = createToolbarButton(exportIcon, "Export Highlights", exportHighlights);
+  exportBtn.style.display = currentHighlights.length > 0 ? "" : "none";
   const closeBtn = createToolbarButton("×", "Exit (Esc)", deactivateReaderMode);
 
   toolbar.appendChild(settingsBtn);
   toolbar.appendChild(editModeBtn);
+  toolbar.appendChild(exportBtn);
   toolbar.appendChild(closeBtn);
 
   // Create settings panel
@@ -926,6 +987,7 @@ async function createHighlightFromSelection(selection: Selection): Promise<void>
       currentHighlights.push(response.highlight);
       applyHighlightToDOM(selection, response.highlight.id);
       selection.removeAllRanges();
+      updateExportButtonVisibility();
     }
   } catch (error) {
     console.error("[Reader Mode] Failed to create highlight:", error);
@@ -1077,6 +1139,7 @@ async function deleteCurrentHighlight(): Promise<void> {
       markElement.remove();
     }
 
+    updateExportButtonVisibility();
     hideNoteEditor();
   } catch (error) {
     console.error("[Reader Mode] Failed to delete highlight:", error);
@@ -1174,6 +1237,7 @@ export async function deactivateReaderMode(): Promise<void> {
     currentHighlights = [];
     editModeActive = false;
     editModeBtn = null;
+    exportBtn = null;
   } catch (error) {
     console.error("[Reader Mode] Error deactivating reader mode:", error);
   }
