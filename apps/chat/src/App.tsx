@@ -1,5 +1,6 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { ChatProvider, useChatContext } from '@/contexts/ChatContext'
+import { NavigationProvider, useNavigationContext } from '@/contexts/NavigationContext'
 import {
   Conversation,
   ConversationContent,
@@ -9,6 +10,9 @@ import { ChatInput } from '@/components/ChatInput'
 import { MessageList } from '@/components/MessageList'
 import { EmptyState } from '@/components/EmptyState'
 import { SessionList } from '@/components/SessionList'
+import { Navigation } from '@/components/Navigation'
+import { BoostsList } from '@/components/BoostsList'
+import { BoostCreate } from '@/components/BoostCreate'
 
 function ChatContent() {
   const {
@@ -24,6 +28,22 @@ function ChatContent() {
     setShowSessionList,
     isAppLoading,
   } = useChatContext()
+
+  const { path, navigate } = useNavigationContext()
+
+  // Listen for external navigation messages from background script
+  useEffect(() => {
+    const handleMessage = (message: any) => {
+      if (message.action === 'navigate') {
+        navigate(message.path, message.params)
+      }
+    }
+
+    chrome.runtime.onMessage.addListener(handleMessage)
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage)
+    }
+  }, [navigate])
 
   const handleNewChat = useCallback(async () => {
     await startNewSession()
@@ -54,10 +74,31 @@ function ChatContent() {
     setShowSessionList(false)
   }, [setShowSessionList])
 
+  // Render based on current path
+  if (path === '/boosts') {
+    return (
+      <div className="flex h-screen w-full flex-col bg-background text-foreground">
+        <Navigation />
+        <BoostsList />
+      </div>
+    )
+  }
+
+  if (path === '/boosts/create') {
+    return (
+      <div className="flex h-screen w-full flex-col bg-background text-foreground">
+        <Navigation />
+        <BoostCreate />
+      </div>
+    )
+  }
+
+  // Default /chat view
   // Show session list view
   if (showSessionList) {
     return (
       <div className="flex h-screen w-full flex-col bg-background text-foreground">
+        <Navigation />
         <SessionList
           sessions={sessions}
           currentSessionId={currentSession?.id || null}
@@ -72,6 +113,7 @@ function ChatContent() {
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
+      <Navigation />
       <ChatHeader
         title={currentSession?.title || 'Chat'}
         onOpenSessions={handleOpenSessions}
@@ -101,9 +143,11 @@ function ChatContent() {
 
 function App() {
   return (
-    <ChatProvider>
-      <ChatContent />
-    </ChatProvider>
+    <NavigationProvider>
+      <ChatProvider>
+        <ChatContent />
+      </ChatProvider>
+    </NavigationProvider>
   )
 }
 

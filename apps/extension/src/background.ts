@@ -19,12 +19,14 @@ import {
   updateLocalClip,
 } from "./services/local-clips";
 import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
+import { getConsoleEntries } from "./content/features/console-capture";
 import type {
   GenerateTextRequest,
   StreamTextRequest,
   GenerateTextResponse,
   StreamMessageType,
 } from "@repo/shared";
+import type { ConsoleEntry } from "./content/features/console-capture";
 
 /**
  * Vercel AI Gateway configuration
@@ -33,6 +35,11 @@ interface VercelAIGatewayConfig {
   apiKey: string;
   model: string;
 }
+
+/**
+ * In-memory draft state for boost code per tab
+ */
+const boostDrafts = new Map<number, string>();
 
 /**
  * Send a message to the content script with error handling
@@ -557,6 +564,108 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       );
       chrome.tabs.create({ url: viewerUrl });
       return false;
+    } else if (message.action === "boostFile") {
+      // Handle boost file storage - store code in draft state
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) {
+        sendResponse({ success: false, error: "No tab ID available" });
+        return false;
+      }
+
+      try {
+        const { content } = message;
+        if (typeof content !== "string") {
+          throw new Error("Content must be a string");
+        }
+
+        boostDrafts.set(tabId, content);
+        console.log("[Boosts] Stored draft for tab", tabId, `(${content.length} bytes)`);
+
+        sendResponse({
+          success: true,
+          message: `Boost code updated (${content.length} bytes)`,
+        });
+      } catch (error) {
+        console.error("[Boosts] Error in boostFile handler:", error);
+        sendResponse({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return false;
+    } else if (message.action === "executeBoost") {
+      // Handle boost execution - inject code into page context
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) {
+        sendResponse({ success: false, error: "No tab ID available" });
+        return false;
+      }
+
+      (async () => {
+        try {
+          const code = boostDrafts.get(tabId);
+          if (!code) {
+            throw new Error("No boost code stored for this tab");
+          }
+
+          // Execute the code in the page context (MAIN world, not isolated)
+          const results = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: (boostCode: string) => {
+              try {
+                // eslint-disable-next-line no-eval
+                eval(boostCode);
+                return { success: true, result: "Boost executed successfully" };
+              } catch (error) {
+                return {
+                  success: false,
+                  error: error instanceof Error ? error.message : String(error),
+                };
+              }
+            },
+            args: [code],
+            world: "MAIN",
+          });
+
+          const result = results[0]?.result;
+          if (result && typeof result === "object" && "success" in result) {
+            sendResponse(result);
+          } else {
+            sendResponse({ success: true, result: "Boost executed successfully" });
+          }
+        } catch (error) {
+          console.error("[Boosts] Error in executeBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "readConsole") {
+      // Handle console reading - fetch recent console entries from content script
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) {
+        sendResponse({ success: false, error: "No tab ID available" });
+        return false;
+      }
+
+      try {
+        const { lines = 20 } = message;
+        const entries = getConsoleEntries(lines) as ConsoleEntry[];
+
+        sendResponse({
+          success: true,
+          entries,
+        });
+      } catch (error) {
+        console.error("[Boosts] Error in readConsole handler:", error);
+        sendResponse({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return false;
     } else if (message.action === "generateText") {
       // Handle non-streaming AI request - forward to Vercel AI Gateway
       // Supports tool calling with browse tool
@@ -841,4 +950,12 @@ chrome.runtime.onConnect.addListener((port) => {
       });
     }
   });
+});
+
+/**
+ * Clean up boost drafts when tabs are closed
+ */
+chrome.tabs.onRemoved.addListener((tabId) => {
+  boostDrafts.delete(tabId);
+  console.log("[Boosts] Cleaned up draft for closed tab", tabId);
 });
