@@ -1,6 +1,6 @@
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import type { StreamTextRequest, AIMessage } from "@repo/shared";
-import { boostSystemPrompt } from "@repo/shared/boost-system-prompt";
+import { boostSystemPrompt } from "@repo/shared";
 
 interface BoostTransportOptions {
   domain: string;
