@@ -21,7 +21,6 @@ import {
   updateLocalClip,
 } from "./services/local-clips";
 import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
-import { getConsoleEntries } from "./content/features/console-capture";
 import {
   getBoosts,
   toggleBoost,
@@ -652,29 +651,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })();
       return true;
     } else if (message.action === "readConsole") {
-      // Handle console reading - fetch recent console entries from content script
-      const tabId = sender.tab?.id;
-      if (tabId === undefined) {
-        sendResponse({ success: false, error: "No tab ID available" });
-        return false;
-      }
+      // Get active tab and send message to content script
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tabId = tabs[0]?.id;
+        if (!tabId) {
+          sendResponse({
+            success: false,
+            error: "No active tab found",
+          });
+          return;
+        }
 
-      try {
-        const { lines = 20 } = message;
-        const entries = getConsoleEntries(lines) as ConsoleEntry[];
+        const lines = typeof message.lines === "number" ? message.lines : 20;
 
-        sendResponse({
-          success: true,
-          entries,
+        chrome.tabs.sendMessage(tabId, { action: "readConsole", lines }, (response) => {
+          if (chrome.runtime.lastError) {
+            sendResponse({
+              success: false,
+              error: chrome.runtime.lastError.message,
+            });
+            return;
+          }
+          sendResponse(response);
         });
-      } catch (error) {
-        console.error("[Boosts] Error in readConsole handler:", error);
-        sendResponse({
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-      return false;
+      });
+      return true; // Keep channel open for async response
     } else if (message.action === "getBoosts") {
       // Handle boost list request from chat app
       (async () => {
