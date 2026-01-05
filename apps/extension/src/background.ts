@@ -19,6 +19,12 @@ import {
   updateLocalClip,
 } from "./services/local-clips";
 import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
+import type {
+  GenerateTextRequest,
+  StreamTextRequest,
+  GenerateTextResponse,
+  StreamMessageType,
+} from "@repo/shared";
 
 /**
  * Vercel AI Gateway configuration
@@ -554,6 +560,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === "generateText") {
       // Handle non-streaming AI request - forward to Vercel AI Gateway
       // Supports tool calling with browse tool
+      const request = message as GenerateTextRequest;
       (async () => {
         try {
           const storageData = await new Promise<{
@@ -571,7 +578,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             );
           }
 
-          if (!message.messages || !Array.isArray(message.messages)) {
+          if (!request.messages || !Array.isArray(request.messages)) {
             throw new Error("Invalid request: messages array is required");
           }
 
@@ -580,34 +587,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
 
           // Enable tools if requested (default: enabled)
-          const enableTools = message.enableTools !== false;
+          const enableTools = request.enableTools !== false;
 
           const result = await generateText({
             model: gateway(config.model),
-            messages: message.messages,
-            temperature: message.temperature ?? 0.7,
-            maxOutputTokens: message.maxTokens ?? 2000,
-            // Include tools for URL browsing capability
-            ...(enableTools && { tools, maxSteps: 3 }),
+            messages: request.messages,
+            // Apply system message if provided separately
+            ...(request.system && { system: request.system }),
+            // Call settings with defaults
+            temperature: request.temperature ?? 0.7,
+            maxOutputTokens: request.maxOutputTokens ?? 2000,
+            topP: request.topP,
+            topK: request.topK,
+            presencePenalty: request.presencePenalty,
+            frequencyPenalty: request.frequencyPenalty,
+            stopSequences: request.stopSequences,
+            seed: request.seed,
+            maxRetries: request.maxRetries,
+            headers: request.headers,
+            // Tool settings
+            ...(enableTools && {
+              tools,
+              toolChoice: request.toolChoice ?? "auto",
+              maxSteps: request.maxSteps ?? 3,
+            }),
+            // Provider options
+            ...(request.providerOptions && { providerOptions: request.providerOptions }),
           });
 
-          sendResponse({
+          const response: GenerateTextResponse = {
             success: true,
             content: result.text,
             usage: result.usage
               ? {
-                  promptTokens: result.usage.inputTokens ?? 0,
-                  completionTokens: result.usage.outputTokens ?? 0,
+                  inputTokens: result.usage.inputTokens ?? 0,
+                  outputTokens: result.usage.outputTokens ?? 0,
                   totalTokens: (result.usage.inputTokens ?? 0) + (result.usage.outputTokens ?? 0),
                 }
               : undefined,
-          });
+          };
+          sendResponse(response);
         } catch (error) {
           console.error("[Vercel AI Gateway] Error in generateText handler:", error);
-          sendResponse({
+          const response: GenerateTextResponse = {
             success: false,
             error: error instanceof Error ? error.message : String(error),
-          });
+          };
+          sendResponse(response);
         }
       })();
 
@@ -672,6 +698,10 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (message) => {
     if (message.action !== "streamText") return;
 
+    const request = message as StreamTextRequest;
+
+    const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
+
     try {
       const storageData = await new Promise<{
         aiGatewayConfig?: VercelAIGatewayConfig;
@@ -683,15 +713,15 @@ chrome.runtime.onConnect.addListener((port) => {
 
       const config = storageData.aiGatewayConfig;
       if (!config || !config.apiKey || !config.model) {
-        port.postMessage({
+        sendMessage({
           type: "error",
           error: "Vercel AI Gateway configuration not found. Please configure settings.",
         });
         return;
       }
 
-      if (!message.messages || !Array.isArray(message.messages)) {
-        port.postMessage({
+      if (!request.messages || !Array.isArray(request.messages)) {
+        sendMessage({
           type: "error",
           error: "Invalid request: messages array is required",
         });
@@ -705,22 +735,44 @@ chrome.runtime.onConnect.addListener((port) => {
       });
 
       // Enable tools if requested (default: enabled)
-      const enableTools = message.enableTools !== false;
+      const enableTools = request.enableTools !== false;
+
+      // Build provider options, merging user options with defaults
+      const defaultProviderOptions = {
+        anthropic: {
+          thinking: {
+            type: "enabled" as const,
+            budgetTokens: 10000,
+          },
+        },
+      };
 
       const result = streamText({
         model: gateway(config.model),
-        messages: message.messages,
-        stopWhen: stepCountIs(5),
-        // Include tools for URL browsing capability
-        ...(enableTools && { tools }),
-        // Enable reasoning tokens for models that support it (e.g., Claude)
+        messages: request.messages,
+        // Apply system message if provided separately
+        ...(request.system && { system: request.system }),
+        // Call settings with defaults
+        temperature: request.temperature,
+        maxOutputTokens: request.maxOutputTokens,
+        topP: request.topP,
+        topK: request.topK,
+        presencePenalty: request.presencePenalty,
+        frequencyPenalty: request.frequencyPenalty,
+        stopSequences: request.stopSequences,
+        seed: request.seed,
+        maxRetries: request.maxRetries,
+        headers: request.headers,
+        // Tool settings
+        stopWhen: stepCountIs(request.maxSteps ?? 5),
+        ...(enableTools && {
+          tools,
+          toolChoice: request.toolChoice ?? "auto",
+        }),
+        // Merge provider options
         providerOptions: {
-          anthropic: {
-            thinking: {
-              type: "enabled",
-              budgetTokens: 10000,
-            },
-          },
+          ...defaultProviderOptions,
+          ...request.providerOptions,
         },
       });
 
@@ -728,30 +780,30 @@ chrome.runtime.onConnect.addListener((port) => {
       for await (const part of result.fullStream) {
         switch (part.type) {
           case "reasoning-start":
-            port.postMessage({ type: "reasoning-start" });
+            sendMessage({ type: "reasoning-start" });
             break;
           case "reasoning-delta":
-            port.postMessage({ type: "reasoning", content: part.text });
+            sendMessage({ type: "reasoning", content: part.text });
             break;
           case "reasoning-end":
-            port.postMessage({ type: "reasoning-end" });
+            sendMessage({ type: "reasoning-end" });
             break;
           case "tool-input-start":
-            port.postMessage({
+            sendMessage({
               type: "tool-input-start",
               toolCallId: part.id,
               toolName: part.toolName,
             });
             break;
           case "tool-input-delta":
-            port.postMessage({
+            sendMessage({
               type: "tool-input-delta",
               toolCallId: part.id,
               inputTextDelta: part.delta,
             });
             break;
           case "tool-call":
-            port.postMessage({
+            sendMessage({
               type: "tool-call",
               toolCallId: part.toolCallId,
               toolName: part.toolName,
@@ -759,7 +811,7 @@ chrome.runtime.onConnect.addListener((port) => {
             });
             break;
           case "tool-result":
-            port.postMessage({
+            sendMessage({
               type: "tool-result",
               toolCallId: part.toolCallId,
               toolName: part.toolName,
@@ -767,7 +819,7 @@ chrome.runtime.onConnect.addListener((port) => {
             });
             break;
           case "tool-error":
-            port.postMessage({
+            sendMessage({
               type: "tool-error",
               toolCallId: part.toolCallId,
               toolName: part.toolName,
@@ -775,15 +827,15 @@ chrome.runtime.onConnect.addListener((port) => {
             });
             break;
           case "text-delta":
-            port.postMessage({ type: "chunk", content: part.text });
+            sendMessage({ type: "chunk", content: part.text });
             break;
         }
       }
 
-      port.postMessage({ type: "done" });
+      sendMessage({ type: "done" });
     } catch (error) {
       console.error("[Vercel AI Gateway] Error in streaming handler:", error);
-      port.postMessage({
+      sendMessage({
         type: "error",
         error: error instanceof Error ? error.message : String(error),
       });

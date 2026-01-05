@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import type { GenerateTextRequest, GenerateTextResponse } from "@repo/shared";
 
 /**
  * Maximum number of user messages after which title becomes fixed
@@ -33,10 +34,10 @@ export async function generateTitle(messages: UIMessage[]): Promise<string> {
   try {
     console.log("[Title Generation] Sending request to background...");
     // Send title generation request to background script
-    const response = await chrome.runtime.sendMessage({
+    const request: GenerateTextRequest = {
       action: "generateText",
       enableTools: false, // No tools needed for title generation
-      maxTokens: 50,
+      maxOutputTokens: 50,
       temperature: 0.7,
       messages: [
         {
@@ -50,7 +51,8 @@ Respond with ONLY the title, no quotes, no explanation, no punctuation at the en
           content: conversationText,
         },
       ],
-    });
+    };
+    const response: GenerateTextResponse = await chrome.runtime.sendMessage(request);
 
     console.log("[Title Generation] Response:", response);
 

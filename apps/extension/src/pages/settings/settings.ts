@@ -12,7 +12,7 @@ interface AgentDBConfig {
   apiKey: string;
   token: string;
   dbName: string;
-  dbType: string;
+  dbType: "sqlite" | "duckdb";
 }
 
 interface VercelAIGatewayConfig {
@@ -99,7 +99,7 @@ async function saveSettings(e: Event): Promise<void> {
           apiKey: agentdbApiKey,
           token: agentdbToken,
           dbName: dbNameInput.value.trim() || "webpages",
-          dbType: dbTypeSelect.value,
+          dbType: dbTypeSelect.value as "sqlite" | "duckdb",
         }
       : null;
 
@@ -150,7 +150,7 @@ async function testConnection(): Promise<void> {
     apiKey: apiKeyInput.value.trim(),
     token: tokenInput.value.trim(),
     dbName: dbNameInput.value.trim() || "webpages",
-    dbType: dbTypeSelect.value,
+    dbType: dbTypeSelect.value as "sqlite" | "duckdb",
   };
 
   // Validate required fields

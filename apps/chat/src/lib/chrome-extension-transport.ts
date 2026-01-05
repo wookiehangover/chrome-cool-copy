@@ -1,6 +1,6 @@
 import type { ChatTransport } from "ai";
 import type { UIMessage, UIMessageChunk } from "ai";
-import type { PageContext } from "@repo/shared";
+import type { PageContext, StreamTextRequest, AIMessage } from "@repo/shared";
 
 interface ChromeExtensionTransportOptions {
   pageContext?: PageContext | null;
@@ -50,8 +50,8 @@ export class ChromeExtensionTransport implements ChatTransport<UIMessage> {
   }): Promise<ReadableStream<UIMessageChunk>> {
     const { messages, abortSignal } = options;
 
-    // Build messages array for AI request, converting UIMessage format to simple format
-    const aiMessages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [];
+    // Build messages array for AI request, converting UIMessage format to AIMessage format
+    const aiMessages: AIMessage[] = [];
 
     // Add system message with page context URL if available
     if (this.pageContext) {
@@ -66,7 +66,7 @@ If the user asks about this page, use the browse tool to fetch and analyze its c
       });
     }
 
-    // Convert UIMessage[] to simple message format
+    // Convert UIMessage[] to AIMessage format
     for (const msg of messages) {
       if (msg.role === "system" || msg.role === "user" || msg.role === "assistant") {
         // Extract text content from parts
@@ -260,11 +260,12 @@ If the user asks about this page, use the browse tool to fetch and analyze its c
           closeStream();
         });
 
-        // Send the request
-        port.postMessage({
+        // Send the request with typed StreamTextRequest
+        const request: StreamTextRequest = {
           action: "streamText",
           messages: aiMessages,
-        });
+        };
+        port.postMessage(request);
       },
     });
   }
