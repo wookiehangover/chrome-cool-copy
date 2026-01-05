@@ -10,6 +10,8 @@ if (typeof process === "undefined") {
 
 import { streamText, generateText, createGateway, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
+import { boostTools } from "./tools/boost-tools";
+import { boostSystemPrompt } from "./tools/boost-system-prompt";
 import {
   saveLocalClip,
   isUrlClipped,
@@ -25,6 +27,7 @@ import {
   toggleBoost,
   deleteBoost,
   getBoostsForDomain,
+  saveBoost,
 } from "./services/boosts";
 import type {
   GenerateTextRequest,
@@ -948,6 +951,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 /**
+ * Handle saveBoost message from boost authoring UI
+ * Saves a boost to chrome.storage.local
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if ((message.action === "saveBoost" || message.type === "saveBoost") && message.payload) {
+    saveBoost(message.payload)
+      .then((boost) => {
+        console.log("[Boosts] Boost saved successfully:", boost.id);
+        sendResponse({ success: true, boost });
+      })
+      .catch((error) => {
+        console.error("[Boosts] Error saving boost:", error);
+        sendResponse({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    return true; // Indicate we'll respond asynchronously
+  }
+});
+
+
+/**
  * Listen for tab updates to manage side panel state
  * Ensures side panel is properly isolated per tab
  */
@@ -1119,6 +1145,163 @@ chrome.runtime.onConnect.addListener((port) => {
     }
   });
 });
+
+/**
+ * Handle streaming AI requests for boost authoring via port-based messaging
+ * Similar to aiStream but uses boost-specific tools and system prompt
+ * Supports tool calling with boost tools (file, execute_boost, read_console)
+ */
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "boostStream") return;
+
+  port.onMessage.addListener(async (message) => {
+    if (message.action !== "streamText") return;
+
+    const request = message as StreamTextRequest;
+
+    const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
+
+    try {
+      const storageData = await new Promise<{
+        aiGatewayConfig?: VercelAIGatewayConfig;
+      }>((resolve) => {
+        chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
+          resolve(result);
+        });
+      });
+
+      const config = storageData.aiGatewayConfig;
+      if (!config || !config.apiKey || !config.model) {
+        sendMessage({
+          type: "error",
+          error: "Vercel AI Gateway configuration not found. Please configure settings.",
+        });
+        return;
+      }
+
+      if (!request.messages || !Array.isArray(request.messages)) {
+        sendMessage({
+          type: "error",
+          error: "Invalid request: messages array is required",
+        });
+        return;
+      }
+
+      console.log("[Vercel AI Gateway] Starting boost streaming request for model:", config.model);
+
+      const gateway = createGateway({
+        apiKey: config.apiKey,
+      });
+
+      // Enable tools if requested (default: enabled)
+      const enableTools = request.enableTools !== false;
+
+      // Build provider options, merging user options with defaults
+      const defaultProviderOptions = {
+        anthropic: {
+          thinking: {
+            type: "enabled" as const,
+            budgetTokens: 10000,
+          },
+        },
+      };
+
+      const result = streamText({
+        model: gateway(config.model),
+        messages: request.messages,
+        // Use boost system prompt instead of request.system
+        system: boostSystemPrompt,
+        // Call settings with defaults
+        temperature: request.temperature,
+        maxOutputTokens: request.maxOutputTokens,
+        topP: request.topP,
+        topK: request.topK,
+        presencePenalty: request.presencePenalty,
+        frequencyPenalty: request.frequencyPenalty,
+        stopSequences: request.stopSequences,
+        seed: request.seed,
+        maxRetries: request.maxRetries,
+        headers: request.headers,
+        // Tool settings - use boost tools instead of browse tools
+        stopWhen: stepCountIs(request.maxSteps ?? 5),
+        ...(enableTools && {
+          tools: boostTools,
+          toolChoice: request.toolChoice ?? "auto",
+        }),
+        // Merge provider options
+        providerOptions: {
+          ...defaultProviderOptions,
+          ...request.providerOptions,
+        },
+      });
+
+      // Use fullStream to capture reasoning tokens, tool calls, and text
+      for await (const part of result.fullStream) {
+        switch (part.type) {
+          case "reasoning-start":
+            sendMessage({ type: "reasoning-start" });
+            break;
+          case "reasoning-delta":
+            sendMessage({ type: "reasoning", content: part.text });
+            break;
+          case "reasoning-end":
+            sendMessage({ type: "reasoning-end" });
+            break;
+          case "tool-input-start":
+            sendMessage({
+              type: "tool-input-start",
+              toolCallId: part.id,
+              toolName: part.toolName,
+            });
+            break;
+          case "tool-input-delta":
+            sendMessage({
+              type: "tool-input-delta",
+              toolCallId: part.id,
+              inputTextDelta: part.delta,
+            });
+            break;
+          case "tool-call":
+            sendMessage({
+              type: "tool-call",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              input: part.input,
+            });
+            break;
+          case "tool-result":
+            sendMessage({
+              type: "tool-result",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              output: part.output,
+            });
+            break;
+          case "tool-error":
+            sendMessage({
+              type: "tool-error",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              errorText: part.error instanceof Error ? part.error.message : String(part.error),
+            });
+            break;
+          case "text-delta":
+            sendMessage({ type: "chunk", content: part.text });
+            break;
+        }
+      }
+
+      sendMessage({ type: "done" });
+    } catch (error) {
+      console.error("[Vercel AI Gateway] Error in boost streaming handler:", error);
+      sendMessage({
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+});
+
 
 /**
  * Clean up boost drafts when tabs are closed
