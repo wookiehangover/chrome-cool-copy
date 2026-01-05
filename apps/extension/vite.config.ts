@@ -115,8 +115,7 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: {
-        // Content script is built separately with esbuild to ensure it's a self-contained IIFE
-        // without any imports or shared chunks
+        content: resolve(__dirname, 'src/content/index.ts'),
         background: resolve(__dirname, 'src/background.ts'),
         'services/database': resolve(__dirname, 'src/services/database.ts'),
         'services/local-clips': resolve(__dirname, 'src/services/local-clips.ts'),
