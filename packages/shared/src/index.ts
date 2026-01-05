@@ -5,4 +5,5 @@
 
 export * from "./types/index.js";
 export * from "./utils/index.js";
+export { boostSystemPrompt } from "./boost-system-prompt.js";
 

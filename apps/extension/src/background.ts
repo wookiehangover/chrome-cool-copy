@@ -20,6 +20,11 @@ import {
 } from "./services/local-clips";
 import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
 import { getConsoleEntries } from "./content/features/console-capture";
+import {
+  getBoosts,
+  toggleBoost,
+  deleteBoost,
+} from "./services/boosts";
 import type {
   GenerateTextRequest,
   StreamTextRequest,
@@ -666,6 +671,115 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       }
       return false;
+    } else if (message.action === "getBoosts") {
+      // Handle boost list request from chat app
+      (async () => {
+        try {
+          const boosts = await getBoosts();
+          sendResponse({ success: true, data: boosts });
+        } catch (error) {
+          console.error("[Boosts] Error in getBoosts handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "toggleBoost") {
+      // Handle boost toggle request
+      (async () => {
+        try {
+          const { id } = message;
+          if (!id) {
+            throw new Error("Boost ID is required");
+          }
+          const boost = await toggleBoost(id);
+          sendResponse({ success: true, data: boost });
+        } catch (error) {
+          console.error("[Boosts] Error in toggleBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "deleteBoost") {
+      // Handle boost deletion request
+      (async () => {
+        try {
+          const { id } = message;
+          if (!id) {
+            throw new Error("Boost ID is required");
+          }
+          const success = await deleteBoost(id);
+          sendResponse({ success, data: success });
+        } catch (error) {
+          console.error("[Boosts] Error in deleteBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "runBoost") {
+      // Handle boost run request - execute boost code on current tab
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) {
+        sendResponse({ success: false, error: "No tab ID available" });
+        return false;
+      }
+
+      (async () => {
+        try {
+          const { id } = message;
+          if (!id) {
+            throw new Error("Boost ID is required");
+          }
+
+          // Get the boost code from storage
+          const boosts = await getBoosts();
+          const boost = boosts.find((b) => b.id === id);
+          if (!boost) {
+            throw new Error("Boost not found");
+          }
+
+          // Execute the boost code in the page context
+          const results = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: (boostCode: string) => {
+              try {
+                // eslint-disable-next-line no-eval
+                eval(boostCode);
+                return { success: true, result: "Boost executed successfully" };
+              } catch (error) {
+                return {
+                  success: false,
+                  error: error instanceof Error ? error.message : String(error),
+                };
+              }
+            },
+            args: [boost.code],
+            world: "MAIN",
+          });
+
+          const result = results[0]?.result;
+          if (result && typeof result === "object" && "success" in result) {
+            sendResponse(result);
+          } else {
+            sendResponse({ success: true, result: "Boost executed successfully" });
+          }
+        } catch (error) {
+          console.error("[Boosts] Error in runBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
     } else if (message.action === "generateText") {
       // Handle non-streaming AI request - forward to Vercel AI Gateway
       // Supports tool calling with browse tool
