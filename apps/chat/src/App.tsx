@@ -33,10 +33,18 @@ function ChatContent() {
 
   // Listen for external navigation messages from background script
   useEffect(() => {
-    const handleMessage = (message: any) => {
+    const handleMessage = (
+      message: any,
+      _sender: chrome.runtime.MessageSender,
+      sendResponse: (response?: any) => void
+    ) => {
       if (message.action === 'navigate') {
+        console.log('[SidePanel] Received navigation message:', message.path, message.params)
         navigate(message.path, message.params)
+        sendResponse({ success: true })
+        return true // Indicates async response
       }
+      return false
     }
 
     chrome.runtime.onMessage.addListener(handleMessage)
