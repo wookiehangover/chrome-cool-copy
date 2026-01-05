@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { XIcon } from "lucide-react";
+import type { UIMessage } from "ai";
 import { useNavigationContext } from "@/contexts/NavigationContext";
 import { useBoostAuthoring } from "@/hooks/useBoostAuthoring";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,14 @@ import { MessageList } from "@/components/MessageList";
 import { BoostCodePreview } from "@/components/BoostCodePreview";
 import { BoostSaveDialog } from "@/components/BoostSaveDialog";
 import { BoostAuthoringInput } from "@/components/BoostAuthoringInput";
+
+// Helper to extract text content from message parts
+function getMessageContent(message: UIMessage): string {
+  return message.parts
+    .filter((part): part is { type: "text"; text: string } => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+}
 
 export function BoostAuthoring() {
   const { params, goBack } = useNavigationContext();
@@ -48,7 +57,7 @@ export function BoostAuthoring() {
               description="Describe what you want your boost to do, and I'll help you write the code."
             />
           ) : (
-            <MessageList />
+            <MessageList messages={messages} getMessageContent={getMessageContent} />
           )}
         </ConversationContent>
       </Conversation>

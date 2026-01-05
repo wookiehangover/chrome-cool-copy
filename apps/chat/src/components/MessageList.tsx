@@ -15,15 +15,26 @@ import {
   ToolInput,
   ToolOutput,
 } from '@/components/ai-elements/tool'
-import { getToolName, type DynamicToolUIPart, type ToolUIPart, type UITools } from 'ai'
+import { getToolName, type DynamicToolUIPart, type ToolUIPart, type UITools, type UIMessage } from 'ai'
 import { useChatContext } from '@/contexts/ChatContext'
 
 // Helper type for tool parts (either typed or dynamic)
 type AnyToolUIPart = DynamicToolUIPart | ToolUIPart<UITools>
 
-export function MessageList() {
-  const { messages, reasoning, isReasoningStreaming, getMessageContent, error } =
-    useChatContext()
+interface MessageListProps {
+  /** Optional messages array - falls back to ChatContext if not provided */
+  messages?: UIMessage[]
+  /** Optional getMessageContent function - falls back to ChatContext if not provided */
+  getMessageContent?: (message: UIMessage) => string
+}
+
+export function MessageList(props: MessageListProps) {
+  const context = useChatContext()
+
+  // Use props if provided, otherwise fall back to context
+  const messages = props.messages ?? context.messages
+  const getMessageContent = props.getMessageContent ?? context.getMessageContent
+  const { reasoning, isReasoningStreaming, error } = context
   return (
     <>
       {messages.map((message, index) => {
