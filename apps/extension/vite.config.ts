@@ -139,6 +139,15 @@ export default defineConfig({
         },
         // Sanitize all filenames to avoid underscore prefixes and colons
         sanitizeFileName: (name) => name.replace(/^_+/, 'x').replace(/:/g, '-'),
+        // Prevent code splitting for content script - it needs to be a single self-contained file
+        manualChunks(id) {
+          // Bundle all content script dependencies into the content entry point
+          if (id.includes('src/content/')) {
+            return 'content';
+          }
+          // Don't split other modules
+          return undefined;
+        },
       },
     },
   },

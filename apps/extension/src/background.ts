@@ -925,7 +925,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
           sendResponse({ success: false, error: chrome.runtime.lastError.message });
         } else {
-          console.log("[Side Panel] Side panel opened for tab", tabId, "navigating to", message.path);
+          console.log(
+            "[Side Panel] Side panel opened for tab",
+            tabId,
+            "navigating to",
+            message.path,
+          );
           // Send navigation message to the side panel
           chrome.tabs.sendMessage(
             tabId,
@@ -936,7 +941,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             },
             (response) => {
               if (chrome.runtime.lastError) {
-                console.error("[Side Panel] Error sending navigation message:", chrome.runtime.lastError);
+                console.error(
+                  "[Side Panel] Error sending navigation message:",
+                  chrome.runtime.lastError,
+                );
                 sendResponse({ success: false, error: chrome.runtime.lastError.message });
               } else {
                 sendResponse({ success: true });
@@ -971,7 +979,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Indicate we'll respond asynchronously
   }
 });
-
 
 /**
  * Listen for tab updates to manage side panel state
@@ -1301,7 +1308,6 @@ chrome.runtime.onConnect.addListener((port) => {
     }
   });
 });
-
 
 /**
  * Clean up boost drafts when tabs are closed

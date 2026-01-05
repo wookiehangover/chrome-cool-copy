@@ -232,7 +232,10 @@ export const commandRegistry: Command[] = [
         },
         (response) => {
           if (chrome.runtime.lastError) {
-            console.error("[Command Registry] Error opening boost creator:", chrome.runtime.lastError);
+            console.error(
+              "[Command Registry] Error opening boost creator:",
+              chrome.runtime.lastError,
+            );
             showToast("Failed to open boost creator");
           } else if (response && response.success) {
             showToast("Boost creator opened");
@@ -254,7 +257,10 @@ export const commandRegistry: Command[] = [
         },
         (response) => {
           if (chrome.runtime.lastError) {
-            console.error("[Command Registry] Error opening boost manager:", chrome.runtime.lastError);
+            console.error(
+              "[Command Registry] Error opening boost manager:",
+              chrome.runtime.lastError,
+            );
             showToast("Failed to open boost manager");
           } else if (response && response.success) {
             showToast("Boost manager opened");

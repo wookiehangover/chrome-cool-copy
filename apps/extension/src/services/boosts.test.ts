@@ -242,4 +242,3 @@ describe("Boost Storage Service", () => {
     });
   });
 });
-

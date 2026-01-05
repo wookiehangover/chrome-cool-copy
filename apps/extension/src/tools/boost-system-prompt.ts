@@ -89,4 +89,3 @@ console.log(\`Highlighted \${h1s.length} h1 elements\`);
 - Consider the page's existing JavaScript and CSS
 - Be respectful of the page's functionality - don't break existing features
 `;
-

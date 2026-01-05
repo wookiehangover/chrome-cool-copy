@@ -126,4 +126,3 @@ export function getConsoleEntries(limit?: number): ConsoleEntry[] {
 export function clearConsoleEntries(): void {
   consoleBuffer = [];
 }
-

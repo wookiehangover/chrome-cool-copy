@@ -15,7 +15,11 @@ import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { buildPageContext, type PageContext } from "./features/page-context.js";
 import { scrapePage, type ScrapedPage } from "./features/page-scraper.js";
 import { toggleReaderMode, initReaderMode } from "./features/reader-mode.js";
-import { initConsoleCapture, getConsoleEntries, type ConsoleEntry } from "./features/console-capture.js";
+import {
+  initConsoleCapture,
+  getConsoleEntries,
+  type ConsoleEntry,
+} from "./features/console-capture.js";
 import { getBoostsForDomain } from "../services/boosts.js";
 
 /**

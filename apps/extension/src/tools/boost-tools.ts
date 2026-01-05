@@ -23,11 +23,7 @@ const executeBoostSchema = z.object({});
  * Schema for the read_console tool - fetches recent console entries
  */
 const readConsoleSchema = z.object({
-  lines: z
-    .number()
-    .optional()
-    .default(20)
-    .describe("Number of recent console entries to read"),
+  lines: z.number().optional().default(20).describe("Number of recent console entries to read"),
 });
 
 /**
@@ -91,4 +87,3 @@ export const boostTools = {
 
 export { fileSchema, executeBoostSchema, readConsoleSchema };
 export type { ConsoleEntry };
-

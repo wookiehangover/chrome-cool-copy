@@ -60,10 +60,7 @@ export async function saveBoost(
 /**
  * Update an existing boost
  */
-export async function updateBoost(
-  id: string,
-  updates: Partial<Boost>,
-): Promise<Boost | null> {
+export async function updateBoost(id: string, updates: Partial<Boost>): Promise<Boost | null> {
   const boosts = await getBoosts();
   const index = boosts.findIndex((b) => b.id === id);
 
@@ -135,4 +132,3 @@ export function matchesDomain(pattern: string, hostname: string): boolean {
 
   return false;
 }
-
