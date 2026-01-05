@@ -74,10 +74,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
 
       setIsSaving(true);
       try {
-        // Import saveBoost from extension services
-        const { saveBoost } = await import("@repo/shared");
-        // Note: This will need to be handled via chrome.runtime.sendMessage
-        // For now, we'll send a message to the background script
+        // Send a message to the background script to save the boost
         const result = await new Promise<Boost>((resolve, reject) => {
           chrome.runtime.sendMessage(
             {
