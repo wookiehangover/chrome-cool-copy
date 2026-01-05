@@ -952,9 +952,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             "navigating to",
             message.path,
           );
-          // Send navigation message to the side panel
-          chrome.tabs.sendMessage(
-            tabId,
+          // Send navigation message to the side panel (use runtime.sendMessage since sidepanel is an extension page)
+          chrome.runtime.sendMessage(
             {
               action: "navigate",
               path: message.path,
