@@ -17,7 +17,6 @@ import { isWikipediaPage } from "./features/wikipedia-detector.js";
 import { showToast } from "./toast.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { toggleReaderMode } from "./features/reader-mode.js";
-import { getBoostsForDomain } from "../services/boosts.js";
 import type { Boost } from "@repo/shared";
 
 /**
@@ -323,7 +322,27 @@ export function getCommandsWithShortcuts(): Command[] {
 export async function registerDynamicBoostCommands(): Promise<void> {
   try {
     const hostname = window.location.hostname;
-    const boosts = await getBoostsForDomain(hostname);
+
+    // Request boosts from background script via message passing
+    const boosts = await new Promise<Boost[]>((resolve, reject) => {
+      chrome.runtime.sendMessage(
+        {
+          action: "getBoostsForDomain",
+          hostname,
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else if (response && response.success) {
+            resolve(response.boosts || []);
+          } else if (response && response.error) {
+            reject(new Error(response.error));
+          } else {
+            resolve([]);
+          }
+        },
+      );
+    });
 
     // Filter for manual-mode boosts only
     const manualBoosts = boosts.filter((b) => b.runMode === "manual");
