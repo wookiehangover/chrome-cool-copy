@@ -488,6 +488,30 @@
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+  align-items: center;
+}
+
+.note-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: var(--control-bg);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.15s ease;
+  margin-right: auto;
+}
+
+.note-copy:hover {
+  background: var(--control-hover);
+  color: var(--text-primary);
+}
+
+.note-copy svg {
+  display: block;
 }
 
 .note-save,

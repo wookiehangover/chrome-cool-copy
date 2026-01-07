@@ -807,6 +807,7 @@ function createNoteEditor(): HTMLElement {
   editor.innerHTML = `
     <textarea class="note-textarea" placeholder="Add a note..."></textarea>
     <div class="note-actions">
+      <button class="note-copy" title="Copy highlight"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 14h6"/><path d="M12 17v-6"/></svg></button>
       <button class="note-save">Save</button>
       <button class="note-delete">Delete</button>
     </div>
@@ -1147,6 +1148,18 @@ async function deleteCurrentHighlight(): Promise<void> {
 }
 
 /**
+ * Copy the current highlight text to clipboard
+ */
+async function copyCurrentHighlight(): Promise<void> {
+  if (!activeHighlightId) return;
+
+  const highlightData = currentHighlights.find((h) => h.id === activeHighlightId);
+  if (!highlightData) return;
+
+  await copyToClipboard(highlightData.text);
+}
+
+/**
  * Setup highlight interaction listeners
  */
 function setupHighlightListeners(): void {
@@ -1178,9 +1191,11 @@ function setupHighlightListeners(): void {
   });
 
   // Setup note editor buttons
+  const copyBtn = noteEditor.querySelector(".note-copy");
   const saveBtn = noteEditor.querySelector(".note-save");
   const deleteBtn = noteEditor.querySelector(".note-delete");
 
+  copyBtn?.addEventListener("click", () => copyCurrentHighlight());
   saveBtn?.addEventListener("click", () => saveCurrentNote());
   deleteBtn?.addEventListener("click", () => deleteCurrentHighlight());
 }
