@@ -33,7 +33,7 @@
     "@ai-sdk/react": "^3.0.0",
     "@repo/shared": "workspace:*",
     "ai": "^6.0.0",
-    "bash-tool": "^1.0.1",
+    "just-bash": "^2.1.0",
     "zod": "^4.2.1"
   }
 }

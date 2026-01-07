@@ -125,6 +125,7 @@ export default defineConfig({
         'pages/clip-viewer': resolve(__dirname, 'src/pages/clip-viewer/clip-viewer.ts'),
         'pages/settings': resolve(__dirname, 'src/pages/settings/settings.ts'),
       },
+      external: ['just-bash', 'just-bash/browser'],
       output: {
         dir: 'dist',
         format: 'es',

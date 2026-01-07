@@ -5,7 +5,7 @@
 
 import { tool } from "ai";
 import { z } from "zod";
-import { createBashTool } from "bash-tool";
+import { createBashSandbox } from "./bash-sandbox";
 import { anthropic } from "@ai-sdk/anthropic";
 import type { ConsoleEntry } from "../content/features/console-capture";
 
@@ -181,17 +181,11 @@ export async function createBoostTools(
    */
   let bashTools: Record<string, unknown> = {};
   try {
-    const { tools: bashToolsResult } = await createBashTool({
-      files: {
-        "/workspace/boost.js": context.currentCode || "",
-        "/workspace/page.html": context.pageHtml || "",
-      },
-      onBeforeBashCall: ({ command }) => {
-        console.log("[Boosts] Bash command:", command);
-        return undefined;
-      },
+    const bashSandbox = await createBashSandbox({
+      "boost.js": context.currentCode || "",
+      "page.html": context.pageHtml || "",
     });
-    bashTools = bashToolsResult;
+    bashTools = bashSandbox.tools;
     console.log("[Boosts] Bash tools initialized successfully");
   } catch (error) {
     console.error("[Boosts] Error initializing bash tools:", error);
