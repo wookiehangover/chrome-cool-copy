@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MoreHorizontalIcon, PlayIcon, PencilIcon, TrashIcon } from 'lucide-react'
 import type { Boost } from '@repo/shared'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,11 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useNavigationContext } from '@/contexts/NavigationContext'
 
 interface BoostCardProps {
   boost: Boost
-  onToggle: (id: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onRun: (id: string) => Promise<void>
   isLoading?: boolean
@@ -21,7 +27,6 @@ interface BoostCardProps {
 
 export function BoostCard({
   boost,
-  onToggle,
   onDelete,
   onRun,
   isLoading = false,
@@ -29,10 +34,6 @@ export function BoostCard({
   const { navigate } = useNavigationContext()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-
-  const handleToggle = async () => {
-    await onToggle(boost.id)
-  }
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -52,71 +53,45 @@ export function BoostCard({
     await onRun(boost.id)
   }
 
-  const runModeIcon = boost.runMode === 'auto' ? '⚡' : '🎯'
-
   return (
     <>
-      <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/50">
-        {/* Header with toggle and run mode */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-1 items-start gap-3">
-            {/* Toggle checkbox */}
-            <input
-              type="checkbox"
-              checked={boost.enabled}
-              onChange={handleToggle}
-              disabled={isLoading}
-              className="mt-1 cursor-pointer"
-              aria-label={`Toggle ${boost.name}`}
-            />
-            {/* Title and description */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-sm text-foreground">{boost.name}</h3>
-              {boost.description && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {boost.description}
-                </p>
-              )}
-            </div>
-          </div>
-          {/* Run mode indicator */}
-          <span className="text-lg" title={boost.runMode === 'auto' ? 'Auto mode' : 'Manual mode'}>
-            {runModeIcon}
-          </span>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2 justify-end pt-2">
-          {boost.runMode === 'manual' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRun}
-              disabled={isLoading}
-              className="text-xs"
-            >
-              Run
-            </Button>
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-accent/50">
+        {/* Title and description */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium text-sm text-foreground">{boost.name}</h3>
+          {boost.description && (
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              {boost.description}
+            </p>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleEdit}
-            disabled={isLoading}
-            className="text-xs"
-          >
-            Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={isLoading}
-            className="text-xs text-destructive hover:text-destructive"
-          >
-            Delete
-          </Button>
         </div>
+        {/* Overflow menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={isLoading}>
+              <MoreHorizontalIcon className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {boost.runMode === 'manual' && (
+              <DropdownMenuItem onClick={handleRun}>
+                <PlayIcon className="h-4 w-4" />
+                Run
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={handleEdit}>
+              <PencilIcon className="h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <TrashIcon className="h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Delete confirmation dialog */}
