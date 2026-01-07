@@ -10,7 +10,7 @@ if (typeof process === "undefined") {
 
 import { streamText, generateText, createGateway, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
-import { boostTools } from "./tools/boost-tools";
+import { createBoostTools } from "./tools/boost-tools";
 import { boostSystemPrompt } from "./tools/boost-system-prompt";
 import {
   saveLocalClip,
@@ -25,6 +25,7 @@ import {
   getBoosts,
   toggleBoost,
   deleteBoost,
+  updateBoost,
   getBoostsForDomain,
   saveBoost,
 } from "./services/boosts";
@@ -729,24 +730,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       })();
       return true;
-    } else if (message.action === "runBoost") {
-      // Handle boost run request - execute boost code on current tab
-      const tabId = sender.tab?.id;
-      if (tabId === undefined) {
-        sendResponse({ success: false, error: "No tab ID available" });
-        return false;
-      }
-
+    } else if (message.action === "updateBoost") {
+      // Handle boost update request
       (async () => {
         try {
-          const { boostId } = message;
-          if (!boostId) {
+          const { id, updates } = message;
+          if (!id) {
+            throw new Error("Boost ID is required");
+          }
+          const boost = await updateBoost(id, updates);
+          if (!boost) {
+            throw new Error("Boost not found");
+          }
+          sendResponse({ success: true, boost });
+        } catch (error) {
+          console.error("[Boosts] Error in updateBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "runBoost") {
+      // Handle boost run request - execute boost code on current tab
+      (async () => {
+        try {
+          // Get tabId from sender if available (content script), otherwise query active tab (sidepanel)
+          let tabId = sender.tab?.id;
+          if (tabId === undefined) {
+            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            tabId = activeTab?.id;
+          }
+
+          if (tabId === undefined) {
+            sendResponse({ success: false, error: "No tab ID available" });
+            return;
+          }
+
+          const { boostId, id } = message;
+          const boostIdToUse = boostId || id;
+          if (!boostIdToUse) {
             throw new Error("Boost ID is required");
           }
 
           // Get the boost code from storage
           const boosts = await getBoosts();
-          const boost = boosts.find((b) => b.id === boostId);
+          const boost = boosts.find((b) => b.id === boostIdToUse);
           if (!boost) {
             throw new Error("Boost not found");
           }
@@ -919,6 +949,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 /**
+ * Send navigation message to sidepanel with retry logic
+ * The sidepanel may not have loaded and registered its listener yet,
+ * so we retry with exponential backoff
+ */
+async function sendNavigationWithRetry(
+  path: string,
+  params?: Record<string, string>,
+  maxRetries = 5,
+  initialDelayMs = 100,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await new Promise<{ success?: boolean }>((resolve) => {
+        chrome.runtime.sendMessage({ action: "navigate", path, params }, (resp) => {
+          if (chrome.runtime.lastError) {
+            // No listener registered yet - this is expected on first attempts
+            resolve({ success: false });
+          } else {
+            resolve(resp || { success: false });
+          }
+        });
+      });
+
+      if (response?.success) {
+        console.log(`[Side Panel] Navigation succeeded on attempt ${attempt + 1}`);
+        return true;
+      }
+    } catch {
+      // Continue to retry
+    }
+
+    // Wait before retrying with exponential backoff
+    const delay = initialDelayMs * Math.pow(2, attempt);
+    console.log(`[Side Panel] Navigation attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
+  console.error("[Side Panel] Navigation failed after all retries");
+  return false;
+}
+
+/**
  * Handle side panel open/close
  * Opens the side panel for the current tab
  */
@@ -941,7 +1013,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Open side panel and navigate to a specific path
     const tabId = sender.tab?.id;
     if (tabId !== undefined) {
-      chrome.sidePanel.open({ tabId }, () => {
+      chrome.sidePanel.open({ tabId }, async () => {
         if (chrome.runtime.lastError) {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
           sendResponse({ success: false, error: chrome.runtime.lastError.message });
@@ -952,25 +1024,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             "navigating to",
             message.path,
           );
-          // Send navigation message to the side panel (use runtime.sendMessage since sidepanel is an extension page)
-          chrome.runtime.sendMessage(
-            {
-              action: "navigate",
-              path: message.path,
-              params: message.params,
-            },
-            (response) => {
-              if (chrome.runtime.lastError) {
-                console.error(
-                  "[Side Panel] Error sending navigation message:",
-                  chrome.runtime.lastError,
-                );
-                sendResponse({ success: false, error: chrome.runtime.lastError.message });
-              } else {
-                sendResponse({ success: true });
-              }
-            },
-          );
+          // Send navigation message with retry to handle race condition
+          // where sidepanel hasn't registered its listener yet
+          const success = await sendNavigationWithRetry(message.path, message.params);
+          sendResponse({ success });
         }
       });
       return true;
@@ -1189,6 +1246,18 @@ chrome.runtime.onConnect.addListener((port) => {
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {
+      // Get the active tab to use for boost tool execution
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tabId = activeTab?.id;
+
+      if (!tabId) {
+        sendMessage({
+          type: "error",
+          error: "No active tab found. Please ensure a tab is active.",
+        });
+        return;
+      }
+
       const storageData = await new Promise<{
         aiGatewayConfig?: VercelAIGatewayConfig;
       }>((resolve) => {
@@ -1214,10 +1283,21 @@ chrome.runtime.onConnect.addListener((port) => {
         return;
       }
 
-      console.log("[Vercel AI Gateway] Starting boost streaming request for model:", config.model);
+      console.log(
+        "[Vercel AI Gateway] Starting boost streaming request for model:",
+        config.model,
+        "on tab:",
+        tabId,
+      );
 
       const gateway = createGateway({
         apiKey: config.apiKey,
+      });
+
+      // Create boost tools with execution context
+      const boostTools = createBoostTools({
+        tabId,
+        boostDrafts,
       });
 
       // Enable tools if requested (default: enabled)
@@ -1249,7 +1329,7 @@ chrome.runtime.onConnect.addListener((port) => {
         seed: request.seed,
         maxRetries: request.maxRetries,
         headers: request.headers,
-        // Tool settings - use boost tools instead of browse tools
+        // Tool settings - use boost tools with real execution context
         stopWhen: stepCountIs(request.maxSteps ?? 5),
         ...(enableTools && {
           tools: boostTools,

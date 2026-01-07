@@ -4,6 +4,9 @@ import { boostSystemPrompt } from "@repo/shared";
 
 interface BoostTransportOptions {
   domain: string;
+  onReasoningStart?: () => void;
+  onReasoningDelta?: (delta: string) => void;
+  onReasoningEnd?: () => void;
 }
 
 /**
@@ -13,9 +16,25 @@ interface BoostTransportOptions {
  */
 export class BoostTransport implements ChatTransport<UIMessage> {
   private domain: string;
+  private onReasoningStart?: () => void;
+  private onReasoningDelta?: (delta: string) => void;
+  private onReasoningEnd?: () => void;
 
   constructor(options: BoostTransportOptions) {
     this.domain = options.domain;
+    this.onReasoningStart = options.onReasoningStart;
+    this.onReasoningDelta = options.onReasoningDelta;
+    this.onReasoningEnd = options.onReasoningEnd;
+  }
+
+  setReasoningCallbacks(callbacks: {
+    onReasoningStart?: () => void;
+    onReasoningDelta?: (delta: string) => void;
+    onReasoningEnd?: () => void;
+  }) {
+    this.onReasoningStart = callbacks.onReasoningStart;
+    this.onReasoningDelta = callbacks.onReasoningDelta;
+    this.onReasoningEnd = callbacks.onReasoningEnd;
   }
 
   async sendMessages(options: {
@@ -51,6 +70,11 @@ export class BoostTransport implements ChatTransport<UIMessage> {
     }
 
     const assistantMessageId = crypto.randomUUID();
+
+    // Capture callbacks for use in the stream
+    const onReasoningStart = this.onReasoningStart;
+    const onReasoningDelta = this.onReasoningDelta;
+    const onReasoningEnd = this.onReasoningEnd;
 
     return new ReadableStream<UIMessageChunk>({
       start: (controller) => {
@@ -112,7 +136,20 @@ export class BoostTransport implements ChatTransport<UIMessage> {
         port.onMessage.addListener((msg: PortMessage) => {
           if (isClosed) return;
 
-          if (msg.type === "tool-input-start" && msg.toolCallId && msg.toolName) {
+          if (msg.type === "reasoning-start") {
+            // Start of reasoning - emit message start if not already started
+            if (!hasStarted) {
+              hasStarted = true;
+              enqueue({ type: "start", messageId: assistantMessageId });
+            }
+            onReasoningStart?.();
+          } else if (msg.type === "reasoning" && msg.content) {
+            // Reasoning delta - pass to callback
+            onReasoningDelta?.(msg.content);
+          } else if (msg.type === "reasoning-end") {
+            // End of reasoning
+            onReasoningEnd?.();
+          } else if (msg.type === "tool-input-start" && msg.toolCallId && msg.toolName) {
             if (!hasStarted) {
               hasStarted = true;
               enqueue({ type: "start", messageId: assistantMessageId });

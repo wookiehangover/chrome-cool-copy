@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Boost } from "@repo/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,11 @@ interface BoostSaveDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (metadata: Omit<Boost, "id" | "code" | "createdAt" | "updatedAt">) => Promise<void>;
   defaultDomain: string;
+  defaultName?: string;
+  defaultDescription?: string;
+  defaultRunMode?: "auto" | "manual";
   isLoading?: boolean;
+  isEditMode?: boolean;
 }
 
 export function BoostSaveDialog({
@@ -25,13 +29,27 @@ export function BoostSaveDialog({
   onOpenChange,
   onSave,
   defaultDomain,
+  defaultName = "",
+  defaultDescription = "",
+  defaultRunMode = "manual",
   isLoading = false,
+  isEditMode = false,
 }: BoostSaveDialogProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState(defaultName);
+  const [description, setDescription] = useState(defaultDescription);
   const [domain, setDomain] = useState(defaultDomain);
-  const [runMode, setRunMode] = useState<"auto" | "manual">("manual");
+  const [runMode, setRunMode] = useState<"auto" | "manual">(defaultRunMode);
   const [error, setError] = useState<string | null>(null);
+
+  // Update state when defaults change (e.g., when loading existing boost)
+  useEffect(() => {
+    if (open) {
+      setName(defaultName);
+      setDescription(defaultDescription);
+      setRunMode(defaultRunMode);
+      setDomain(defaultDomain);
+    }
+  }, [open, defaultName, defaultDescription, defaultRunMode, defaultDomain]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -63,9 +81,11 @@ export function BoostSaveDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Save Boost</DialogTitle>
+          <DialogTitle>{isEditMode ? "Update Boost" : "Save Boost"}</DialogTitle>
           <DialogDescription>
-            Save your boost with a name and configuration
+            {isEditMode
+              ? "Update your boost settings"
+              : "Save your boost with a name and configuration"}
           </DialogDescription>
         </DialogHeader>
 
@@ -140,7 +160,7 @@ export function BoostSaveDialog({
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Boost"}
+            {isLoading ? "Saving..." : isEditMode ? "Update Boost" : "Save Boost"}
           </Button>
         </DialogFooter>
       </DialogContent>

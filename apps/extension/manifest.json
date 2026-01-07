@@ -3,7 +3,7 @@
   "name": "Cool Copy",
   "version": "1.0.0",
   "description": "Copy clean URLs, markdown formatted links, and selected elements to the clipboard using configurable keyboard shortcuts",
-  "permissions": ["clipboardWrite", "tabs", "activeTab", "storage", "sidePanel"],
+  "permissions": ["clipboardWrite", "tabs", "activeTab", "storage", "sidePanel", "scripting"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "pages/popup.html",
