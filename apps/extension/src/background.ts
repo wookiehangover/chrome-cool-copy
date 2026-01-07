@@ -10,6 +10,8 @@ if (typeof process === "undefined") {
 
 import { streamText, generateText, createGateway, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
+import { createBoostTools } from "./tools/boost-tools";
+import { boostSystemPrompt } from "./tools/boost-system-prompt";
 import {
   saveLocalClip,
   isUrlClipped,
@@ -19,12 +21,21 @@ import {
   updateLocalClip,
 } from "./services/local-clips";
 import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
+import {
+  getBoosts,
+  toggleBoost,
+  deleteBoost,
+  updateBoost,
+  getBoostsForDomain,
+  saveBoost,
+} from "./services/boosts";
 import type {
   GenerateTextRequest,
   StreamTextRequest,
   GenerateTextResponse,
   StreamMessageType,
 } from "@repo/shared";
+import type { ConsoleEntry } from "./content/features/console-capture";
 
 /**
  * Vercel AI Gateway configuration
@@ -33,6 +44,11 @@ interface VercelAIGatewayConfig {
   apiKey: string;
   model: string;
 }
+
+/**
+ * In-memory draft state for boost code per tab
+ */
+const boostDrafts = new Map<number, string>();
 
 /**
  * Send a message to the content script with error handling
@@ -557,6 +573,290 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       );
       chrome.tabs.create({ url: viewerUrl });
       return false;
+    } else if (message.action === "boostFile") {
+      // Handle boost file storage - store code in draft state
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) {
+        sendResponse({ success: false, error: "No tab ID available" });
+        return false;
+      }
+
+      try {
+        const { content } = message;
+        if (typeof content !== "string") {
+          throw new Error("Content must be a string");
+        }
+
+        boostDrafts.set(tabId, content);
+        console.log("[Boosts] Stored draft for tab", tabId, `(${content.length} bytes)`);
+
+        sendResponse({
+          success: true,
+          message: `Boost code updated (${content.length} bytes)`,
+        });
+      } catch (error) {
+        console.error("[Boosts] Error in boostFile handler:", error);
+        sendResponse({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return false;
+    } else if (message.action === "executeBoost") {
+      // Handle boost execution - inject code into page context
+      const tabId = sender.tab?.id;
+      if (tabId === undefined) {
+        sendResponse({ success: false, error: "No tab ID available" });
+        return false;
+      }
+
+      (async () => {
+        try {
+          const code = boostDrafts.get(tabId);
+          if (!code) {
+            throw new Error("No boost code stored for this tab");
+          }
+
+          // Execute the code in the page context (MAIN world, not isolated)
+          const results = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: (boostCode: string) => {
+              try {
+                // eslint-disable-next-line no-eval
+                eval(boostCode);
+                return { success: true, result: "Boost executed successfully" };
+              } catch (error) {
+                return {
+                  success: false,
+                  error: error instanceof Error ? error.message : String(error),
+                };
+              }
+            },
+            args: [code],
+            world: "MAIN",
+          });
+
+          const result = results[0]?.result;
+          if (result && typeof result === "object" && "success" in result) {
+            sendResponse(result);
+          } else {
+            sendResponse({ success: true, result: "Boost executed successfully" });
+          }
+        } catch (error) {
+          console.error("[Boosts] Error in executeBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "readConsole") {
+      // Get active tab and send message to content script
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tabId = tabs[0]?.id;
+        if (!tabId) {
+          sendResponse({
+            success: false,
+            error: "No active tab found",
+          });
+          return;
+        }
+
+        const lines = typeof message.lines === "number" ? message.lines : 20;
+
+        chrome.tabs.sendMessage(tabId, { action: "readConsole", lines }, (response) => {
+          if (chrome.runtime.lastError) {
+            sendResponse({
+              success: false,
+              error: chrome.runtime.lastError.message,
+            });
+            return;
+          }
+          sendResponse(response);
+        });
+      });
+      return true; // Keep channel open for async response
+    } else if (message.action === "getBoosts") {
+      // Handle boost list request from chat app
+      (async () => {
+        try {
+          const boosts = await getBoosts();
+          sendResponse({ success: true, data: boosts });
+        } catch (error) {
+          console.error("[Boosts] Error in getBoosts handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "toggleBoost") {
+      // Handle boost toggle request
+      (async () => {
+        try {
+          const { id } = message;
+          if (!id) {
+            throw new Error("Boost ID is required");
+          }
+          const boost = await toggleBoost(id);
+          sendResponse({ success: true, data: boost });
+        } catch (error) {
+          console.error("[Boosts] Error in toggleBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "deleteBoost") {
+      // Handle boost deletion request
+      (async () => {
+        try {
+          const { id } = message;
+          if (!id) {
+            throw new Error("Boost ID is required");
+          }
+          const success = await deleteBoost(id);
+          sendResponse({ success, data: success });
+        } catch (error) {
+          console.error("[Boosts] Error in deleteBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "updateBoost") {
+      // Handle boost update request
+      (async () => {
+        try {
+          const { id, updates } = message;
+          if (!id) {
+            throw new Error("Boost ID is required");
+          }
+          const boost = await updateBoost(id, updates);
+          if (!boost) {
+            throw new Error("Boost not found");
+          }
+          sendResponse({ success: true, boost });
+        } catch (error) {
+          console.error("[Boosts] Error in updateBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "runBoost") {
+      // Handle boost run request - execute boost code on current tab
+      (async () => {
+        try {
+          // Get tabId from sender if available (content script), otherwise query active tab (sidepanel)
+          let tabId = sender.tab?.id;
+          if (tabId === undefined) {
+            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            tabId = activeTab?.id;
+          }
+
+          if (tabId === undefined) {
+            sendResponse({ success: false, error: "No tab ID available" });
+            return;
+          }
+
+          const { boostId, id } = message;
+          const boostIdToUse = boostId || id;
+          if (!boostIdToUse) {
+            throw new Error("Boost ID is required");
+          }
+
+          // Get the boost code from storage
+          const boosts = await getBoosts();
+          const boost = boosts.find((b) => b.id === boostIdToUse);
+          if (!boost) {
+            throw new Error("Boost not found");
+          }
+
+          // Execute the boost code in the page context
+          const results = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: (boostCode: string) => {
+              try {
+                // eslint-disable-next-line no-eval
+                eval(boostCode);
+                return { success: true, result: "Boost executed successfully" };
+              } catch (error) {
+                return {
+                  success: false,
+                  error: error instanceof Error ? error.message : String(error),
+                };
+              }
+            },
+            args: [boost.code],
+            world: "MAIN",
+          });
+
+          const result = results[0]?.result;
+          if (result && typeof result === "object" && "success" in result) {
+            sendResponse(result);
+          } else {
+            sendResponse({ success: true, result: "Boost executed successfully" });
+          }
+        } catch (error) {
+          console.error("[Boosts] Error in runBoost handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "getBoostsForDomain") {
+      // Handle boosts for domain request from content script
+      (async () => {
+        try {
+          const { hostname } = message;
+          if (!hostname) {
+            throw new Error("Hostname is required");
+          }
+
+          const boosts = await getBoostsForDomain(hostname);
+          sendResponse({ success: true, boosts });
+        } catch (error) {
+          console.error("[Boosts] Error in getBoostsForDomain handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "getAutoBoosts") {
+      // Handle auto-boosts request - return enabled auto-mode boosts for domain
+      (async () => {
+        try {
+          const { domain } = message;
+          if (!domain) {
+            throw new Error("Domain is required");
+          }
+
+          const boosts = await getBoostsForDomain(domain);
+          const autoBoosts = boosts.filter((b) => b.runMode === "auto");
+
+          sendResponse({ success: true, data: autoBoosts });
+        } catch (error) {
+          console.error("[Boosts] Error in getAutoBoosts handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
     } else if (message.action === "generateText") {
       // Handle non-streaming AI request - forward to Vercel AI Gateway
       // Supports tool calling with browse tool
@@ -649,6 +949,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 /**
+ * Send navigation message to sidepanel with retry logic
+ * The sidepanel may not have loaded and registered its listener yet,
+ * so we retry with exponential backoff
+ */
+async function sendNavigationWithRetry(
+  path: string,
+  params?: Record<string, string>,
+  maxRetries = 5,
+  initialDelayMs = 100,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await new Promise<{ success?: boolean }>((resolve) => {
+        chrome.runtime.sendMessage({ action: "navigate", path, params }, (resp) => {
+          if (chrome.runtime.lastError) {
+            // No listener registered yet - this is expected on first attempts
+            resolve({ success: false });
+          } else {
+            resolve(resp || { success: false });
+          }
+        });
+      });
+
+      if (response?.success) {
+        console.log(`[Side Panel] Navigation succeeded on attempt ${attempt + 1}`);
+        return true;
+      }
+    } catch {
+      // Continue to retry
+    }
+
+    // Wait before retrying with exponential backoff
+    const delay = initialDelayMs * Math.pow(2, attempt);
+    console.log(`[Side Panel] Navigation attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
+  console.error("[Side Panel] Navigation failed after all retries");
+  return false;
+}
+
+/**
  * Handle side panel open/close
  * Opens the side panel for the current tab
  */
@@ -667,6 +1009,51 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
       return true;
     }
+  } else if (message.action === "openSidePanelTo") {
+    // Open side panel and navigate to a specific path
+    const tabId = sender.tab?.id;
+    if (tabId !== undefined) {
+      chrome.sidePanel.open({ tabId }, async () => {
+        if (chrome.runtime.lastError) {
+          console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log(
+            "[Side Panel] Side panel opened for tab",
+            tabId,
+            "navigating to",
+            message.path,
+          );
+          // Send navigation message with retry to handle race condition
+          // where sidepanel hasn't registered its listener yet
+          const success = await sendNavigationWithRetry(message.path, message.params);
+          sendResponse({ success });
+        }
+      });
+      return true;
+    }
+  }
+});
+
+/**
+ * Handle saveBoost message from boost authoring UI
+ * Saves a boost to chrome.storage.local
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if ((message.action === "saveBoost" || message.type === "saveBoost") && message.payload) {
+    saveBoost(message.payload)
+      .then((boost) => {
+        console.log("[Boosts] Boost saved successfully:", boost.id);
+        sendResponse({ success: true, boost });
+      })
+      .catch((error) => {
+        console.error("[Boosts] Error saving boost:", error);
+        sendResponse({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+    return true; // Indicate we'll respond asynchronously
   }
 });
 
@@ -841,4 +1228,191 @@ chrome.runtime.onConnect.addListener((port) => {
       });
     }
   });
+});
+
+/**
+ * Handle streaming AI requests for boost authoring via port-based messaging
+ * Similar to aiStream but uses boost-specific tools and system prompt
+ * Supports tool calling with boost tools (file, execute_boost, read_console)
+ */
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "boostStream") return;
+
+  port.onMessage.addListener(async (message) => {
+    if (message.action !== "streamText") return;
+
+    const request = message as StreamTextRequest;
+
+    const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
+
+    try {
+      // Get the active tab to use for boost tool execution
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tabId = activeTab?.id;
+
+      if (!tabId) {
+        sendMessage({
+          type: "error",
+          error: "No active tab found. Please ensure a tab is active.",
+        });
+        return;
+      }
+
+      const storageData = await new Promise<{
+        aiGatewayConfig?: VercelAIGatewayConfig;
+      }>((resolve) => {
+        chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
+          resolve(result);
+        });
+      });
+
+      const config = storageData.aiGatewayConfig;
+      if (!config || !config.apiKey || !config.model) {
+        sendMessage({
+          type: "error",
+          error: "Vercel AI Gateway configuration not found. Please configure settings.",
+        });
+        return;
+      }
+
+      if (!request.messages || !Array.isArray(request.messages)) {
+        sendMessage({
+          type: "error",
+          error: "Invalid request: messages array is required",
+        });
+        return;
+      }
+
+      console.log(
+        "[Vercel AI Gateway] Starting boost streaming request for model:",
+        config.model,
+        "on tab:",
+        tabId,
+      );
+
+      const gateway = createGateway({
+        apiKey: config.apiKey,
+      });
+
+      // Create boost tools with execution context
+      const boostTools = await createBoostTools({
+        tabId,
+        boostDrafts,
+      });
+
+      // Enable tools if requested (default: enabled)
+      const enableTools = request.enableTools !== false;
+
+      // Build provider options, merging user options with defaults
+      const defaultProviderOptions = {
+        anthropic: {
+          thinking: {
+            type: "enabled" as const,
+            budgetTokens: 10000,
+          },
+        },
+      };
+
+      const result = streamText({
+        model: gateway(config.model),
+        messages: request.messages,
+        // Use boost system prompt instead of request.system
+        system: boostSystemPrompt,
+        // Call settings with defaults
+        temperature: request.temperature,
+        maxOutputTokens: request.maxOutputTokens,
+        topP: request.topP,
+        topK: request.topK,
+        presencePenalty: request.presencePenalty,
+        frequencyPenalty: request.frequencyPenalty,
+        stopSequences: request.stopSequences,
+        seed: request.seed,
+        maxRetries: request.maxRetries,
+        headers: request.headers,
+        // Tool settings - use boost tools with real execution context
+        stopWhen: stepCountIs(request.maxSteps ?? 5),
+        ...(enableTools && {
+          tools: boostTools as Record<string, unknown>,
+          toolChoice: request.toolChoice ?? "auto",
+        }),
+        // Merge provider options
+        providerOptions: {
+          ...defaultProviderOptions,
+          ...request.providerOptions,
+        },
+      } as Parameters<typeof streamText>[0]);
+
+      // Use fullStream to capture reasoning tokens, tool calls, and text
+      for await (const part of result.fullStream) {
+        switch (part.type) {
+          case "reasoning-start":
+            sendMessage({ type: "reasoning-start" });
+            break;
+          case "reasoning-delta":
+            sendMessage({ type: "reasoning", content: part.text });
+            break;
+          case "reasoning-end":
+            sendMessage({ type: "reasoning-end" });
+            break;
+          case "tool-input-start":
+            sendMessage({
+              type: "tool-input-start",
+              toolCallId: part.id,
+              toolName: part.toolName,
+            });
+            break;
+          case "tool-input-delta":
+            sendMessage({
+              type: "tool-input-delta",
+              toolCallId: part.id,
+              inputTextDelta: part.delta,
+            });
+            break;
+          case "tool-call":
+            sendMessage({
+              type: "tool-call",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              input: part.input,
+            });
+            break;
+          case "tool-result":
+            sendMessage({
+              type: "tool-result",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              output: part.output,
+            });
+            break;
+          case "tool-error":
+            sendMessage({
+              type: "tool-error",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              errorText: part.error instanceof Error ? part.error.message : String(part.error),
+            });
+            break;
+          case "text-delta":
+            sendMessage({ type: "chunk", content: part.text });
+            break;
+        }
+      }
+
+      sendMessage({ type: "done" });
+    } catch (error) {
+      console.error("[Vercel AI Gateway] Error in boost streaming handler:", error);
+      sendMessage({
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+});
+
+/**
+ * Clean up boost drafts when tabs are closed
+ */
+chrome.tabs.onRemoved.addListener((tabId) => {
+  boostDrafts.delete(tabId);
+  console.log("[Boosts] Cleaned up draft for closed tab", tabId);
 });

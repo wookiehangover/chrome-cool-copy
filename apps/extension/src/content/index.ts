@@ -8,13 +8,18 @@ import { handleCopyMarkdownLink } from "./features/markdown.js";
 import { startElementPicker } from "./features/element-picker.js";
 import { showToast } from "./toast.js";
 import { openCommandPalette, registerCommands } from "./command-palette.js";
-import { commandRegistry } from "./commands.js";
+import { commandRegistry, registerDynamicBoostCommands } from "./commands.js";
 import { initializeDarkMode } from "./features/dark-mode-manager.js";
 import { initializeGrokipediaBanner } from "./features/grokipedia-banner.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { buildPageContext, type PageContext } from "./features/page-context.js";
 import { scrapePage, type ScrapedPage } from "./features/page-scraper.js";
 import { toggleReaderMode, initReaderMode } from "./features/reader-mode.js";
+import {
+  initConsoleCapture,
+  getConsoleEntries,
+  type ConsoleEntry,
+} from "./features/console-capture.js";
 
 /**
  * Message type for communication with background script
@@ -34,6 +39,7 @@ interface MessageResponse {
   error?: string;
   context?: PageContext;
   scrapedPage?: ScrapedPage;
+  entries?: ConsoleEntry[];
 }
 
 // Listen for messages from the background script
@@ -161,6 +167,17 @@ chrome.runtime.onMessage.addListener(
           console.error("[Page Scraper] Error scraping page:", error);
           sendResponse({ success: false, error: errorMessage });
         }
+      } else if (message.action === "readConsole") {
+        // Handle console read request - return captured console entries
+        try {
+          const lines = typeof message.lines === "number" ? message.lines : 20;
+          const entries = getConsoleEntries(lines);
+          sendResponse({ success: true, entries });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error("[Console Capture] Error reading console:", error);
+          sendResponse({ success: false, error: errorMessage });
+        }
       } else {
         console.warn("[Clean Link Copy] Unknown message action:", message.action);
         sendResponse({ success: false, error: "Unknown action" });
@@ -175,10 +192,23 @@ chrome.runtime.onMessage.addListener(
 );
 
 /**
+ * Initialize console capture feature
+ */
+function initializeConsoleCapture(): void {
+  try {
+    initConsoleCapture();
+  } catch (error) {
+    console.error("[Console Capture] Initialization failed:", error);
+  }
+}
+
+/**
  * Initialize command palette with available commands from the registry
  */
-function initializeCommandPalette(): void {
+async function initializeCommandPalette(): Promise<void> {
   registerCommands(commandRegistry);
+  // Register dynamic boost commands for the current domain
+  await registerDynamicBoostCommands();
 }
 
 /**
@@ -203,6 +233,91 @@ function initializeGrokipediaBannerFeature(): void {
   }
 }
 
+/**
+ * Initialize auto-run boosts for the current domain
+ * Fetches enabled auto-mode boosts and executes them in order
+ */
+async function initializeAutoRunBoosts(): Promise<void> {
+  try {
+    const hostname = window.location.hostname;
+
+    // Request boosts from background script via message passing
+    const boosts = await new Promise<Array<{ id: string; name: string; runMode: string }>>(
+      (resolve, reject) => {
+        chrome.runtime.sendMessage(
+          {
+            action: "getBoostsForDomain",
+            hostname,
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error("[Auto-Run Boosts] Error fetching boosts:", chrome.runtime.lastError);
+              reject(chrome.runtime.lastError);
+            } else if (response && response.success) {
+              resolve(response.boosts || []);
+            } else if (response && response.error) {
+              console.error("[Auto-Run Boosts] Error fetching boosts:", response.error);
+              reject(new Error(response.error));
+            } else {
+              resolve([]);
+            }
+          },
+        );
+      },
+    );
+
+    // Filter for auto-mode boosts only
+    const autoBoosts = boosts.filter((b) => b.runMode === "auto");
+
+    if (autoBoosts.length === 0) {
+      return;
+    }
+
+    console.log(`[Auto-Run Boosts] Found ${autoBoosts.length} auto-run boosts for ${hostname}`);
+
+    // Execute each auto-run boost in order
+    for (const boost of autoBoosts) {
+      try {
+        console.log(`[Auto-Run Boosts] Executing boost: ${boost.name}`);
+        // Send message to background script to execute the boost
+        await new Promise<void>((resolve, reject) => {
+          chrome.runtime.sendMessage(
+            {
+              action: "runBoost",
+              boostId: boost.id,
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.error(
+                  `[Auto-Run Boosts] Error executing boost ${boost.name}:`,
+                  chrome.runtime.lastError,
+                );
+                reject(chrome.runtime.lastError);
+              } else if (response && response.success) {
+                console.log(`[Auto-Run Boosts] Successfully executed boost: ${boost.name}`);
+                resolve();
+              } else if (response && response.error) {
+                console.error(`[Auto-Run Boosts] Boost error for ${boost.name}:`, response.error);
+                reject(new Error(response.error));
+              } else {
+                resolve();
+              }
+            },
+          );
+        });
+      } catch (error) {
+        console.error(`[Auto-Run Boosts] Failed to execute boost ${boost.name}:`, error);
+        // Continue with next boost even if one fails
+      }
+    }
+  } catch (error) {
+    console.error("[Auto-Run Boosts] Initialization failed:", error);
+  }
+}
+
+// Initialize console capture early in the lifecycle
+initializeConsoleCapture();
+
 // Initialize command palette when content script loads
 initializeCommandPalette();
 
@@ -211,6 +326,9 @@ initializeDarkModeFeature();
 
 // Initialize Grokipedia banner feature
 initializeGrokipediaBannerFeature();
+
+// Initialize auto-run boosts
+initializeAutoRunBoosts();
 
 // Check if we should auto-enter reader mode for this page
 initReaderMode();
