@@ -224,5 +224,6 @@ export interface Boost {
   runMode: "auto" | "manual"; // auto = on page load, manual = command palette
   createdAt: string; // ISO timestamp
   updatedAt: string;
+  chatHistory?: unknown[]; // Serialized UIMessage[] from @ai-sdk/react for conversation history
 }
 

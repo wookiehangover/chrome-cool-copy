@@ -1295,7 +1295,7 @@ chrome.runtime.onConnect.addListener((port) => {
       });
 
       // Create boost tools with execution context
-      const boostTools = createBoostTools({
+      const boostTools = await createBoostTools({
         tabId,
         boostDrafts,
       });
@@ -1332,7 +1332,7 @@ chrome.runtime.onConnect.addListener((port) => {
         // Tool settings - use boost tools with real execution context
         stopWhen: stepCountIs(request.maxSteps ?? 5),
         ...(enableTools && {
-          tools: boostTools,
+          tools: boostTools as Record<string, unknown>,
           toolChoice: request.toolChoice ?? "auto",
         }),
         // Merge provider options
@@ -1340,7 +1340,7 @@ chrome.runtime.onConnect.addListener((port) => {
           ...defaultProviderOptions,
           ...request.providerOptions,
         },
-      });
+      } as Parameters<typeof streamText>[0]);
 
       // Use fullStream to capture reasoning tokens, tool calls, and text
       for await (const part of result.fullStream) {

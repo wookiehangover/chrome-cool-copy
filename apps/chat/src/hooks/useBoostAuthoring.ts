@@ -37,27 +37,6 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
   const [reasoning, setReasoning] = useState<string>("");
   const [isReasoningStreaming, setIsReasoningStreaming] = useState(false);
 
-  // Load existing boost when editing
-  useEffect(() => {
-    if (!options.boostId) {
-      setExistingBoost(null);
-      return;
-    }
-
-    chrome.runtime.sendMessage(
-      { action: "getBoosts" },
-      (response) => {
-        if (response?.success && response?.data) {
-          const boost = response.data.find((b: Boost) => b.id === options.boostId);
-          if (boost) {
-            setExistingBoost(boost);
-            setCurrentCode(boost.code);
-          }
-        }
-      }
-    );
-  }, [options.boostId]);
-
   // Create transport for boost agent
   const transport = useMemo(
     () => new BoostTransport({ domain: options.domain }),
@@ -91,6 +70,31 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
   const { messages, status, error, sendMessage: sendChatMessage, setMessages } = useChat({
     transport,
   });
+
+  // Load existing boost when editing
+  useEffect(() => {
+    if (!options.boostId) {
+      setExistingBoost(null);
+      return;
+    }
+
+    chrome.runtime.sendMessage(
+      { action: "getBoosts" },
+      (response) => {
+        if (response?.success && response?.data) {
+          const boost = response.data.find((b: Boost) => b.id === options.boostId);
+          if (boost) {
+            setExistingBoost(boost);
+            setCurrentCode(boost.code);
+            // Load chat history if available
+            if (boost.chatHistory && Array.isArray(boost.chatHistory)) {
+              setMessages(boost.chatHistory as UIMessage[]);
+            }
+          }
+        }
+      }
+    );
+  }, [options.boostId, setMessages]);
 
   // Track code updates from file tool calls
   useEffect(() => {
@@ -155,6 +159,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
                 updates: {
                   ...metadata,
                   code: currentCode,
+                  chatHistory: messages,
                 },
               },
               (response) => {
@@ -177,6 +182,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
                 payload: {
                   ...metadata,
                   code: currentCode,
+                  chatHistory: messages,
                 },
               },
               (response) => {
@@ -199,7 +205,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
         setIsSaving(false);
       }
     },
-    [currentCode, setMessages, isEditMode, existingBoost]
+    [currentCode, messages, setMessages, isEditMode, existingBoost]
   );
 
   // Helper to clear messages and reasoning

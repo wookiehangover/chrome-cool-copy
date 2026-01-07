@@ -5,6 +5,8 @@
 
 import { tool } from "ai";
 import { z } from "zod";
+import { createBashTool } from "bash-tool";
+import { anthropic } from "@ai-sdk/anthropic";
 import type { ConsoleEntry } from "../content/features/console-capture";
 
 /**
@@ -32,14 +34,19 @@ const readConsoleSchema = z.object({
 export interface BoostToolContext {
   tabId: number;
   boostDrafts: Map<number, string>;
+  currentCode?: string;
+  pageHtml?: string;
 }
 
 /**
  * Creates boost tools with execution context
  * This factory function creates tools that can actually execute boost code
  * and read console output using the provided context.
+ * Also initializes bash tools for text processing and code analysis.
  */
-export function createBoostTools(context: BoostToolContext) {
+export async function createBoostTools(
+  context: BoostToolContext,
+): Promise<Record<string, unknown>> {
   /**
    * File tool - stores boost code in draft state
    */
@@ -168,11 +175,45 @@ export function createBoostTools(context: BoostToolContext) {
     },
   });
 
-  return {
+  /**
+   * Initialize bash tools for text processing and code analysis
+   * Creates a sandbox with the current boost code and page HTML as files
+   */
+  let bashTools: Record<string, unknown> = {};
+  try {
+    const { tools: bashToolsResult } = await createBashTool({
+      files: {
+        "/workspace/boost.js": context.currentCode || "",
+        "/workspace/page.html": context.pageHtml || "",
+      },
+      onBeforeBashCall: ({ command }) => {
+        console.log("[Boosts] Bash command:", command);
+        return undefined;
+      },
+    });
+    bashTools = bashToolsResult;
+    console.log("[Boosts] Bash tools initialized successfully");
+  } catch (error) {
+    console.error("[Boosts] Error initializing bash tools:", error);
+    // Continue without bash tools if initialization fails
+  }
+
+  const toolsObject: Record<string, unknown> = {
     file: fileTool,
     execute_boost: executeBoostTool,
     read_console: readConsoleTool,
+    web_search: anthropic.tools.webSearch_20250305,
+    web_fetch: anthropic.tools.webFetch_20250910,
   };
+
+  // Add bash tools if available
+  if (bashTools && typeof bashTools === "object") {
+    if ("bash" in bashTools) toolsObject.bash = bashTools.bash;
+    if ("readFile" in bashTools) toolsObject.readFile = bashTools.readFile;
+    if ("writeFile" in bashTools) toolsObject.writeFile = bashTools.writeFile;
+  }
+
+  return toolsObject;
 }
 
 // Legacy export for backward compatibility (placeholder tools)
