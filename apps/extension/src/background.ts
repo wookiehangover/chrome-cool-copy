@@ -11,7 +11,7 @@ if (typeof process === "undefined") {
 import { streamText, generateText, createGateway, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
 import { createBoostTools } from "./tools/boost-tools";
-import { boostSystemPrompt } from "./tools/boost-system-prompt";
+import { getBoostSystemPrompt } from "./tools/boost-system-prompt";
 import {
   saveLocalClip,
   isUrlClipped,
@@ -49,6 +49,68 @@ interface VercelAIGatewayConfig {
  * In-memory draft state for boost code per tab
  */
 const boostDrafts = new Map<number, string>();
+
+/**
+ * Execute boost code in a tab using script tag injection to bypass CSP
+ * This works on pages that have 'unsafe-inline' but not 'unsafe-eval'
+ */
+async function executeBoostCode(
+  tabId: number,
+  code: string,
+): Promise<{ success: boolean; result?: string; error?: string }> {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    world: "MAIN",
+    func: (codeToExecute: string) => {
+      return new Promise<{ success: boolean; result?: string; error?: string }>((resolve) => {
+        try {
+          // Create a unique ID to capture the result
+          const resultId = `__boost_result_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+          // Wrap the code to capture the result and handle errors
+          const wrappedCode = `
+            (function() {
+              try {
+                const __boostResult = (function() {
+                  ${codeToExecute}
+                })();
+                window["${resultId}"] = { success: true, result: __boostResult !== undefined ? String(__boostResult) : undefined };
+              } catch (error) {
+                window["${resultId}"] = { success: false, error: error instanceof Error ? error.message : String(error) };
+              }
+            })();
+          `;
+
+          // Create and inject the script tag
+          const script = document.createElement("script");
+          script.textContent = wrappedCode;
+          document.documentElement.appendChild(script);
+          script.remove();
+
+          // Retrieve the result from the window object
+          const result = (window as unknown as Record<string, unknown>)[resultId] as
+            | { success: boolean; result?: string; error?: string }
+            | undefined;
+          delete (window as unknown as Record<string, unknown>)[resultId];
+
+          if (result) {
+            resolve(result);
+          } else {
+            resolve({ success: true, result: "Boost executed (no return value)" });
+          }
+        } catch (error) {
+          resolve({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+    },
+    args: [code],
+  });
+
+  return (await results[0]?.result) || { success: false, error: "No result from script execution" };
+}
 
 /**
  * Send a message to the content script with error handling
@@ -617,31 +679,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             throw new Error("No boost code stored for this tab");
           }
 
-          // Execute the code in the page context (MAIN world, not isolated)
-          const results = await chrome.scripting.executeScript({
-            target: { tabId },
-            func: (boostCode: string) => {
-              try {
-                // eslint-disable-next-line no-eval
-                eval(boostCode);
-                return { success: true, result: "Boost executed successfully" };
-              } catch (error) {
-                return {
-                  success: false,
-                  error: error instanceof Error ? error.message : String(error),
-                };
-              }
-            },
-            args: [code],
-            world: "MAIN",
-          });
-
-          const result = results[0]?.result;
-          if (result && typeof result === "object" && "success" in result) {
-            sendResponse(result);
-          } else {
-            sendResponse({ success: true, result: "Boost executed successfully" });
-          }
+          // Execute using script tag injection to bypass CSP
+          const result = await executeBoostCode(tabId, code);
+          sendResponse(result);
         } catch (error) {
           console.error("[Boosts] Error in executeBoost handler:", error);
           sendResponse({
@@ -781,31 +821,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             throw new Error("Boost not found");
           }
 
-          // Execute the boost code in the page context
-          const results = await chrome.scripting.executeScript({
-            target: { tabId },
-            func: (boostCode: string) => {
-              try {
-                // eslint-disable-next-line no-eval
-                eval(boostCode);
-                return { success: true, result: "Boost executed successfully" };
-              } catch (error) {
-                return {
-                  success: false,
-                  error: error instanceof Error ? error.message : String(error),
-                };
-              }
-            },
-            args: [boost.code],
-            world: "MAIN",
-          });
-
-          const result = results[0]?.result;
-          if (result && typeof result === "object" && "success" in result) {
-            sendResponse(result);
-          } else {
-            sendResponse({ success: true, result: "Boost executed successfully" });
-          }
+          // Execute using script tag injection to bypass CSP
+          const result = await executeBoostCode(tabId, boost.code);
+          sendResponse(result);
         } catch (error) {
           console.error("[Boosts] Error in runBoost handler:", error);
           sendResponse({
@@ -1316,8 +1334,11 @@ chrome.runtime.onConnect.addListener((port) => {
       const result = streamText({
         model: gateway(config.model),
         messages: request.messages,
-        // Use boost system prompt instead of request.system
-        system: boostSystemPrompt,
+        // Use boost system prompt with page context
+        system: getBoostSystemPrompt({
+          url: activeTab.url,
+          title: activeTab.title,
+        }),
         // Call settings with defaults
         temperature: request.temperature,
         maxOutputTokens: request.maxOutputTokens,

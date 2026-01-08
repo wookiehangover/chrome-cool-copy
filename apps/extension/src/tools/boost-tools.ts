@@ -6,7 +6,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { createBashSandbox } from "./bash-sandbox";
-import { anthropic } from "@ai-sdk/anthropic";
+import { browseTool } from "./browse";
 import type { ConsoleEntry } from "../content/features/console-capture";
 
 /**
@@ -85,26 +85,61 @@ export async function createBoostTools(
       }
 
       try {
-        // Execute the code in the page context (MAIN world, not isolated)
+        // Execute the code in the page context using script tag injection
+        // This bypasses CSP restrictions that block eval() but allow 'unsafe-inline'
         const results = await chrome.scripting.executeScript({
           target: { tabId: context.tabId },
           world: "MAIN",
           func: (codeToExecute: string) => {
-            try {
-              // eslint-disable-next-line no-eval
-              const result = eval(codeToExecute);
-              return { success: true, result: result !== undefined ? String(result) : undefined };
-            } catch (error) {
-              return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-              };
-            }
+            return new Promise<{ success: boolean; result?: string; error?: string }>((resolve) => {
+              try {
+                // Create a unique ID to capture the result
+                const resultId = `__boost_result_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+                // Wrap the code to capture the result and handle errors
+                const wrappedCode = `
+                  (function() {
+                    try {
+                      const __boostResult = (function() {
+                        ${codeToExecute}
+                      })();
+                      window["${resultId}"] = { success: true, result: __boostResult !== undefined ? String(__boostResult) : undefined };
+                    } catch (error) {
+                      window["${resultId}"] = { success: false, error: error instanceof Error ? error.message : String(error) };
+                    }
+                  })();
+                `;
+
+                // Create and inject the script tag
+                const script = document.createElement("script");
+                script.textContent = wrappedCode;
+                document.documentElement.appendChild(script);
+                script.remove();
+
+                // Retrieve the result from the window object
+                const result = (window as unknown as Record<string, unknown>)[resultId] as
+                  | { success: boolean; result?: string; error?: string }
+                  | undefined;
+                delete (window as unknown as Record<string, unknown>)[resultId];
+
+                if (result) {
+                  resolve(result);
+                } else {
+                  resolve({ success: true, result: "Boost executed (no return value)" });
+                }
+              } catch (error) {
+                resolve({
+                  success: false,
+                  error: error instanceof Error ? error.message : String(error),
+                });
+              }
+            });
           },
           args: [code],
         });
 
-        const result = results[0]?.result;
+        // The func returns a Promise, so we need to await the result
+        const result = await results[0]?.result;
         if (result?.success) {
           console.log("[Boosts] Boost executed successfully on tab", context.tabId);
           return {
@@ -196,8 +231,7 @@ export async function createBoostTools(
     file: fileTool,
     execute_boost: executeBoostTool,
     read_console: readConsoleTool,
-    web_search: anthropic.tools.webSearch_20250305,
-    web_fetch: anthropic.tools.webFetch_20250910,
+    browse: browseTool,
   };
 
   // Add bash tools if available
