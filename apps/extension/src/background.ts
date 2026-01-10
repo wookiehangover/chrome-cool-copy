@@ -907,8 +907,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Enable tools if requested (default: enabled)
           const enableTools = request.enableTools !== false;
 
+          // Use request.model if provided, otherwise fall back to config.model
+          const modelToUse = request.model || config.model;
+
           const result = await generateText({
-            model: gateway(config.model),
+            model: gateway(modelToUse),
             messages: request.messages,
             // Apply system message if provided separately
             ...(request.system && { system: request.system }),
@@ -952,6 +955,89 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             error: error instanceof Error ? error.message : String(error),
           };
           sendResponse(response);
+        }
+      })();
+
+      return true;
+    } else if (message.action === "tidyContent") {
+      // Handle HTML content cleaning request
+      const { domContent } = message;
+      if (!domContent || typeof domContent !== "string") {
+        sendResponse({
+          success: false,
+          error: "domContent is required and must be a string",
+        });
+        return false;
+      }
+
+      (async () => {
+        try {
+          const storageData = await new Promise<{
+            aiGatewayConfig?: VercelAIGatewayConfig;
+          }>((resolve) => {
+            chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
+              resolve(result);
+            });
+          });
+
+          const config = storageData.aiGatewayConfig;
+          if (!config || !config.apiKey || !config.model) {
+            throw new Error(
+              "Vercel AI Gateway configuration not found. Please configure settings.",
+            );
+          }
+
+          const gateway = createGateway({
+            apiKey: config.apiKey,
+          });
+
+          const systemPrompt = `You are an HTML content cleaner. Given HTML content from a web page, return ONLY the cleaned HTML.
+
+Remove these types of elements:
+- Advertisements and promotional content
+- Navigation menus and sidebars
+- Social sharing buttons
+- Comment sections
+- Related articles sections
+- Newsletter signup forms
+- Cookie banners
+- Floating elements and popups
+- Empty or decorative containers
+
+Preserve:
+- Main article text and paragraphs
+- Headings and subheadings
+- Images with their alt text and captions
+- Code blocks and pre-formatted text
+- Block quotes
+- Lists (ordered and unordered)
+- Tables with data
+- Links within the content
+
+Return ONLY valid HTML, no explanations or markdown.`;
+
+          const result = await generateText({
+            model: gateway("google/gemini-3-flash"),
+            messages: [
+              {
+                role: "user",
+                content: domContent,
+              },
+            ],
+            system: systemPrompt,
+            maxOutputTokens: 20_000,
+          });
+
+          sendResponse({
+            success: true,
+            content: result.text,
+          });
+        } catch (error) {
+          console.error("[Clean Link Copy] Error in tidyContent handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
       })();
 
@@ -1142,6 +1228,9 @@ chrome.runtime.onConnect.addListener((port) => {
       // Enable tools if requested (default: enabled)
       const enableTools = request.enableTools !== false;
 
+      // Use request.model if provided, otherwise fall back to config.model
+      const modelToUse = request.model || config.model;
+
       // Build provider options, merging user options with defaults
       const defaultProviderOptions = {
         anthropic: {
@@ -1153,7 +1242,7 @@ chrome.runtime.onConnect.addListener((port) => {
       };
 
       const result = streamText({
-        model: gateway(config.model),
+        model: gateway(modelToUse),
         messages: request.messages,
         // Apply system message if provided separately
         ...(request.system && { system: request.system }),
@@ -1321,6 +1410,9 @@ chrome.runtime.onConnect.addListener((port) => {
       // Enable tools if requested (default: enabled)
       const enableTools = request.enableTools !== false;
 
+      // Use request.model if provided, otherwise fall back to config.model
+      const modelToUse = request.model || config.model;
+
       // Build provider options, merging user options with defaults
       const defaultProviderOptions = {
         anthropic: {
@@ -1332,7 +1424,7 @@ chrome.runtime.onConnect.addListener((port) => {
       };
 
       const result = streamText({
-        model: gateway(config.model),
+        model: gateway(modelToUse),
         messages: request.messages,
         // Use boost system prompt with page context
         system: getBoostSystemPrompt({

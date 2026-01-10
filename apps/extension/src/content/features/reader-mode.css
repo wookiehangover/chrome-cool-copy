@@ -669,6 +669,28 @@
   }
 }
 
+/* Tidy loading pulse animation */
+@keyframes reader-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.reader-mode-btn.loading {
+  animation: reader-pulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Content state during tidy */
+.reader-mode-content.tidying {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 /* Print styles */
 @media print {
   .reader-mode-toolbar,

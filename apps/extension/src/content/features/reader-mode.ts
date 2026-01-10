@@ -30,6 +30,8 @@ let noteEditor: HTMLElement | null = null;
 let activeHighlightId: string | null = null;
 let editModeActive = false;
 let editModeBtn: HTMLButtonElement | null = null;
+let tidyBtn: HTMLButtonElement | null = null;
+let resetBtn: HTMLButtonElement | null = null;
 let exportBtn: HTMLButtonElement | null = null;
 
 // Settings defaults
@@ -816,6 +818,76 @@ function createNoteEditor(): HTMLElement {
 }
 
 /**
+ * SVG icon for the Tidy button
+ */
+const TIDY_BUTTON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scroll-text-icon lucide-scroll-text"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>`;
+
+/**
+ * Tidy content by sending it to the background handler
+ */
+async function tidyContent(): Promise<void> {
+  if (!contentWrapper || !currentClipId || !tidyBtn) return;
+
+  // Show loading state
+  tidyBtn.classList.add("loading");
+  contentWrapper.classList.add("tidying");
+  tidyBtn.disabled = true;
+
+  try {
+    const domContent = contentWrapper.innerHTML;
+
+    const response = await chrome.runtime.sendMessage({
+      action: "tidyContent",
+      domContent,
+    });
+
+    if (response?.success && response.content) {
+      // Update content
+      contentWrapper.innerHTML = response.content;
+      // Save the tidied content
+      await saveEditedContent();
+      showToast("Content tidied");
+    } else {
+      showToast(response?.error || "Failed to tidy content");
+    }
+  } catch (error) {
+    console.error("[Reader Mode] Tidy error:", error);
+    showToast("Failed to tidy content");
+  } finally {
+    // Remove loading state
+    tidyBtn.classList.remove("loading");
+    contentWrapper.classList.remove("tidying");
+    tidyBtn.disabled = false;
+  }
+}
+
+/**
+ * Reset content by re-extracting from the original page
+ */
+async function resetContent(): Promise<void> {
+  if (!contentWrapper || !currentClipId) return;
+
+  try {
+    // Re-extract content from original page
+    const { content } = extractArticleContent();
+
+    // Update display
+    contentWrapper.innerHTML = content.innerHTML;
+
+    // Clear any highlights since they were on the edited content
+    currentHighlights = [];
+
+    // Save to database
+    await saveEditedContent();
+
+    showToast("Content reset");
+  } catch (error) {
+    console.error("[Reader Mode] Reset error:", error);
+    showToast("Failed to reset content");
+  }
+}
+
+/**
  * Create the reader mode UI with Shadow DOM
  */
 async function createReaderModeUI(
@@ -844,6 +916,9 @@ async function createReaderModeUI(
 
   const settingsBtn = createToolbarButton("Aa", "Settings", toggleSettings);
   editModeBtn = createToolbarButton("✎", "Edit Mode", toggleEditMode);
+  tidyBtn = createToolbarButton(TIDY_BUTTON_SVG, "Tidy Content", tidyContent);
+  const resetIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw-icon lucide-rotate-ccw"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`;
+  resetBtn = createToolbarButton(resetIcon, "Reset Content", resetContent);
   const exportIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></svg>`;
   exportBtn = createToolbarButton(exportIcon, "Export Highlights", exportHighlights);
   exportBtn.style.display = currentHighlights.length > 0 ? "" : "none";
@@ -851,6 +926,8 @@ async function createReaderModeUI(
 
   toolbar.appendChild(settingsBtn);
   toolbar.appendChild(editModeBtn);
+  toolbar.appendChild(tidyBtn);
+  toolbar.appendChild(resetBtn);
   toolbar.appendChild(exportBtn);
   toolbar.appendChild(closeBtn);
 
@@ -1252,6 +1329,8 @@ export async function deactivateReaderMode(): Promise<void> {
     currentHighlights = [];
     editModeActive = false;
     editModeBtn = null;
+    tidyBtn = null;
+    resetBtn = null;
     exportBtn = null;
   } catch (error) {
     console.error("[Reader Mode] Error deactivating reader mode:", error);

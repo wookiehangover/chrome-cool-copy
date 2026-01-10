@@ -93,6 +93,8 @@ export interface GenerateTextRequest extends AICallSettings {
   maxSteps?: number;
   /** Provider-specific options */
   providerOptions?: AIProviderOptions;
+  /** Optional model override (uses config.model if not provided) */
+  model?: string;
 }
 
 /**
@@ -113,6 +115,8 @@ export interface StreamTextRequest extends AICallSettings {
   maxSteps?: number;
   /** Provider-specific options */
   providerOptions?: AIProviderOptions;
+  /** Optional model override (uses config.model if not provided) */
+  model?: string;
 }
 
 /**
