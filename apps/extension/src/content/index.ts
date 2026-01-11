@@ -91,14 +91,14 @@ chrome.runtime.onMessage.addListener(
         }
       } else if (message.action === "openCommandPalette") {
         // Handle command palette open request
-        try {
-          openCommandPalette();
-          sendResponse({ success: true });
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error("[Clean Link Copy] Error in openCommandPalette:", error);
-          sendResponse({ success: false, error: errorMessage });
-        }
+        openCommandPalette()
+          .then(() => {
+            sendResponse({ success: true });
+          })
+          .catch((error: Error) => {
+            console.error("[Command Palette] Error in openCommandPalette:", error);
+            sendResponse({ success: false, error: error.message });
+          });
       } else if (message.action === "toggleReaderMode") {
         // Handle reader mode toggle request
         try {

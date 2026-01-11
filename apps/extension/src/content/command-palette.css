@@ -162,3 +162,7 @@
     background: #777;
   }
 }
+
+.command-palette-match {
+  font-weight: 600;
+}

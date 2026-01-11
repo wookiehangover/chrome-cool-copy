@@ -12,6 +12,41 @@ let selectedCommandIndex = 0;
 let filteredCommands: Command[] = [];
 let allCommands: Command[] = [];
 let styleInjected = false;
+let currentSearchQuery = "";
+
+// Storage key for command usage timestamps
+const COMMAND_USAGE_TIMESTAMPS_KEY = "command_usage_timestamps";
+
+/**
+ * Load command usage timestamps from storage
+ */
+async function loadCommandUsageTimestamps(): Promise<Record<string, number>> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([COMMAND_USAGE_TIMESTAMPS_KEY], (result) => {
+      resolve((result[COMMAND_USAGE_TIMESTAMPS_KEY] as Record<string, number>) || {});
+    });
+  });
+}
+
+/**
+ * Save command usage timestamps to storage
+ */
+async function saveCommandUsageTimestamps(timestamps: Record<string, number>): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [COMMAND_USAGE_TIMESTAMPS_KEY]: timestamps }, () => {
+      resolve();
+    });
+  });
+}
+
+/**
+ * Update the timestamp for a command when it's executed
+ */
+async function recordCommandUsage(commandId: string): Promise<void> {
+  const timestamps = await loadCommandUsageTimestamps();
+  timestamps[commandId] = Date.now();
+  await saveCommandUsageTimestamps(timestamps);
+}
 
 /**
  * Inject command palette CSS into the page
@@ -45,17 +80,70 @@ function fuzzyMatch(query: string, text: string): boolean {
 }
 
 /**
- * Get commands that are currently visible based on context
+ * Highlight matching characters in text based on fuzzy match query
+ * Returns HTML string with matched characters wrapped in <span class="command-palette-match">
  */
-function getVisibleCommands(): Command[] {
-  return allCommands.filter((cmd) => !cmd.isVisible || cmd.isVisible());
+function highlightMatches(text: string, query: string): string {
+  if (!query.trim()) {
+    return text;
+  }
+
+  const queryLower = query.toLowerCase();
+  const textLower = text.toLowerCase();
+  const matchIndices: number[] = [];
+  let queryIndex = 0;
+
+  // Find all matching character indices
+  for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
+    if (textLower[i] === queryLower[queryIndex]) {
+      matchIndices.push(i);
+      queryIndex++;
+    }
+  }
+
+  // If no matches found, return original text
+  if (matchIndices.length === 0) {
+    return text;
+  }
+
+  // Build HTML with highlighted matches
+  let result = "";
+  const matchSet = new Set(matchIndices);
+
+  for (let i = 0; i < text.length; i++) {
+    if (matchSet.has(i)) {
+      result += `<span class="command-palette-match">${text[i]}</span>`;
+    } else {
+      result += text[i];
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get commands that are currently visible based on context, sorted by recency
+ */
+async function getVisibleCommands(): Promise<Command[]> {
+  const visibleCommands = allCommands.filter((cmd) => !cmd.isVisible || cmd.isVisible());
+  const timestamps = await loadCommandUsageTimestamps();
+
+  // Separate used and unused commands
+  const usedCommands = visibleCommands.filter((cmd) => timestamps[cmd.id] !== undefined);
+  const unusedCommands = visibleCommands.filter((cmd) => timestamps[cmd.id] === undefined);
+
+  // Sort used commands by timestamp (most recent first)
+  usedCommands.sort((a, b) => (timestamps[b.id] || 0) - (timestamps[a.id] || 0));
+
+  // Return used commands first, then unused commands in their original order
+  return [...usedCommands, ...unusedCommands];
 }
 
 /**
  * Filter commands based on search query
  */
-function filterCommands(query: string): Command[] {
-  const visibleCommands = getVisibleCommands();
+async function filterCommands(query: string): Promise<Command[]> {
+  const visibleCommands = await getVisibleCommands();
 
   if (!query.trim()) {
     return visibleCommands;
@@ -101,7 +189,7 @@ function renderCommandPalette(): void {
 
     const nameEl = document.createElement("div");
     nameEl.className = "command-palette-item-name";
-    nameEl.textContent = cmd.name;
+    nameEl.innerHTML = highlightMatches(cmd.name, currentSearchQuery);
 
     const shortcutEl = document.createElement("div");
     shortcutEl.className = "command-palette-item-shortcut";
@@ -139,6 +227,8 @@ async function executeCommand(): Promise<void> {
     const command = filteredCommands[selectedCommandIndex];
     closeCommandPalette();
     try {
+      // Record command usage before executing
+      await recordCommandUsage(command.id);
       await command.action();
     } catch (error) {
       console.error("[Command Palette] Error executing command:", error);
@@ -151,7 +241,7 @@ async function executeCommand(): Promise<void> {
 /**
  * Open the command palette
  */
-export function openCommandPalette(): void {
+export async function openCommandPalette(): Promise<void> {
   if (commandPaletteOpen) return;
 
   commandPaletteOpen = true;
@@ -182,9 +272,10 @@ export function openCommandPalette(): void {
   const searchInput = dialog.querySelector("#command-palette-search") as HTMLInputElement;
 
   // Handle search input
-  searchInput.addEventListener("input", (e) => {
+  searchInput.addEventListener("input", async (e) => {
     const query = (e.target as HTMLInputElement).value;
-    filteredCommands = filterCommands(query);
+    currentSearchQuery = query;
+    filteredCommands = await filterCommands(query);
     selectedCommandIndex = 0;
     renderCommandPalette();
   });
@@ -219,7 +310,7 @@ export function openCommandPalette(): void {
   });
 
   // Initial render with visible commands only
-  filteredCommands = getVisibleCommands();
+  filteredCommands = await getVisibleCommands();
   renderCommandPalette();
 
   // Open as modal and focus search input
