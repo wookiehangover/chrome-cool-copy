@@ -1042,6 +1042,50 @@ Return ONLY valid HTML, no explanations or markdown.`;
       })();
 
       return true;
+    } else if (message.action === "updateAIGatewayConfig") {
+      // Handle AI Gateway configuration update (e.g., model selection)
+      (async () => {
+        try {
+          const { config } = message;
+          if (!config) {
+            throw new Error("Config is required");
+          }
+
+          // Get current config
+          const storageData = await new Promise<{
+            aiGatewayConfig?: VercelAIGatewayConfig;
+          }>((resolve) => {
+            chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
+              resolve(result);
+            });
+          });
+
+          const currentConfig = storageData.aiGatewayConfig || {};
+
+          // Merge with new config
+          const updatedConfig = {
+            ...currentConfig,
+            ...config,
+          };
+
+          // Save to storage
+          await new Promise<void>((resolve) => {
+            chrome.storage.sync.set({ aiGatewayConfig: updatedConfig }, () => {
+              resolve();
+            });
+          });
+
+          console.log("[AI Gateway] Configuration updated:", updatedConfig);
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error("[AI Gateway] Error updating configuration:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
     }
   } catch (error: unknown) {
     console.error("[Clean Link Copy] Error in message listener:", error);

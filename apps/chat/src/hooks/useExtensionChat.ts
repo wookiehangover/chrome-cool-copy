@@ -1,11 +1,12 @@
 import { useMemo, useEffect, useState, useCallback, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
-import type { PageContext } from "@repo/shared";
+import type { PageContext, ModelId } from "@repo/shared";
 import { ChromeExtensionTransport } from "@/lib/chrome-extension-transport";
 
 interface UseExtensionChatOptions {
   pageContext?: PageContext | null;
+  model?: ModelId;
   initialMessages?: UIMessage[];
   onFinish?: (messages: UIMessage[]) => void;
 }
@@ -42,10 +43,11 @@ export function useExtensionChat(options: UseExtensionChatOptions = {}) {
     setIsReasoningStreaming(false);
   }, []);
 
-  // Update page context when it changes
+  // Update page context and model when they change
   useEffect(() => {
     transport.setPageContext(options.pageContext ?? null);
-  }, [transport, options.pageContext]);
+    transport.setModel(options.model);
+  }, [transport, options.pageContext, options.model]);
 
   // Set reasoning callbacks on transport
   useEffect(() => {

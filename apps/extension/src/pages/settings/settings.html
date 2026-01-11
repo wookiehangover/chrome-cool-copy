@@ -75,16 +75,10 @@
 
             <div class="form-group">
               <label for="aiGatewayModel">Model</label>
-              <input
-                type="text"
-                id="aiGatewayModel"
-                name="aiGatewayModel"
-                placeholder="anthropic/claude-sonnet-4"
-                required
-              />
-              <p class="form-hint">
-                Model in provider/model format (e.g., anthropic/claude-sonnet-4, openai/gpt-4o)
-              </p>
+              <select id="aiGatewayModel" name="aiGatewayModel" required>
+                <!-- Options will be populated by JavaScript -->
+              </select>
+              <p class="form-hint">Select an AI model from the available providers</p>
             </div>
           </div>
 

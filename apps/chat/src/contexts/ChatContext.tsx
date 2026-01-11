@@ -10,13 +10,17 @@ import type { UIMessage } from 'ai'
 import { useExtensionChat } from '@/hooks/useExtensionChat'
 import { useConversationStore } from '@/hooks/useConversationStore'
 import { usePageContext } from '@/hooks/usePageContext'
-import type { PageContext } from '@repo/shared'
+import type { PageContext, ModelId } from '@repo/shared'
 import { getRandomStrategy } from '@/constants/oblique-strategies'
 
 interface ChatContextValue {
   // Input state
   input: string
   setInput: (value: string) => void
+
+  // Model selection
+  selectedModel: ModelId
+  setSelectedModel: (model: ModelId) => void
 
   // Chat state from useExtensionChat
   messages: UIMessage[]
@@ -68,6 +72,7 @@ interface ChatProviderProps {
 export function ChatProvider({ children }: ChatProviderProps) {
   const [input, setInput] = useState('')
   const [showSessionList, setShowSessionList] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<ModelId>('anthropic/claude-sonnet-4.5')
 
   // Page context from the active tab
   const { pageContext, isLoading: isLoadingContext, clearContext } = usePageContext()
@@ -103,6 +108,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     isReasoningStreaming,
   } = useExtensionChat({
     pageContext,
+    model: selectedModel,
     initialMessages: currentSession?.messages,
     onFinish: handleFinish,
   })
@@ -115,6 +121,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const value: ChatContextValue = {
     input,
     setInput,
+    selectedModel,
+    setSelectedModel,
     messages,
     sendMessage,
     status,

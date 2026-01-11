@@ -1,9 +1,10 @@
 import type { ChatTransport } from "ai";
 import type { UIMessage, UIMessageChunk } from "ai";
-import type { PageContext, StreamTextRequest, AIMessage } from "@repo/shared";
+import type { PageContext, StreamTextRequest, AIMessage, ModelId } from "@repo/shared";
 
 interface ChromeExtensionTransportOptions {
   pageContext?: PageContext | null;
+  model?: ModelId;
   onReasoningStart?: () => void;
   onReasoningDelta?: (delta: string) => void;
   onReasoningEnd?: () => void;
@@ -16,12 +17,14 @@ interface ChromeExtensionTransportOptions {
  */
 export class ChromeExtensionTransport implements ChatTransport<UIMessage> {
   private pageContext: PageContext | null;
+  private model?: ModelId;
   private onReasoningStart?: () => void;
   private onReasoningDelta?: (delta: string) => void;
   private onReasoningEnd?: () => void;
 
   constructor(options: ChromeExtensionTransportOptions = {}) {
     this.pageContext = options.pageContext ?? null;
+    this.model = options.model;
     this.onReasoningStart = options.onReasoningStart;
     this.onReasoningDelta = options.onReasoningDelta;
     this.onReasoningEnd = options.onReasoningEnd;
@@ -29,6 +32,10 @@ export class ChromeExtensionTransport implements ChatTransport<UIMessage> {
 
   setPageContext(context: PageContext | null) {
     this.pageContext = context;
+  }
+
+  setModel(model: ModelId | undefined) {
+    this.model = model;
   }
 
   setReasoningCallbacks(callbacks: {
@@ -264,6 +271,7 @@ If the user asks about this page, use the browse tool to fetch and analyze its c
         const request: StreamTextRequest = {
           action: "streamText",
           messages: aiMessages,
+          ...(this.model && { model: this.model }),
         };
         port.postMessage(request);
       },

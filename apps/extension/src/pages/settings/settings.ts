@@ -4,6 +4,7 @@
  */
 
 import { initializeDatabase, getWebpages } from "../../services/database";
+import { SUPPORTED_MODELS, MODELS_BY_PROVIDER } from "@repo/shared";
 
 export {};
 
@@ -21,6 +22,7 @@ interface VercelAIGatewayConfig {
 }
 
 const AGENTDB_BASE_URL = "https://api.agentdb.dev";
+const DEFAULT_MODEL = SUPPORTED_MODELS[0].id; // Use first model as default
 
 const form = document.getElementById("settingsForm") as HTMLFormElement;
 
@@ -32,7 +34,7 @@ const dbTypeSelect = document.getElementById("dbType") as HTMLSelectElement;
 
 // Vercel AI Gateway form elements
 const aiGatewayApiKeyInput = document.getElementById("aiGatewayApiKey") as HTMLInputElement;
-const aiGatewayModelInput = document.getElementById("aiGatewayModel") as HTMLInputElement;
+const aiGatewayModelInput = document.getElementById("aiGatewayModel") as HTMLSelectElement;
 
 // Common elements
 const testConnectionBtn = document.getElementById("testConnectionBtn") as HTMLButtonElement;
@@ -40,7 +42,10 @@ const backToPopup = document.getElementById("backToPopup") as HTMLAnchorElement;
 const statusMessage = document.getElementById("statusMessage") as HTMLDivElement;
 
 // Load existing settings on page load
-document.addEventListener("DOMContentLoaded", loadSettings);
+document.addEventListener("DOMContentLoaded", () => {
+  populateModelOptions();
+  loadSettings();
+});
 
 // Event listeners
 form.addEventListener("submit", saveSettings);
@@ -49,6 +54,36 @@ backToPopup.addEventListener("click", (e: Event): void => {
   e.preventDefault();
   window.close();
 });
+
+/**
+ * Populate the model select element with options grouped by provider
+ */
+function populateModelOptions(): void {
+  // Clear existing options
+  aiGatewayModelInput.innerHTML = "";
+
+  // Add a default placeholder option
+  const placeholderOption = document.createElement("option");
+  placeholderOption.value = "";
+  placeholderOption.textContent = "Select a model...";
+  placeholderOption.disabled = true;
+  aiGatewayModelInput.appendChild(placeholderOption);
+
+  // Group models by provider and add optgroups
+  for (const [provider, models] of Object.entries(MODELS_BY_PROVIDER)) {
+    const optgroup = document.createElement("optgroup");
+    optgroup.label = provider;
+
+    for (const model of models) {
+      const option = document.createElement("option");
+      option.value = model.id;
+      option.textContent = model.displayName;
+      optgroup.appendChild(option);
+    }
+
+    aiGatewayModelInput.appendChild(optgroup);
+  }
+}
 
 /**
  * Load saved settings from chrome.storage.sync
@@ -70,10 +105,10 @@ async function loadSettings(): Promise<void> {
     const aiGatewayConfig = result.aiGatewayConfig as VercelAIGatewayConfig | undefined;
     if (aiGatewayConfig) {
       aiGatewayApiKeyInput.value = aiGatewayConfig.apiKey || "";
-      aiGatewayModelInput.value = aiGatewayConfig.model || "anthropic/claude-sonnet-4";
+      aiGatewayModelInput.value = aiGatewayConfig.model || DEFAULT_MODEL;
     } else {
       // Set defaults if no config exists
-      aiGatewayModelInput.value = "anthropic/claude-sonnet-4";
+      aiGatewayModelInput.value = DEFAULT_MODEL;
     }
   } catch (error) {
     console.error("[Settings] Error loading settings:", error);
@@ -106,7 +141,7 @@ async function saveSettings(e: Event): Promise<void> {
   // Build Vercel AI Gateway config
   const aiGatewayConfig: VercelAIGatewayConfig = {
     apiKey: aiGatewayApiKeyInput.value.trim(),
-    model: aiGatewayModelInput.value.trim() || "anthropic/claude-sonnet-4",
+    model: aiGatewayModelInput.value.trim() || DEFAULT_MODEL,
   };
 
   // Only validate AI Gateway - AgentDB is optional
