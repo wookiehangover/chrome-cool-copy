@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", (): void => {
   });
 
   document.getElementById("viewClippedPagesBtn")?.addEventListener("click", (): void => {
-    chrome.tabs.create({ url: chrome.runtime.getURL("pages/clipped-pages.html") });
+    chrome.tabs.create({ url: chrome.runtime.getURL("viewer/index.html") });
     window.close();
   });
 

@@ -100,10 +100,8 @@ function createClipCard(clip: LocalClip): HTMLDivElement {
 }
 
 function expandClip(clip: LocalClip): void {
-  // Open the clip viewer page
-  const viewerUrl = chrome.runtime.getURL(
-    `pages/clip-viewer.html?id=${encodeURIComponent(clip.id)}`,
-  );
+  // Open the clip viewer page (using new React-based viewer)
+  const viewerUrl = chrome.runtime.getURL(`viewer/index.html?id=${encodeURIComponent(clip.id)}`);
   window.open(viewerUrl, "_blank");
 }
 

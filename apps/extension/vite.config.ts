@@ -11,11 +11,9 @@ function copyAssetsPlugin() {
       const fs = await import('fs/promises')
       const path = await import('path')
 
-      // Copy HTML files
+      // Copy HTML files (clip-viewer and clipped-pages removed - now using React viewer at apps/clips)
       const htmlFiles = [
         'src/pages/popup/popup.html',
-        'src/pages/clipped-pages/clipped-pages.html',
-        'src/pages/clip-viewer/clip-viewer.html',
         'src/pages/settings/settings.html',
       ]
 
@@ -30,11 +28,9 @@ function copyAssetsPlugin() {
         }
       }
 
-      // Copy CSS files
+      // Copy CSS files (clip-viewer and clipped-pages CSS removed - now using React viewer at apps/clips)
       const cssFiles = [
         'src/pages/popup/popup.css',
-        'src/pages/clipped-pages/clipped-pages.css',
-        'src/pages/clip-viewer/clip-viewer.css',
         'src/pages/settings/settings.css',
         'src/styles.css',
       ]
@@ -121,8 +117,7 @@ export default defineConfig({
         'services/local-clips': resolve(__dirname, 'src/services/local-clips.ts'),
         'services/clips-sync': resolve(__dirname, 'src/services/clips-sync.ts'),
         'pages/popup': resolve(__dirname, 'src/pages/popup/popup.ts'),
-        'pages/clipped-pages': resolve(__dirname, 'src/pages/clipped-pages/clipped-pages.ts'),
-        'pages/clip-viewer': resolve(__dirname, 'src/pages/clip-viewer/clip-viewer.ts'),
+        // clip-viewer and clipped-pages removed - now using React viewer at apps/clips (outputs to dist/viewer)
         'pages/settings': resolve(__dirname, 'src/pages/settings/settings.ts'),
       },
       external: ['just-bash', 'just-bash/browser'],

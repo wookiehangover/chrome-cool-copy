@@ -121,8 +121,8 @@ export const commandRegistry: Command[] = [
     description: "Open the clipped pages viewer",
     shortcut: "",
     action: () => {
-      const clippedPagesUrl = chrome.runtime.getURL("pages/clipped-pages.html");
-      window.open(clippedPagesUrl, "_blank");
+      const viewerUrl = chrome.runtime.getURL("viewer/index.html");
+      window.open(viewerUrl, "_blank");
     },
   },
   {

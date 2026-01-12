@@ -19,8 +19,17 @@ import {
   updateHighlightNote,
   deleteHighlight,
   updateLocalClip,
+  getLocalClips,
+  getLocalClip,
+  deleteLocalClip,
+  getPendingClips,
 } from "./services/local-clips";
-import { syncClipToAgentDB, isAgentDBConfigured } from "./services/clips-sync";
+import {
+  syncClipToAgentDB,
+  isAgentDBConfigured,
+  syncPendingClips,
+  deleteClipWithSync,
+} from "./services/clips-sync";
 import {
   getBoosts,
   toggleBoost,
@@ -629,9 +638,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })();
       return true;
     } else if (message.action === "openClipViewer") {
-      // Open clip viewer in a new tab
+      // Open clip viewer in a new tab (using new React-based viewer)
       const viewerUrl = chrome.runtime.getURL(
-        `pages/clip-viewer.html?id=${encodeURIComponent(message.clipId)}`,
+        `viewer/index.html?id=${encodeURIComponent(message.clipId)}`,
       );
       chrome.tabs.create({ url: viewerUrl });
       return false;
@@ -1079,6 +1088,108 @@ Return ONLY valid HTML, no explanations or markdown.`;
           sendResponse({ success: true });
         } catch (error) {
           console.error("[AI Gateway] Error updating configuration:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "getLocalClips") {
+      // Handle get all clips request from clips app
+      (async () => {
+        try {
+          const clips = await getLocalClips();
+          sendResponse({ success: true, data: clips });
+        } catch (error) {
+          console.error("[Clips] Error in getLocalClips handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "getLocalClip") {
+      // Handle get single clip request from clips app
+      (async () => {
+        try {
+          const { clipId } = message;
+          if (!clipId) {
+            throw new Error("Clip ID is required");
+          }
+          const clip = await getLocalClip(clipId);
+          sendResponse({ success: true, data: clip });
+        } catch (error) {
+          console.error("[Clips] Error in getLocalClip handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "deleteClipWithSync") {
+      // Handle delete clip request (deletes locally and from AgentDB if synced)
+      (async () => {
+        try {
+          const { clipId } = message;
+          if (!clipId) {
+            throw new Error("Clip ID is required");
+          }
+          const result = await deleteClipWithSync(clipId);
+          sendResponse({ success: true, data: result });
+        } catch (error) {
+          console.error("[Clips] Error in deleteClipWithSync handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "syncPendingClips") {
+      // Handle sync pending clips request
+      (async () => {
+        try {
+          const result = await syncPendingClips();
+          sendResponse({ success: true, data: result });
+        } catch (error) {
+          console.error("[Clips] Error in syncPendingClips handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "isAgentDBConfigured") {
+      // Handle check if AgentDB is configured request
+      (async () => {
+        try {
+          const configured = await isAgentDBConfigured();
+          sendResponse({ success: true, data: configured });
+        } catch (error) {
+          console.error("[Clips] Error in isAgentDBConfigured handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "updateLocalClip") {
+      // Handle update clip request from clips app
+      (async () => {
+        try {
+          const { clipId, updates } = message;
+          if (!clipId) {
+            throw new Error("Clip ID is required");
+          }
+          const result = await updateLocalClip(clipId, updates);
+          sendResponse({ success: true, data: result });
+        } catch (error) {
+          console.error("[Clips] Error in updateLocalClip handler:", error);
           sendResponse({
             success: false,
             error: error instanceof Error ? error.message : String(error),

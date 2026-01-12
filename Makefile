@@ -1,7 +1,7 @@
 # Chrome Cool Copy - Build System
 # All build outputs go to apps/extension/dist (the loadable extension directory)
 
-.PHONY: build clean lint format dev watch-extension watch-chat help extension chat typecheck checks
+.PHONY: build clean lint format dev watch-extension watch-chat watch-clips help extension chat clips typecheck checks
 
 # Default target
 all: build
@@ -38,8 +38,8 @@ endef
 # Production Build
 #------------------------------------------------------------------------------
 
-# Full production build: extension + chat sidepanel
-build: clean checks format extension chat
+# Full production build: extension + chat sidepanel + clips viewer
+build: clean checks format extension chat clips
 	@echo ""
 	@echo "\033[32m✓\033[0m Build complete: apps/extension/dist/"
 
@@ -50,6 +50,10 @@ extension:
 # Build chat sidepanel (outputs to apps/extension/dist/sidepanel)
 chat:
 	$(call spinner,Building chat sidepanel...,pnpm -F @repo/chat build)
+
+# Build clips viewer (outputs to apps/extension/dist/viewer)
+clips:
+	$(call spinner,Building clips viewer...,pnpm -F @repo/clips build)
 
 #------------------------------------------------------------------------------
 # Development
@@ -62,6 +66,10 @@ watch-extension:
 # Watch mode for chat sidepanel only (fast rebuilds on save)
 watch-chat:
 	pnpm -F @repo/chat watch
+
+# Watch mode for clips viewer only (fast rebuilds on save)
+watch-clips:
+	pnpm -F @repo/clips watch
 
 # Full development setup:
 # 1. Builds extension once
@@ -92,6 +100,7 @@ format:
 typecheck:
 	$(call spinner,Typechecking extension...,pnpm -F @repo/extension typecheck)
 	$(call spinner,Typechecking chat...,pnpm -F @repo/chat typecheck)
+	$(call spinner,Typechecking clips...,pnpm -F @repo/clips typecheck)
 
 # Run lint and typecheck in parallel
 checks:
@@ -99,8 +108,9 @@ checks:
 	pnpm -F @repo/extension lint > "$$tmpdir/lint.out" 2>&1 & lint_pid=$$!; \
 	pnpm -F @repo/extension typecheck > "$$tmpdir/tc-ext.out" 2>&1 & tc_ext_pid=$$!; \
 	pnpm -F @repo/chat typecheck > "$$tmpdir/tc-chat.out" 2>&1 & tc_chat_pid=$$!; \
+	pnpm -F @repo/clips typecheck > "$$tmpdir/tc-clips.out" 2>&1 & tc_clips_pid=$$!; \
 	frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'; \
-	while kill -0 $$lint_pid 2>/dev/null || kill -0 $$tc_ext_pid 2>/dev/null || kill -0 $$tc_chat_pid 2>/dev/null; do \
+	while kill -0 $$lint_pid 2>/dev/null || kill -0 $$tc_ext_pid 2>/dev/null || kill -0 $$tc_chat_pid 2>/dev/null || kill -0 $$tc_clips_pid 2>/dev/null; do \
 		for i in $$(seq 0 9); do \
 			printf "\r  $${frames:$$i:1} Running lint and typecheck..."; \
 			sleep 0.1; \
@@ -109,6 +119,7 @@ checks:
 	wait $$lint_pid; lint_status=$$?; \
 	wait $$tc_ext_pid; tc_ext_status=$$?; \
 	wait $$tc_chat_pid; tc_chat_status=$$?; \
+	wait $$tc_clips_pid; tc_clips_status=$$?; \
 	failed=0; \
 	if [ $$lint_status -ne 0 ]; then \
 		printf "\r  \033[31m✗\033[0m Linting\n"; \
@@ -131,6 +142,13 @@ checks:
 	else \
 		printf "  \033[32m✓\033[0m Typechecking chat\n"; \
 	fi; \
+	if [ $$tc_clips_status -ne 0 ]; then \
+		printf "  \033[31m✗\033[0m Typechecking clips\n"; \
+		cat "$$tmpdir/tc-clips.out"; \
+		failed=1; \
+	else \
+		printf "  \033[32m✓\033[0m Typechecking clips\n"; \
+	fi; \
 	rm -rf "$$tmpdir"; \
 	if [ $$failed -ne 0 ]; then exit 1; fi
 
@@ -146,19 +164,23 @@ help:
 	@echo "Chrome Cool Copy Build System"
 	@echo ""
 	@echo "Production:"
-	@echo "  make build          - Full production build"
-	@echo "  make extension      - Build extension scripts only"
-	@echo "  make chat           - Build chat sidepanel only"
+	@echo "  make build           - Full production build"
+	@echo "  make extension       - Build extension scripts only"
+	@echo "  make chat            - Build chat sidepanel only"
+	@echo "  make clips           - Build clips viewer only"
 	@echo ""
 	@echo "Development:"
-	@echo "  make dev            - Build extension + watch chat (recommended)"
-	@echo "  make watch-chat     - Watch chat sidepanel only"
+	@echo "  make dev             - Build extension + watch chat (recommended)"
+	@echo "  make watch-chat      - Watch chat sidepanel only"
+	@echo "  make watch-clips     - Watch clips viewer only"
 	@echo "  make watch-extension - Watch extension scripts only"
 	@echo ""
 	@echo "Utilities:"
-	@echo "  make lint           - Run linter"
-	@echo "  make format         - Format code"
-	@echo "  make clean          - Remove build artifacts"
+	@echo "  make lint            - Run linter"
+	@echo "  make format          - Format code"
+	@echo "  make typecheck       - Run type checking"
+	@echo "  make checks          - Run lint + typecheck in parallel"
+	@echo "  make clean           - Remove build artifacts"
 	@echo ""
 	@echo "Output directory: apps/extension/dist/"
 	@echo ""

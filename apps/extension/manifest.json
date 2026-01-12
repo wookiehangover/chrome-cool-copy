@@ -55,7 +55,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["pages/clipped-pages.html", "pages/clipped-pages.css", "pages/clipped-pages.js", "pages/popup.html", "pages/popup.css", "pages/popup.js", "pages/settings.html", "pages/settings.css", "pages/settings.js", "sidepanel/index.html", "sidepanel/css/*", "sidepanel/js/*", "services/database.js"],
+      "resources": ["pages/popup.html", "pages/popup.css", "pages/popup.js", "pages/settings.html", "pages/settings.css", "pages/settings.js", "sidepanel/index.html", "sidepanel/css/*", "sidepanel/js/*", "viewer/index.html", "viewer/css/*", "viewer/js/*", "services/database.js"],
       "matches": ["<all_urls>"]
     }
   ]
