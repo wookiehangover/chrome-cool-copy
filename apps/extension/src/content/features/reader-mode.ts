@@ -1233,7 +1233,35 @@ async function copyCurrentHighlight(): Promise<void> {
   const highlightData = currentHighlights.find((h) => h.id === activeHighlightId);
   if (!highlightData) return;
 
-  await copyToClipboard(highlightData.text);
+  // Get the title from the reader mode header
+  const titleElement = shadowRoot?.querySelector(".reader-mode-title");
+  const title = titleElement?.textContent || document.title;
+  const url = window.location.href;
+
+  // Build markdown output in the same style as the main export
+  const lines: string[] = [];
+
+  // Header with title and URL
+  lines.push(`[${title}](${url})`);
+  lines.push("");
+
+  // Add highlight as a blockquote with optional comment
+  lines.push(`> ${highlightData.text}`);
+  lines.push("");
+
+  if (highlightData.note && highlightData.note.trim()) {
+    lines.push(highlightData.note.trim());
+    lines.push("");
+  }
+
+  const markdown = lines.join("\n").trim();
+
+  const success = await copyToClipboard(markdown);
+  if (success) {
+    showToast("Highlight copied");
+  } else {
+    showToast("Failed to copy");
+  }
 }
 
 /**
