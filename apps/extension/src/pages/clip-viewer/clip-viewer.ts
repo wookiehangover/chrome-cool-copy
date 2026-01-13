@@ -12,6 +12,9 @@ export {};
 // Alias for compatibility with existing code
 type ClipHighlight = Highlight;
 
+// Storage key for local clips (must match local-clips.ts)
+const LOCAL_CLIPS_STORAGE_KEY = "local_clips";
+
 // State
 let currentClip: LocalClip | null = null;
 let activeHighlightId: string | null = null;
@@ -42,11 +45,87 @@ async function init(): Promise<void> {
   try {
     await loadClip(clipId);
     setupEventListeners();
+    setupHighlightSyncListener();
     loadSettings();
   } catch (error) {
     console.error("[Clip Viewer] Error:", error);
     showError(error instanceof Error ? error.message : "Failed to load clip");
   }
+}
+
+/**
+ * Setup storage change listener for highlight sync
+ * This allows highlights created in reader mode to appear in clip viewer
+ */
+function setupHighlightSyncListener(): void {
+  chrome.storage.local.onChanged.addListener((changes) => {
+    if (!currentClip || !changes[LOCAL_CLIPS_STORAGE_KEY]) return;
+
+    const { newValue } = changes[LOCAL_CLIPS_STORAGE_KEY];
+    if (!Array.isArray(newValue)) return;
+
+    // Find our clip in the updated clips
+    const updatedClip = newValue.find((c: { id: string }) => c.id === currentClip!.id);
+    if (!updatedClip) return;
+
+    const newHighlights: ClipHighlight[] = updatedClip.highlights || [];
+    const currentHighlights = currentClip.highlights || [];
+
+    // Check if highlights actually changed (compare IDs)
+    const currentIds = new Set(currentHighlights.map((h) => h.id));
+    const newIds = new Set(newHighlights.map((h) => h.id));
+
+    // Find new highlights to add
+    const addedHighlights = newHighlights.filter((h) => !currentIds.has(h.id));
+    // Find highlights to remove
+    const removedIds = [...currentIds].filter((id) => !newIds.has(id));
+
+    if (addedHighlights.length === 0 && removedIds.length === 0) {
+      // Check for note updates
+      const noteChanges = newHighlights.filter((newHl) => {
+        const existing = currentHighlights.find((h) => h.id === newHl.id);
+        return existing && existing.note !== newHl.note;
+      });
+
+      // Update notes in local state and DOM
+      for (const updated of noteChanges) {
+        const existing = currentHighlights.find((h) => h.id === updated.id);
+        if (existing) {
+          existing.note = updated.note;
+          // Update has-note class on DOM element
+          const mark = document.querySelector(`[data-highlight-id="${updated.id}"]`);
+          if (mark) {
+            if (updated.note) {
+              mark.classList.add("has-note");
+            } else {
+              mark.classList.remove("has-note");
+            }
+          }
+        }
+      }
+      return;
+    }
+
+    // Remove deleted highlights from DOM
+    for (const id of removedIds) {
+      const mark = document.querySelector(`[data-highlight-id="${id}"]`);
+      if (mark) {
+        const parent = mark.parentNode;
+        while (mark.firstChild) {
+          parent?.insertBefore(mark.firstChild, mark);
+        }
+        mark.remove();
+      }
+    }
+
+    // Add new highlights to DOM
+    for (const highlight of addedHighlights) {
+      wrapHighlightByOffset(highlight);
+    }
+
+    // Update local state
+    currentClip.highlights = newHighlights;
+  });
 }
 
 async function loadClip(clipId: string): Promise<void> {
@@ -92,13 +171,61 @@ function restoreHighlights(highlights: ClipHighlight[]): void {
 
   for (const hl of sorted) {
     try {
-      findAndWrapText(hl.text, hl.id, hl.note);
+      wrapHighlightByOffset(hl);
     } catch (error) {
       console.warn("[Clip Viewer] Could not restore highlight:", hl.text.slice(0, 30));
     }
   }
 }
 
+/**
+ * Wrap text at a specific offset position (preferred method)
+ */
+function wrapHighlightByOffset(highlight: ClipHighlight): boolean {
+  const walker = document.createTreeWalker(clipContent, NodeFilter.SHOW_TEXT, null);
+  let currentOffset = 0;
+  let node: Text | null;
+
+  while ((node = walker.nextNode() as Text | null)) {
+    const nodeLength = node.textContent?.length || 0;
+    const nodeStart = currentOffset;
+    const nodeEnd = currentOffset + nodeLength;
+
+    // Check if this node contains the highlight start
+    if (nodeEnd > highlight.startOffset && nodeStart < highlight.endOffset) {
+      const mark = document.createElement("mark");
+      mark.className = "viewer-highlight" + (highlight.note ? " has-note" : "");
+      mark.dataset.highlightId = highlight.id;
+
+      const range = document.createRange();
+      const startOffset = Math.max(0, highlight.startOffset - nodeStart);
+      const endOffset = Math.min(nodeLength, highlight.endOffset - nodeStart);
+
+      range.setStart(node, startOffset);
+      range.setEnd(node, endOffset);
+
+      try {
+        range.surroundContents(mark);
+        return true;
+      } catch {
+        // If surroundContents fails, try extract and insert
+        const fragment = range.extractContents();
+        mark.appendChild(fragment);
+        range.insertNode(mark);
+        return true;
+      }
+    }
+
+    currentOffset = nodeEnd;
+  }
+
+  // Fallback to text-based search if offset didn't work
+  return findAndWrapText(highlight.text, highlight.id, highlight.note);
+}
+
+/**
+ * Fallback: Find text by content and wrap it (used when offset is unavailable)
+ */
 function findAndWrapText(searchText: string, highlightId: string, note?: string): boolean {
   const walker = document.createTreeWalker(clipContent, NodeFilter.SHOW_TEXT, null);
   let node: Text | null;

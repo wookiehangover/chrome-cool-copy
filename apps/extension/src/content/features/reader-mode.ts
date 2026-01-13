@@ -48,6 +48,105 @@ const DEFAULT_SETTINGS: ReaderSettings = {
 // Storage key for remembering reader mode URLs
 const READER_MODE_URLS_KEY = "readerModeUrls";
 
+// Storage key for local clips (must match local-clips.ts)
+const LOCAL_CLIPS_STORAGE_KEY = "local_clips";
+
+// Storage change listener reference for cleanup
+let storageChangeListener:
+  | ((changes: { [key: string]: chrome.storage.StorageChange }) => void)
+  | null = null;
+
+/**
+ * Setup storage change listener for highlight sync
+ * This allows highlights created in clip viewer to appear in reader mode
+ */
+function setupHighlightSyncListener(): void {
+  if (storageChangeListener) return; // Already set up
+
+  storageChangeListener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+    if (!currentClipId || !changes[LOCAL_CLIPS_STORAGE_KEY]) return;
+
+    const { newValue } = changes[LOCAL_CLIPS_STORAGE_KEY];
+    if (!Array.isArray(newValue)) return;
+
+    // Find our clip in the updated clips
+    const updatedClip = newValue.find((c: { id: string }) => c.id === currentClipId);
+    if (!updatedClip) return;
+
+    const newHighlights: Highlight[] = updatedClip.highlights || [];
+
+    // Check if highlights actually changed (compare IDs)
+    const currentIds = new Set(currentHighlights.map((h) => h.id));
+    const newIds = new Set(newHighlights.map((h) => h.id));
+
+    // Find new highlights to add
+    const addedHighlights = newHighlights.filter((h) => !currentIds.has(h.id));
+    // Find highlights to remove
+    const removedIds = [...currentIds].filter((id) => !newIds.has(id));
+
+    if (addedHighlights.length === 0 && removedIds.length === 0) {
+      // Check for note updates
+      const noteChanges = newHighlights.filter((newHl) => {
+        const existing = currentHighlights.find((h) => h.id === newHl.id);
+        return existing && existing.note !== newHl.note;
+      });
+
+      // Update notes in local state and DOM
+      for (const updated of noteChanges) {
+        const existing = currentHighlights.find((h) => h.id === updated.id);
+        if (existing) {
+          existing.note = updated.note;
+          // Update has-note class on DOM element
+          const markElement = shadowRoot?.querySelector(`[data-highlight-id="${updated.id}"]`);
+          if (markElement) {
+            if (updated.note) {
+              markElement.classList.add("has-note");
+            } else {
+              markElement.classList.remove("has-note");
+            }
+          }
+        }
+      }
+      return;
+    }
+
+    // Remove deleted highlights from DOM
+    for (const id of removedIds) {
+      const markElement = shadowRoot?.querySelector(`[data-highlight-id="${id}"]`);
+      if (markElement) {
+        const parent = markElement.parentNode;
+        while (markElement.firstChild) {
+          parent?.insertBefore(markElement.firstChild, markElement);
+        }
+        markElement.remove();
+      }
+    }
+
+    // Add new highlights to DOM
+    for (const highlight of addedHighlights) {
+      if (contentWrapper) {
+        wrapHighlightByOffset(contentWrapper, highlight);
+      }
+    }
+
+    // Update local state
+    currentHighlights = newHighlights;
+    updateExportButtonVisibility();
+  };
+
+  chrome.storage.local.onChanged.addListener(storageChangeListener);
+}
+
+/**
+ * Remove storage change listener
+ */
+function removeHighlightSyncListener(): void {
+  if (storageChangeListener) {
+    chrome.storage.local.onChanged.removeListener(storageChangeListener);
+    storageChangeListener = null;
+  }
+}
+
 /**
  * Add current URL to reader mode memory
  */
@@ -326,8 +425,8 @@ function restoreHighlights(): void {
 
   for (const highlight of sortedHighlights) {
     try {
-      // Find the text in the content and wrap it
-      findTextAndWrap(contentWrapper, highlight.text, highlight.id, highlight.note);
+      // Use offset-based restoration for accurate placement
+      wrapHighlightByOffset(contentWrapper, highlight);
     } catch (error) {
       console.error("[Reader Mode] Error restoring highlight:", error);
     }
@@ -421,6 +520,51 @@ function findTextAndWrap(
 }
 
 /**
+ * Wrap text at a specific offset position (preferred method for synced highlights)
+ */
+function wrapHighlightByOffset(container: Element, highlight: Highlight): boolean {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  let currentOffset = 0;
+  let node: Text | null;
+
+  while ((node = walker.nextNode() as Text | null)) {
+    const nodeLength = node.textContent?.length || 0;
+    const nodeStart = currentOffset;
+    const nodeEnd = currentOffset + nodeLength;
+
+    // Check if this node contains the highlight start
+    if (nodeEnd > highlight.startOffset && nodeStart < highlight.endOffset) {
+      const mark = document.createElement("mark");
+      mark.className = "reader-highlight" + (highlight.note ? " has-note" : "");
+      mark.dataset.highlightId = highlight.id;
+
+      const range = document.createRange();
+      const startOffset = Math.max(0, highlight.startOffset - nodeStart);
+      const endOffset = Math.min(nodeLength, highlight.endOffset - nodeStart);
+
+      range.setStart(node, startOffset);
+      range.setEnd(node, endOffset);
+
+      try {
+        range.surroundContents(mark);
+        return true;
+      } catch {
+        // If surroundContents fails, try extract and insert
+        const fragment = range.extractContents();
+        mark.appendChild(fragment);
+        range.insertNode(mark);
+        return true;
+      }
+    }
+
+    currentOffset = nodeEnd;
+  }
+
+  // Fallback to text-based search if offset didn't work
+  return findTextAndWrap(container, highlight.text, highlight.id, highlight.note);
+}
+
+/**
  * Activate reader mode
  */
 export async function activateReaderMode(): Promise<void> {
@@ -472,6 +616,9 @@ export async function activateReaderMode(): Promise<void> {
 
     // Remember this URL for auto-enter on refresh
     await rememberReaderModeUrl();
+
+    // Setup storage listener for highlight sync with clip viewer
+    setupHighlightSyncListener();
 
     readerModeActive = true;
   } catch (error) {
@@ -1040,23 +1187,47 @@ function setupSelectionListener(): void {
 }
 
 /**
+ * Get the text offset of a node within a container
+ * This calculates the absolute character position in the text content
+ */
+function getTextOffset(container: Node, targetNode: Node, offset: number): number {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  let accumulated = 0;
+  let node: Node | null;
+
+  while ((node = walker.nextNode())) {
+    if (node === targetNode) {
+      return accumulated + offset;
+    }
+    accumulated += node.textContent?.length || 0;
+  }
+
+  return accumulated + offset;
+}
+
+/**
  * Create highlight from current selection
  */
 async function createHighlightFromSelection(selection: Selection): Promise<void> {
   const text = selection.toString().trim();
 
-  if (!text || !currentClipId) {
+  if (!text || !currentClipId || !contentWrapper) {
     return;
   }
 
   try {
+    // Calculate the actual text offset in the document
+    const range = selection.getRangeAt(0);
+    const startOffset = getTextOffset(contentWrapper, range.startContainer, range.startOffset);
+    const endOffset = getTextOffset(contentWrapper, range.endContainer, range.endOffset);
+
     const response = await chrome.runtime.sendMessage({
       action: "addHighlight",
       clipId: currentClipId,
       highlight: {
         text,
-        startOffset: 0,
-        endOffset: text.length,
+        startOffset,
+        endOffset,
         color: "#fff3cd",
       },
     });
@@ -1336,6 +1507,9 @@ export async function deactivateReaderMode(): Promise<void> {
   try {
     // Forget this URL so it won't auto-enter on refresh
     await forgetReaderModeUrl();
+
+    // Remove storage change listener
+    removeHighlightSyncListener();
 
     document.removeEventListener("keydown", handleReaderModeKeydown);
 

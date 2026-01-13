@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigationContext } from '@/contexts/NavigationContext'
 import { useClips } from '@/hooks/useClips'
-import { useHighlights } from '@/hooks/useHighlights'
+import { useHighlights, useHighlightSync } from '@/hooks/useHighlights'
 import type { LocalClip, Highlight } from '@repo/shared'
 import { ViewerToolbar } from './ViewerToolbar'
 import { SettingsPanel } from './SettingsPanel'
@@ -29,6 +29,13 @@ export function ClipViewer() {
   const contentRef = useRef<HTMLDivElement>(null)
 
   const clipId = params?.clipId
+
+  // Subscribe to highlight changes from other views (reader mode, etc.)
+  const handleHighlightsChange = useCallback((newHighlights: Highlight[]) => {
+    setHighlights(newHighlights)
+  }, [])
+
+  useHighlightSync(clipId, handleHighlightsChange)
 
   // Load clip on mount
   useEffect(() => {
