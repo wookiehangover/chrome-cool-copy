@@ -234,7 +234,16 @@ function extractArticleContent(): { title: string; content: Element; images: str
  * Find the main content element on the page
  */
 function findMainContent(): Element {
-  // Try semantic elements first
+  // Site-specific selectors for better content extraction
+  // Substack uses .body.markup for article content
+  const substackBody = document.querySelector("article .body.markup");
+  if (substackBody) return substackBody;
+
+  // Medium uses article content directly but has cleaner structure
+  const mediumContent = document.querySelector("article[data-post-id]");
+  if (mediumContent) return mediumContent;
+
+  // Try semantic elements
   const main = document.querySelector("main");
   if (main) return main;
 
@@ -316,6 +325,18 @@ function cleanContent(element: Element): Element {
     ".breadcrumb",
     ".tags",
     ".categories",
+    // Substack-specific elements
+    ".subscribe-widget",
+    '[data-component-name*="Subscribe"]',
+    ".post-header",
+    ".post-footer",
+    ".visibility-check",
+    "dialog",
+    '[class*="modal"]',
+    '[class*="popup"]',
+    ".like-button-container",
+    ".post-ufi",
+    '[class*="ufi-button"]',
   ];
 
   selectorsToRemove.forEach((selector) => {
