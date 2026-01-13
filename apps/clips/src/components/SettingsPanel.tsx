@@ -1,66 +1,67 @@
-import { useEffect, useState } from 'react'
-import { cn } from '@/lib/utils'
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface ViewerSettings {
-  fontFamily: 'sans' | 'serif' | 'mono'
-  fontSize: number
+  fontFamily: "sans" | "serif" | "mono";
+  fontSize: number;
 }
 
-const STORAGE_KEY = 'clips-viewer-settings'
+const STORAGE_KEY = "clips-viewer-settings";
 const DEFAULT_SETTINGS: ViewerSettings = {
-  fontFamily: 'sans',
+  fontFamily: "sans",
   fontSize: 16,
-}
+};
 
 export function SettingsPanel() {
-  const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS)
+  const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
 
   // Load settings on mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const result = await chrome.storage.local.get([STORAGE_KEY])
+        const result = await chrome.storage.local.get([STORAGE_KEY]);
         if (result[STORAGE_KEY]) {
-          const loadedSettings = result[STORAGE_KEY] as ViewerSettings
-          setSettings(loadedSettings)
-          applySettings(loadedSettings)
+          const loadedSettings = result[STORAGE_KEY] as ViewerSettings;
+          setSettings(loadedSettings);
+          applySettings(loadedSettings);
         }
       } catch (err) {
-        console.error('Failed to load settings:', err)
+        console.error("Failed to load settings:", err);
       }
-    }
+    };
 
-    loadSettings()
-  }, [])
+    loadSettings();
+  }, []);
 
   const applySettings = (newSettings: ViewerSettings) => {
-    const root = document.documentElement
-    root.style.setProperty('--viewer-font-size', `${newSettings.fontSize}px`)
-    root.classList.remove('font-sans', 'font-serif', 'font-mono')
-    root.classList.add(`font-${newSettings.fontFamily}`)
-  }
+    const root = document.documentElement;
+    root.style.setProperty("--viewer-font-size", `${newSettings.fontSize}px`);
+    root.classList.remove("font-sans", "font-serif", "font-mono");
+    root.classList.add(`font-${newSettings.fontFamily}`);
+  };
 
   const saveSettings = async (newSettings: ViewerSettings) => {
     try {
-      await chrome.storage.local.set({ [STORAGE_KEY]: newSettings })
-      setSettings(newSettings)
-      applySettings(newSettings)
+      await chrome.storage.local.set({ [STORAGE_KEY]: newSettings });
+      setSettings(newSettings);
+      applySettings(newSettings);
     } catch (err) {
-      console.error('Failed to save settings:', err)
+      console.error("Failed to save settings:", err);
     }
-  }
+  };
 
-  const handleFontFamilyChange = (family: 'sans' | 'serif' | 'mono') => {
-    saveSettings({ ...settings, fontFamily: family })
-  }
+  const handleFontFamilyChange = (family: "sans" | "serif" | "mono") => {
+    saveSettings({ ...settings, fontFamily: family });
+  };
 
   const handleFontSizeChange = (delta: number) => {
-    const newSize = Math.max(14, Math.min(22, settings.fontSize + delta))
-    saveSettings({ ...settings, fontSize: newSize })
-  }
+    const newSize = Math.max(14, Math.min(22, settings.fontSize + delta));
+    saveSettings({ ...settings, fontSize: newSize });
+  };
 
-  const btnBase = 'flex-1 px-2 py-1.5 bg-black/5 dark:bg-white/5 border-none rounded text-xs text-muted-foreground cursor-pointer transition-colors hover:bg-black/10 dark:hover:bg-white/10 hover:text-foreground'
-  const btnActive = 'bg-foreground text-background hover:bg-foreground hover:text-background'
+  const btnBase =
+    "flex-1 px-2 py-1.5 bg-black/5 dark:bg-white/5 border-none rounded text-xs text-muted-foreground cursor-pointer transition-colors hover:bg-black/10 dark:hover:bg-white/10 hover:text-foreground";
+  const btnActive = "bg-foreground text-background hover:bg-foreground hover:text-background";
 
   return (
     <div className="fixed top-14 right-4 bg-background border border-border rounded-lg p-4 w-48 z-40 shadow-lg">
@@ -70,7 +71,7 @@ export function SettingsPanel() {
           Font
         </label>
         <div className="flex gap-1">
-          {(['sans', 'serif', 'mono'] as const).map((family) => (
+          {(["sans", "serif", "mono"] as const).map((family) => (
             <button
               key={family}
               onClick={() => handleFontFamilyChange(family)}
@@ -91,7 +92,7 @@ export function SettingsPanel() {
           <button
             onClick={() => handleFontSizeChange(-2)}
             disabled={settings.fontSize <= 14}
-            className={cn(btnBase, 'flex-none w-8 disabled:opacity-50 disabled:cursor-not-allowed')}
+            className={cn(btnBase, "flex-none w-8 disabled:opacity-50 disabled:cursor-not-allowed")}
           >
             −
           </button>
@@ -101,13 +102,12 @@ export function SettingsPanel() {
           <button
             onClick={() => handleFontSizeChange(2)}
             disabled={settings.fontSize >= 22}
-            className={cn(btnBase, 'flex-none w-8 disabled:opacity-50 disabled:cursor-not-allowed')}
+            className={cn(btnBase, "flex-none w-8 disabled:opacity-50 disabled:cursor-not-allowed")}
           >
             +
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
-

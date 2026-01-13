@@ -30,8 +30,8 @@
 
 :root {
   /* Match reader-mode.css colors for visual consistency */
-  --background: #ffffff;  /* bg-secondary in reader mode */
-  --foreground: #1a1a1a;  /* text-primary in reader mode */
+  --background: #ffffff; /* bg-secondary in reader mode */
+  --foreground: #1a1a1a; /* text-primary in reader mode */
   --card: #ffffff;
   --card-foreground: #1a1a1a;
   --popover: #ffffff;
@@ -40,13 +40,13 @@
   --primary-foreground: #ffffff;
   --secondary: #f0f0f0;
   --secondary-foreground: #1a1a1a;
-  --muted: #f8f8f8;  /* bg-primary in reader mode */
-  --muted-foreground: #808080;  /* text-muted in reader mode */
+  --muted: #f8f8f8; /* bg-primary in reader mode */
+  --muted-foreground: #808080; /* text-muted in reader mode */
   --accent: #f0f0f0;
   --accent-foreground: #1a1a1a;
   --destructive: #c00;
   --destructive-foreground: #c00;
-  --border: #e0e0e0;  /* border-color in reader mode */
+  --border: #e0e0e0; /* border-color in reader mode */
   --border-light: #f0f0f0;
   --input: #e0e0e0;
   --ring: #808080;
@@ -64,8 +64,8 @@
 @media (prefers-color-scheme: dark) {
   :root {
     /* Match reader-mode.css dark colors */
-    --background: #1a1a1a;  /* bg-secondary in reader mode */
-    --foreground: #e8e8e8;  /* text-primary in reader mode */
+    --background: #1a1a1a; /* bg-secondary in reader mode */
+    --foreground: #e8e8e8; /* text-primary in reader mode */
     --card: #1a1a1a;
     --card-foreground: #e8e8e8;
     --popover: #1a1a1a;
@@ -74,13 +74,13 @@
     --primary-foreground: #1a1a1a;
     --secondary: #252525;
     --secondary-foreground: #e8e8e8;
-    --muted: #111111;  /* bg-primary in reader mode */
-    --muted-foreground: #707070;  /* text-muted in reader mode */
+    --muted: #111111; /* bg-primary in reader mode */
+    --muted-foreground: #707070; /* text-muted in reader mode */
     --accent: #252525;
     --accent-foreground: #e8e8e8;
     --destructive: #c55;
     --destructive-foreground: #c55;
-    --border: #333333;  /* border-color in reader mode */
+    --border: #333333; /* border-color in reader mode */
     --border-light: #252525;
     --input: #333333;
     --ring: #707070;
@@ -107,8 +107,8 @@
   #root {
     width: 100%;
     height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica',
-      'Arial', sans-serif;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Helvetica", "Arial", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-size: 14px;
@@ -321,10 +321,18 @@
   letter-spacing: -0.01em;
 }
 
-.viewer-content h1 { font-size: 1.5em; }
-.viewer-content h2 { font-size: 1.25em; }
-.viewer-content h3 { font-size: 1.125em; }
-.viewer-content h4 { font-size: 1em; }
+.viewer-content h1 {
+  font-size: 1.5em;
+}
+.viewer-content h2 {
+  font-size: 1.25em;
+}
+.viewer-content h3 {
+  font-size: 1.125em;
+}
+.viewer-content h4 {
+  font-size: 1em;
+}
 .viewer-content h5 {
   font-size: 0.9em;
   text-transform: uppercase;
@@ -378,7 +386,7 @@
 /* Code blocks - matching reader-mode.css minimal styling */
 .viewer-content pre,
 .viewer-content code {
-  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
 }
 
 .viewer-content code {
@@ -587,3 +595,151 @@
   opacity: 0.9;
 }
 
+/* Element Clip Viewer Styles */
+.element-clip-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.element-screenshot {
+  margin-bottom: 12px;
+}
+
+.element-screenshot img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  display: block;
+}
+
+.element-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.element-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.element-summary {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.element-metadata-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.element-metadata-table th {
+  text-align: left;
+  padding: 10px 12px;
+  width: 120px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+}
+
+.element-metadata-table td {
+  padding: 10px 12px;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
+  word-break: break-word;
+}
+
+.element-metadata-table code {
+  background: var(--muted);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.element-metadata-table a {
+  color: var(--foreground);
+  text-decoration: none;
+  border-bottom: 1px solid var(--muted-foreground);
+  transition: border-color 0.15s ease;
+}
+
+.element-metadata-table a:hover {
+  border-bottom-color: var(--foreground);
+}
+
+.element-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.element-tab-btn {
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.element-tab-btn:hover {
+  color: var(--foreground);
+}
+
+.element-tab-btn.active {
+  color: var(--foreground);
+  border-bottom-color: var(--foreground);
+}
+
+.element-tab-content {
+  background: var(--muted);
+  border-radius: 4px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.element-code {
+  margin: 0;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Element Preview Section */
+.element-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.element-preview-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.element-preview-iframe {
+  width: 100%;
+  max-height: 400px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: auto;
+  background: var(--background);
+}

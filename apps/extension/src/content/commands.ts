@@ -66,6 +66,13 @@ export const commandRegistry: Command[] = [
     action: startElementPicker,
   },
   {
+    id: "clip-element",
+    name: "Clip element",
+    description: "Capture element with DOM, styles, and screenshot",
+    shortcut: "",
+    action: () => startElementPicker("clip"),
+  },
+  {
     id: "reader-mode",
     name: "Reader mode",
     description: "Toggle distraction-free reading mode",

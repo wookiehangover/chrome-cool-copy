@@ -80,6 +80,131 @@ const mockChrome = {
 // Set up global chrome object
 vi.stubGlobal("chrome", mockChrome);
 
+// Mock IndexedDB for testing
+const mockIDBStore: Record<string, Record<string, unknown>> = {};
+
+class MockIDBDatabase {
+  objectStoreNames = new Set<string>();
+  version = 1;
+
+  transaction(storeNames: string | string[], mode: IDBTransactionMode = "readonly") {
+    return new MockIDBTransaction(storeNames, mode);
+  }
+}
+
+class MockIDBObjectStore {
+  keyPath: string;
+  indexMap = new Map<string, MockIDBIndex>();
+  storeName: string;
+
+  constructor(storeName: string, keyPath: string) {
+    this.storeName = storeName;
+    this.keyPath = keyPath;
+    if (!mockIDBStore[storeName]) {
+      mockIDBStore[storeName] = {};
+    }
+  }
+
+  createIndex(name: string, keyPath: string, options?: IDBIndexParameters) {
+    const index = new MockIDBIndex(name, keyPath, this.storeName);
+    this.indexMap.set(name, index);
+    return index;
+  }
+
+  index(name: string) {
+    return this.indexMap.get(name) || new MockIDBIndex(name, "", this.storeName);
+  }
+
+  add(value: unknown) {
+    const obj = value as Record<string, unknown>;
+    const key = obj[this.keyPath] as string;
+    mockIDBStore[this.storeName][key] = obj;
+    return new MockIDBRequest(true, key);
+  }
+
+  get(key: IDBValidKey) {
+    const result = mockIDBStore[this.storeName]?.[key as string] || null;
+    return new MockIDBRequest(true, result);
+  }
+
+  delete(key: IDBValidKey) {
+    const keyStr = key as string;
+    if (mockIDBStore[this.storeName] && mockIDBStore[this.storeName][keyStr]) {
+      delete mockIDBStore[this.storeName][keyStr];
+    }
+    return new MockIDBRequest(true, undefined);
+  }
+}
+
+class MockIDBIndex {
+  name: string;
+  keyPath: string;
+  storeName: string;
+
+  constructor(name: string, keyPath: string, storeName: string) {
+    this.name = name;
+    this.keyPath = keyPath;
+    this.storeName = storeName;
+  }
+
+  getAll(query?: IDBValidKey | IDBKeyRange) {
+    const store = mockIDBStore[this.storeName] || {};
+    const results = Object.values(store).filter((item: unknown) => {
+      const obj = item as Record<string, unknown>;
+      // If query is provided, filter by the index's keyPath
+      if (query !== undefined) {
+        return obj[this.keyPath] === query;
+      }
+      return true;
+    });
+    return new MockIDBRequest(true, results);
+  }
+}
+
+class MockIDBTransaction {
+  storeNames: string | string[];
+  mode: IDBTransactionMode;
+
+  constructor(storeNames: string | string[], mode: IDBTransactionMode) {
+    this.storeNames = storeNames;
+    this.mode = mode;
+  }
+
+  objectStore(name: string) {
+    return new MockIDBObjectStore(name, "id");
+  }
+}
+
+class MockIDBRequest {
+  result: unknown;
+  error: DOMException | null = null;
+  onsuccess: ((this: IDBRequest, ev: Event) => unknown) | null = null;
+  onerror: ((this: IDBRequest, ev: Event) => unknown) | null = null;
+
+  constructor(success: boolean, result: unknown) {
+    this.result = result;
+    // Schedule callback to be called after constructor completes
+    if (success) {
+      Promise.resolve().then(() => {
+        this.onsuccess?.call(this, new Event("success"));
+      });
+    }
+  }
+}
+
+const mockIndexedDB = {
+  open: vi.fn((name: string, version?: number) => {
+    // Clear store for fresh database
+    Object.keys(mockIDBStore).forEach((key) => delete mockIDBStore[key]);
+    const request = new MockIDBRequest(true, new MockIDBDatabase());
+    return request;
+  }),
+  deleteDatabase: vi.fn(),
+  databases: vi.fn(async () => []),
+};
+
+vi.stubGlobal("indexedDB", mockIndexedDB);
+
 // Helper to reset all mocks between tests
 export function resetChromeMocks(): void {
   vi.clearAllMocks();

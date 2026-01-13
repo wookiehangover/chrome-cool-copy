@@ -11,6 +11,7 @@ import {
   deleteLocalClip,
 } from "./local-clips";
 import { initializeDatabase, saveWebpage, deleteWebpage } from "./database";
+import { deleteClipAssets } from "./asset-store";
 
 /**
  * AgentDB configuration interface
@@ -150,6 +151,17 @@ export async function deleteClipWithSync(
       agentdbDeleted = true;
     } catch {
       // Continue with local deletion even if AgentDB delete fails
+    }
+  }
+
+  // Clean up IndexedDB assets if this is an element clip
+  if (clip && clip.type === "element") {
+    try {
+      await deleteClipAssets(localId);
+      console.log("[Clips Sync] Deleted assets for clip:", localId);
+    } catch (error) {
+      console.warn("[Clips Sync] Failed to delete assets for clip:", localId, error);
+      // Continue with local deletion even if asset deletion fails
     }
   }
 

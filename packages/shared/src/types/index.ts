@@ -193,6 +193,112 @@ export interface LocalClip {
 }
 
 /**
+ * Structured data extracted from a webpage
+ * Includes JSON-LD, microdata, Open Graph, and ARIA attributes
+ */
+export interface StructuredData {
+  /** Parsed JSON-LD objects from script[type="application/ld+json"] tags */
+  jsonLd?: Record<string, unknown>[];
+  /** Microdata items extracted from elements with itemscope/itemprop */
+  microdata?: Array<{
+    itemtype?: string;
+    properties: Record<string, string[]>;
+  }>;
+  /** Open Graph meta tags (og:title, og:description, og:image, etc.) */
+  openGraph?: Record<string, string>;
+  /** ARIA attributes from the element and its descendants */
+  ariaAttributes?: Record<string, string[]>;
+}
+
+/**
+ * Media asset reference in an element clip
+ */
+export interface MediaAssetReference {
+  type: 'image' | 'video' | 'background';
+  assetId?: string; // IndexedDB reference if downloaded
+  originalSrc: string; // Original URL
+  alt?: string;
+}
+
+/**
+ * Element metadata captured in an element clip
+ */
+export interface ElementMetadata {
+  tagName: string;
+  role?: string;
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  classNames: string[];
+  dataAttributes: Record<string, string>;
+}
+
+/**
+ * Element clip data structure
+ * Captures a comprehensive snapshot of a selected element on a webpage
+ */
+export interface ElementClip {
+  id: string;
+  type: 'element'; // Differentiates from page clips
+
+  // Source context
+  url: string;
+  pageTitle: string;
+  selector: string;
+
+  // Captured content
+  screenshotAssetId: string; // Reference to IndexedDB asset
+  domStructure: string; // Self-contained HTML
+  scopedStyles: string; // CSS that applies to the element
+  textContent: string; // Plain text
+  markdownContent: string; // Markdown conversion
+
+  // Structured data
+  structuredData?: StructuredData;
+
+  // Media (asset IDs reference IndexedDB)
+  mediaAssets: MediaAssetReference[];
+
+  // Element metadata
+  elementMeta: ElementMetadata;
+
+  // AI-generated
+  aiSummary?: string;
+  aiSummaryStatus: 'pending' | 'complete' | 'error';
+  aiTitle?: string;
+  aiDescription?: string;
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+
+  // Sync (reuse existing pattern)
+  syncStatus: SyncStatus;
+}
+
+/**
+ * IndexedDB asset for storing binary data (screenshots, images, etc.)
+ */
+export interface ClipAsset {
+  id: string; // UUID
+  clipId: string; // Reference to parent clip
+  type: 'screenshot' | 'image' | 'video' | 'background';
+  mimeType: string;
+  data: Blob; // Binary data
+  originalUrl?: string;
+  createdAt: string;
+}
+
+/**
+ * Union type for all clip types
+ * Discriminated by the 'type' field
+ */
+export type Clip = LocalClip | ElementClip;
+
+/**
  * Input for creating a new clip
  */
 export interface ClipInput {
@@ -230,4 +336,3 @@ export interface Boost {
   updatedAt: string;
   chatHistory?: unknown[]; // Serialized UIMessage[] from @ai-sdk/react for conversation history
 }
-

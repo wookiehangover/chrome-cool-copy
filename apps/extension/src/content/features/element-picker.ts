@@ -12,6 +12,7 @@ import {
   handleImageCopy,
   handleFullPageScreenshot,
 } from "../copy-handlers.js";
+import { captureElementClip } from "./element-clipper.js";
 
 /**
  * Element Picker State
@@ -21,6 +22,7 @@ let currentHighlightedElement: Element | null = null;
 let pickerOverlay: HTMLElement | null = null;
 let selectedElement: Element | null = null;
 let forcedType: string | null = null; // null = auto, or 'table', 'text', 'image', 'visual'
+let pickerMode: "copy" | "clip" = "copy"; // "copy" for copy-element, "clip" for clip-element
 
 /**
  * Cleanup handlers for navigation/unload while picker is active
@@ -175,14 +177,16 @@ export function updateTypeIndicator(type: string | null): void {
 
 /**
  * Start element picker mode
+ * @param mode - "copy" for copy-element command, "clip" for clip-element command
  */
-export function startElementPicker(): void {
+export function startElementPicker(mode: "copy" | "clip" = "copy"): void {
   try {
     if (elementPickerActive) {
       return; // Already active
     }
 
     elementPickerActive = true;
+    pickerMode = mode;
     forcedType = null; // Reset to auto mode
 
     try {
@@ -283,23 +287,78 @@ async function handlePickerClick(event: MouseEvent): Promise<void> {
         forcedType ? "(forced)" : "(auto)",
       );
 
-      // Exit picker mode before handling copy
+      // Exit picker mode before handling copy/clip
       stopElementPicker();
 
-      // Handle the copy based on element type
+      // Handle based on picker mode
       try {
-        if (elementType === "table") {
-          await handleTableCopy(element);
-        } else if (elementType === "text") {
-          await handleTextCopy(element);
-        } else if (elementType === "svg") {
-          await handleSvgCopy(element);
-        } else if (elementType === "image" || elementType === "visual") {
-          await handleImageCopy(element);
+        if (pickerMode === "clip") {
+          // Clip mode: capture element clip and screenshot, then send to background
+          showToast("Clipping element...");
+          const clipData = await captureElementClip(element);
+
+          // Capture screenshot of the element
+          const rect = element.getBoundingClientRect();
+          const devicePixelRatio = window.devicePixelRatio || 1;
+          const screenshotDataUrl = await new Promise<string>((resolve, reject) => {
+            chrome.runtime.sendMessage(
+              {
+                action: "captureElement",
+                bounds: {
+                  top: Math.round(rect.top),
+                  left: Math.round(rect.left),
+                  width: Math.round(rect.width),
+                  height: Math.round(rect.height),
+                },
+                devicePixelRatio: devicePixelRatio,
+              },
+              (response) => {
+                if (chrome.runtime.lastError) {
+                  console.warn("[Element Picker] Failed to capture screenshot:", chrome.runtime.lastError);
+                  resolve(""); // Continue without screenshot
+                } else if (response && response.success && response.imageData) {
+                  resolve(response.imageData);
+                } else {
+                  console.warn("[Element Picker] No screenshot data received");
+                  resolve(""); // Continue without screenshot
+                }
+              },
+            );
+          });
+
+          // Send to background script for storage
+          chrome.runtime.sendMessage(
+            {
+              action: "clipElement",
+              data: clipData,
+              screenshotDataUrl: screenshotDataUrl,
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.error("[Element Picker] Error clipping element:", chrome.runtime.lastError);
+                showToast("× Error clipping element");
+              } else if (response && response.success) {
+                showToast("✓ Element clipped!");
+              } else {
+                showToast("× Failed to clip element");
+              }
+            },
+          );
+        } else {
+          // Copy mode: handle the copy based on element type
+          if (elementType === "table") {
+            await handleTableCopy(element);
+          } else if (elementType === "text") {
+            await handleTextCopy(element);
+          } else if (elementType === "svg") {
+            await handleSvgCopy(element);
+          } else if (elementType === "image" || elementType === "visual") {
+            await handleImageCopy(element);
+          }
         }
       } catch (error) {
-        console.error("[Clean Link Copy] Error handling element copy:", error);
-        showToast("× Error copying element");
+        console.error("[Clean Link Copy] Error handling element operation:", error);
+        showToast("× Error with element operation");
       }
     } else {
       // Exit picker mode without selection

@@ -38,6 +38,9 @@ import {
   getBoostsForDomain,
   saveBoost,
 } from "./services/boosts";
+import { generateElementSummary } from "./services/element-ai-summary";
+import { generateElementTitleAndDescription } from "./services/element-ai-service";
+import { initAssetStore, saveAsset, deleteClipAssets, getAssetAsDataUrl } from "./services/asset-store";
 import type {
   GenerateTextRequest,
   StreamTextRequest,
@@ -540,6 +543,163 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         } catch (error) {
           console.error("[Clean Link Copy] Error saving page:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+
+      // Return true to indicate we'll send response asynchronously
+      return true;
+    } else if (message.action === "clipElement") {
+      // Handle element clip request - save element clip locally with screenshot
+      (async () => {
+        try {
+          const clipData = message.data;
+          const screenshotDataUrl = message.screenshotDataUrl;
+          const imageBlob = message.imageBlob; // Image blob from single-image element
+
+          // Create element clip with metadata
+          const now = new Date().toISOString();
+          const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          let screenshotAssetId = "";
+
+          // Save screenshot to IndexedDB if provided
+          if (screenshotDataUrl) {
+            try {
+              const screenshotBlob = await fetch(screenshotDataUrl).then((r) => r.blob());
+              screenshotAssetId = await saveAsset(clipId, "screenshot", screenshotBlob);
+              console.log("[Background] Screenshot saved to IndexedDB:", screenshotAssetId);
+            } catch (error) {
+              console.warn("[Background] Failed to save screenshot to IndexedDB:", error);
+              // Continue without screenshot - it's not critical
+            }
+          }
+
+          // Handle image blob from single-image element
+          let mediaAssets = clipData.mediaAssets;
+          if (imageBlob && mediaAssets.length > 0) {
+            try {
+              // Convert imageBlob to Blob if it's a serialized object
+              let imageBlobToSave = imageBlob;
+              if (!(imageBlob instanceof Blob)) {
+                // If it's a serialized object, reconstruct it
+                imageBlobToSave = new Blob([imageBlob.data || imageBlob], {
+                  type: imageBlob.type || "image/png",
+                });
+              }
+
+              const imageAssetId = await saveAsset(
+                clipId,
+                "image",
+                imageBlobToSave,
+                mediaAssets[0].originalSrc,
+              );
+              console.log("[Background] Image saved to IndexedDB:", imageAssetId);
+
+              // Update mediaAssets[0] with the saved asset ID
+              mediaAssets = [
+                {
+                  ...mediaAssets[0],
+                  assetId: imageAssetId,
+                },
+                ...mediaAssets.slice(1),
+              ];
+            } catch (error) {
+              console.warn("[Background] Failed to save image to IndexedDB:", error);
+              // Continue without image asset - URL is still available
+            }
+          }
+
+          const elementClip = {
+            id: clipId,
+            type: "element" as const,
+            url: clipData.url,
+            pageTitle: clipData.pageTitle,
+            selector: clipData.selector,
+            screenshotAssetId: screenshotAssetId,
+            domStructure: clipData.domStructure,
+            scopedStyles: clipData.scopedStyles,
+            textContent: clipData.textContent,
+            markdownContent: clipData.markdownContent,
+            structuredData: clipData.structuredData,
+            mediaAssets: mediaAssets,
+            elementMeta: clipData.elementMeta,
+            aiSummary: undefined,
+            aiSummaryStatus: "pending" as const,
+            createdAt: now,
+            updatedAt: now,
+            syncStatus: "pending" as const,
+          };
+
+          // Save element clip to storage
+          const clips = await getLocalClips();
+          clips.push(elementClip);
+          await chrome.storage.local.set({ local_clips: clips });
+
+          console.log("[Background] Element clip saved:", elementClip.id);
+
+          sendResponse({
+            success: true,
+            message: "Element clipped successfully",
+            clipId: elementClip.id,
+          });
+
+          // Generate AI summary asynchronously (don't block the save response)
+          generateElementSummary(elementClip)
+            .then((summary) => {
+              // Update clip with generated summary
+              elementClip.aiSummary = summary;
+              elementClip.aiSummaryStatus = "complete";
+              elementClip.updatedAt = new Date().toISOString();
+
+              // Update the clip in storage
+              updateLocalClip(elementClip.id, {
+                aiSummary: summary,
+                aiSummaryStatus: "complete",
+                updatedAt: elementClip.updatedAt,
+              }).catch((error) => {
+                console.error("[Background] Error updating clip with summary:", error);
+              });
+
+              console.log("[Background] AI summary generated for clip:", elementClip.id);
+            })
+            .catch((error) => {
+              console.error("[Background] Error generating AI summary:", error);
+              // Mark as error status
+              updateLocalClip(elementClip.id, {
+                aiSummaryStatus: "error",
+                updatedAt: new Date().toISOString(),
+              }).catch((updateError) => {
+                console.error("[Background] Error updating clip error status:", updateError);
+              });
+            });
+
+          // Generate AI title and description asynchronously (fire-and-forget)
+          generateElementTitleAndDescription(elementClip)
+            .then(({ title, description }) => {
+              // Update clip with generated title and description
+              elementClip.aiTitle = title;
+              elementClip.aiDescription = description;
+              elementClip.updatedAt = new Date().toISOString();
+
+              // Update the clip in storage
+              updateLocalClip(elementClip.id, {
+                aiTitle: title,
+                aiDescription: description,
+                updatedAt: elementClip.updatedAt,
+              }).catch((error) => {
+                console.error("[Background] Error updating clip with title/description:", error);
+              });
+
+              console.log("[Background] AI title and description generated for clip:", elementClip.id);
+            })
+            .catch((error) => {
+              console.error("[Background] Error generating AI title and description:", error);
+            });
+        } catch (error) {
+          console.error("[Background] Error saving element clip:", error);
           sendResponse({
             success: false,
             error: error instanceof Error ? error.message : String(error),
@@ -1197,6 +1357,25 @@ Return ONLY valid HTML, no explanations or markdown.`;
         }
       })();
       return true;
+    } else if (message.action === "getClipAsset") {
+      // Handle get clip asset request from clips app (for screenshot previews)
+      (async () => {
+        try {
+          const { assetId } = message;
+          if (!assetId) {
+            throw new Error("Asset ID is required");
+          }
+          const dataUrl = await getAssetAsDataUrl(assetId);
+          sendResponse({ success: true, dataUrl });
+        } catch (error) {
+          console.error("[Clips] Error in getClipAsset handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
     }
   } catch (error: unknown) {
     console.error("[Clean Link Copy] Error in message listener:", error);
@@ -1684,3 +1863,14 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   boostDrafts.delete(tabId);
   console.log("[Boosts] Cleaned up draft for closed tab", tabId);
 });
+
+/**
+ * Initialize IndexedDB asset store on background script load
+ */
+initAssetStore()
+  .then(() => {
+    console.log("[Background] Asset store initialized successfully");
+  })
+  .catch((error) => {
+    console.error("[Background] Failed to initialize asset store:", error);
+  });

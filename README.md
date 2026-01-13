@@ -19,6 +19,9 @@ There are many like it, but this one is mine.
   - Copies a markdown formatted link to the current page
 - **Copy element**: Access via Command Palette
   - Select any element on the page to copy to clipboard
+- **Clip element**: Access via Command Palette
+  - Capture any element with DOM structure, styles, and metadata
+  - Saves element clips locally for later reference
 
 ### Cool Reader Mode
 - **Toggle Reader Mode**: Access via Command Palette

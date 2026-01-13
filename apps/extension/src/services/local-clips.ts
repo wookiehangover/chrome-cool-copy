@@ -214,10 +214,11 @@ export async function isUrlClipped(url: string): Promise<LocalClip | null> {
 
 /**
  * Update an existing clip (for re-clipping or updating content)
+ * Supports updating both LocalClip and ElementClip fields
  */
 export async function updateLocalClip(
   id: string,
-  updates: Partial<Pick<LocalClip, "title" | "dom_content" | "text_content" | "metadata">>,
+  updates: Record<string, unknown>,
 ): Promise<LocalClip | null> {
   const clips = await getLocalClips();
   const index = clips.findIndex((c) => c.id === id);

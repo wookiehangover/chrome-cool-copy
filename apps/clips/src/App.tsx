@@ -1,43 +1,35 @@
-import { NavigationProvider, useNavigationContext } from '@/contexts/NavigationContext'
-import { ClipsList } from '@/components/ClipsList'
-import { ClipViewer } from '@/components/ClipViewer'
+import { HashRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
+import { ClipsList } from "@/components/ClipsList";
+import { ClipViewer } from "@/components/ClipViewer";
 
-function ClipsContent() {
-  const { path } = useNavigationContext()
+// Handle legacy ?id=<clipId> URLs from before React Router
+function LegacyRedirect() {
+  const [searchParams] = useSearchParams();
+  const clipId = searchParams.get("id");
 
-  // Render based on current path
-  if (path === '/clips') {
-    return (
-      <div className="flex h-screen w-full flex-col bg-background text-foreground">
-        <ClipsList />
-      </div>
-    )
+  if (clipId) {
+    return <Navigate to={`/viewer/${clipId}`} replace />;
   }
-
-  if (path === '/viewer') {
-    return <ClipViewer />
-  }
-
-  // Default view
-  return (
-    <div className="flex h-screen w-full flex-col bg-background text-foreground">
-      <div className="flex flex-1 items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold mb-2">Clips App</h1>
-          <p className="text-muted-foreground">Current path: {path}</p>
-        </div>
-      </div>
-    </div>
-  )
+  return <Navigate to="/clips" replace />;
 }
 
 function App() {
   return (
-    <NavigationProvider>
-      <ClipsContent />
-    </NavigationProvider>
-  )
+    <HashRouter>
+      <Routes>
+        <Route path="/" element={<LegacyRedirect />} />
+        <Route
+          path="/clips"
+          element={
+            <div className="flex h-screen w-full flex-col bg-background text-foreground">
+              <ClipsList />
+            </div>
+          }
+        />
+        <Route path="/viewer/:clipId" element={<ClipViewer />} />
+      </Routes>
+    </HashRouter>
+  );
 }
 
-export default App
-
+export default App;
