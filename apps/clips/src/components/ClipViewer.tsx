@@ -61,6 +61,13 @@ export function ClipViewer() {
     loadClip()
   }, [clipId, getClip])
 
+  // Set content when entering edit mode (since dangerouslySetInnerHTML is disabled in edit mode)
+  useEffect(() => {
+    if (isEditMode && contentRef.current) {
+      contentRef.current.innerHTML = editContent
+    }
+  }, [isEditMode])
+
   // Restore highlights in DOM when content or highlights change
   useEffect(() => {
     if (!contentRef.current || isEditMode) return
