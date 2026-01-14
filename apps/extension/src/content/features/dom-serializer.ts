@@ -152,4 +152,3 @@ function isAbsoluteUrl(url: string): boolean {
     url.startsWith("blob:")
   );
 }
-

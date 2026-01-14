@@ -32,8 +32,9 @@ describe("Structured Data Extractor", () => {
       document.head.appendChild(script);
 
       const result = extractStructuredData(container);
+      expect(result.jsonLd).toBeDefined();
       expect(result.jsonLd).toHaveLength(1);
-      expect(result.jsonLd[0]).toEqual({
+      expect(result.jsonLd![0]).toEqual({
         "@context": "https://schema.org",
         "@type": "Article",
         headline: "Test Article",
@@ -86,8 +87,9 @@ describe("Structured Data Extractor", () => {
       document.head.appendChild(ogDesc);
 
       const result = extractStructuredData(container);
-      expect(result.openGraph["og:title"]).toBe("Test Title");
-      expect(result.openGraph["og:description"]).toBe("Test Description");
+      expect(result.openGraph).toBeDefined();
+      expect(result.openGraph!["og:title"]).toBe("Test Title");
+      expect(result.openGraph!["og:description"]).toBe("Test Description");
 
       document.head.removeChild(ogTitle);
       document.head.removeChild(ogDesc);
@@ -105,8 +107,9 @@ describe("Structured Data Extractor", () => {
       container.setAttribute("aria-live", "polite");
 
       const result = extractStructuredData(container);
-      expect(result.ariaAttributes["aria-label"]).toContain("Main content");
-      expect(result.ariaAttributes["aria-live"]).toContain("polite");
+      expect(result.ariaAttributes).toBeDefined();
+      expect(result.ariaAttributes!["aria-label"]).toContain("Main content");
+      expect(result.ariaAttributes!["aria-live"]).toContain("polite");
     });
 
     it("should extract ARIA attributes from descendants", () => {
@@ -115,7 +118,8 @@ describe("Structured Data Extractor", () => {
       container.appendChild(button);
 
       const result = extractStructuredData(container);
-      expect(result.ariaAttributes["aria-label"]).toContain("Close");
+      expect(result.ariaAttributes).toBeDefined();
+      expect(result.ariaAttributes!["aria-label"]).toContain("Close");
     });
 
     it("should collect unique ARIA attribute values", () => {
@@ -125,9 +129,10 @@ describe("Structured Data Extractor", () => {
       container.appendChild(child);
 
       const result = extractStructuredData(container);
-      expect(result.ariaAttributes["aria-label"]).toHaveLength(2);
-      expect(result.ariaAttributes["aria-label"]).toContain("Label 1");
-      expect(result.ariaAttributes["aria-label"]).toContain("Label 2");
+      expect(result.ariaAttributes).toBeDefined();
+      expect(result.ariaAttributes!["aria-label"]).toHaveLength(2);
+      expect(result.ariaAttributes!["aria-label"]).toContain("Label 1");
+      expect(result.ariaAttributes!["aria-label"]).toContain("Label 2");
     });
 
     it("should not duplicate ARIA attribute values", () => {
@@ -137,7 +142,8 @@ describe("Structured Data Extractor", () => {
       container.appendChild(child);
 
       const result = extractStructuredData(container);
-      expect(result.ariaAttributes["aria-label"]).toHaveLength(1);
+      expect(result.ariaAttributes).toBeDefined();
+      expect(result.ariaAttributes!["aria-label"]).toHaveLength(1);
     });
   });
 
@@ -155,9 +161,10 @@ describe("Structured Data Extractor", () => {
       container.appendChild(item);
 
       const result = extractStructuredData(container);
+      expect(result.microdata).toBeDefined();
       expect(result.microdata).toHaveLength(1);
-      expect(result.microdata[0].itemtype).toBe("https://schema.org/Person");
-      expect(result.microdata[0].properties.name).toContain("John Doe");
+      expect(result.microdata![0].itemtype).toBe("https://schema.org/Person");
+      expect(result.microdata![0].properties.name).toContain("John Doe");
     });
 
     it("should handle empty microdata", () => {
@@ -184,13 +191,15 @@ describe("Structured Data Extractor", () => {
       container.setAttribute("aria-label", "Main");
 
       const result = extractStructuredData(container);
-      expect(result.jsonLd.length).toBeGreaterThan(0);
-      expect(result.openGraph["og:title"]).toBe("Title");
-      expect(result.ariaAttributes["aria-label"]).toContain("Main");
+      expect(result.jsonLd).toBeDefined();
+      expect(result.jsonLd!.length).toBeGreaterThan(0);
+      expect(result.openGraph).toBeDefined();
+      expect(result.openGraph!["og:title"]).toBe("Title");
+      expect(result.ariaAttributes).toBeDefined();
+      expect(result.ariaAttributes!["aria-label"]).toContain("Main");
 
       document.head.removeChild(script);
       document.head.removeChild(ogMeta);
     });
   });
 });
-

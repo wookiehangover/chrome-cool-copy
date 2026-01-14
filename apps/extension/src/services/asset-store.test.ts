@@ -2,7 +2,7 @@
  * Tests for Asset Store Service
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   initAssetStore,
   saveAsset,
@@ -49,7 +49,7 @@ describe("Asset Store Service", () => {
 
     it("should throw if store not initialized", async () => {
       // Create a new instance without initialization
-      const blob = new Blob(["test data"], { type: "image/png" });
+      const _blob = new Blob(["test data"], { type: "image/png" });
 
       // We need to test this by not calling initAssetStore
       // This is tricky since we initialize in beforeEach
@@ -129,4 +129,3 @@ describe("Asset Store Service", () => {
     });
   });
 });
-

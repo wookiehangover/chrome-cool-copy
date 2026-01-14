@@ -300,7 +300,7 @@ async function handlePickerClick(event: MouseEvent): Promise<void> {
           // Capture screenshot of the element
           const rect = element.getBoundingClientRect();
           const devicePixelRatio = window.devicePixelRatio || 1;
-          const screenshotDataUrl = await new Promise<string>((resolve, reject) => {
+          const screenshotDataUrl = await new Promise<string>((resolve, _reject) => {
             chrome.runtime.sendMessage(
               {
                 action: "captureElement",
@@ -314,7 +314,10 @@ async function handlePickerClick(event: MouseEvent): Promise<void> {
               },
               (response) => {
                 if (chrome.runtime.lastError) {
-                  console.warn("[Element Picker] Failed to capture screenshot:", chrome.runtime.lastError);
+                  console.warn(
+                    "[Element Picker] Failed to capture screenshot:",
+                    chrome.runtime.lastError,
+                  );
                   resolve(""); // Continue without screenshot
                 } else if (response && response.success && response.imageData) {
                   resolve(response.imageData);

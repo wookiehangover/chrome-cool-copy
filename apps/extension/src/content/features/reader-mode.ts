@@ -535,7 +535,7 @@ function findTextAndWrap(
     range.insertNode(mark);
 
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -1181,7 +1181,7 @@ function setupSelectionListener(): void {
   if (!shadowRoot || !contentWrapper) return;
 
   // Listen on the shadowRoot for mouseup events
-  shadowRoot.addEventListener("mouseup", async (e) => {
+  shadowRoot.addEventListener("mouseup", async (_e) => {
     // Skip highlighting in edit mode - allow normal text editing
     if (isEditMode()) {
       return;

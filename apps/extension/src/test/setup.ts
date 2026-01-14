@@ -105,7 +105,7 @@ class MockIDBObjectStore {
     }
   }
 
-  createIndex(name: string, keyPath: string, options?: IDBIndexParameters) {
+  createIndex(name: string, keyPath: string, _options?: IDBIndexParameters) {
     const index = new MockIDBIndex(name, keyPath, this.storeName);
     this.indexMap.set(name, index);
     return index;
@@ -186,14 +186,14 @@ class MockIDBRequest {
     // Schedule callback to be called after constructor completes
     if (success) {
       Promise.resolve().then(() => {
-        this.onsuccess?.call(this, new Event("success"));
+        this.onsuccess?.call(this as unknown as IDBRequest, new Event("success"));
       });
     }
   }
 }
 
 const mockIndexedDB = {
-  open: vi.fn((name: string, version?: number) => {
+  open: vi.fn((_name: string, _version?: number) => {
     // Clear store for fresh database
     Object.keys(mockIDBStore).forEach((key) => delete mockIDBStore[key]);
     const request = new MockIDBRequest(true, new MockIDBDatabase());

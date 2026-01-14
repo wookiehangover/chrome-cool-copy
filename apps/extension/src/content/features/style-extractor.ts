@@ -162,7 +162,7 @@ function generateSelector(element: Element): string {
     }
 
     // Add nth-child for disambiguation
-    const parent = current.parentElement;
+    const parent: Element | null = current.parentElement;
     if (parent) {
       const siblings = Array.from(parent.children);
       const index = siblings.indexOf(current) + 1;
@@ -201,4 +201,3 @@ function generateCSSRules(
 
   return rules.join("\n\n");
 }
-

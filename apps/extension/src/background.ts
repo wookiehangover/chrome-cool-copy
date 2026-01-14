@@ -21,8 +21,6 @@ import {
   updateLocalClip,
   getLocalClips,
   getLocalClip,
-  deleteLocalClip,
-  getPendingClips,
 } from "./services/local-clips";
 import {
   syncClipToAgentDB,
@@ -40,14 +38,14 @@ import {
 } from "./services/boosts";
 import { generateElementSummary } from "./services/element-ai-summary";
 import { generateElementTitleAndDescription } from "./services/element-ai-service";
-import { initAssetStore, saveAsset, deleteClipAssets, getAssetAsDataUrl } from "./services/asset-store";
+import { initAssetStore, saveAsset, getAssetAsDataUrl } from "./services/asset-store";
 import type {
   GenerateTextRequest,
   StreamTextRequest,
   GenerateTextResponse,
   StreamMessageType,
+  ElementClip,
 } from "@repo/shared";
-import type { ConsoleEntry } from "./content/features/console-capture";
 
 /**
  * Vercel AI Gateway configuration
@@ -612,7 +610,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
           }
 
-          const elementClip = {
+          const elementClip: ElementClip = {
             id: clipId,
             type: "element" as const,
             url: clipData.url,
@@ -633,9 +631,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             syncStatus: "pending" as const,
           };
 
-          // Save element clip to storage
+          // Save element clip to storage (getLocalClips returns LocalClip[] but storage can contain both types)
           const clips = await getLocalClips();
-          clips.push(elementClip);
+          (clips as unknown[]).push(elementClip);
           await chrome.storage.local.set({ local_clips: clips });
 
           console.log("[Background] Element clip saved:", elementClip.id);
@@ -693,7 +691,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 console.error("[Background] Error updating clip with title/description:", error);
               });
 
-              console.log("[Background] AI title and description generated for clip:", elementClip.id);
+              console.log(
+                "[Background] AI title and description generated for clip:",
+                elementClip.id,
+              );
             })
             .catch((error) => {
               console.error("[Background] Error generating AI title and description:", error);

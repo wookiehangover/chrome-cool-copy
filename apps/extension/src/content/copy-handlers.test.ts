@@ -3,7 +3,7 @@
  * Tests for table to CSV conversion functionality
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 // Helper function to create a DOM element with HTML content
 function createElementFromHTML(html: string): Element {

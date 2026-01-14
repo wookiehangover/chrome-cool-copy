@@ -47,7 +47,10 @@ export async function generateElementTitleAndDescription(
       return { title: "", description: "" };
     }
 
-    console.log("[Element AI Service] Starting title and description generation for clip:", clip.id);
+    console.log(
+      "[Element AI Service] Starting title and description generation for clip:",
+      clip.id,
+    );
 
     const gateway = createGateway({
       apiKey: config.apiKey,
@@ -173,4 +176,3 @@ function buildDescriptionPrompt(clip: ElementClip): string {
 
   return `Generate a brief, specific description of this web element's purpose and key information:\n\n${parts.join("\n\n")}`;
 }
-

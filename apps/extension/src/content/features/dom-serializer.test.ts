@@ -3,7 +3,7 @@
  * Tests for DOM serialization with script removal, event handler removal, and URL conversion
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { serializeDOM } from "./dom-serializer.js";
 
 describe("DOM Serializer", () => {
@@ -31,7 +31,7 @@ describe("DOM Serializer", () => {
 
       it("should remove style tags", () => {
         const div = document.createElement("div");
-        div.innerHTML = '<p>Content</p><style>body { color: red; }</style>';
+        div.innerHTML = "<p>Content</p><style>body { color: red; }</style>";
         const result = serializeDOM(div);
         expect(result).not.toContain("<style>");
         expect(result).not.toContain("color: red");
@@ -40,8 +40,7 @@ describe("DOM Serializer", () => {
 
       it("should remove multiple script tags", () => {
         const div = document.createElement("div");
-        div.innerHTML =
-          '<script>var x = 1;</script><p>Content</p><script>var y = 2;</script>';
+        div.innerHTML = "<script>var x = 1;</script><p>Content</p><script>var y = 2;</script>";
         const result = serializeDOM(div);
         expect(result).not.toContain("<script>");
         expect(result).not.toContain("var x");
@@ -52,7 +51,7 @@ describe("DOM Serializer", () => {
     describe("Event handler removal", () => {
       it("should remove onclick attribute", () => {
         const div = document.createElement("div");
-        div.innerHTML = '<button onclick="alert(\'click\')">Click me</button>';
+        div.innerHTML = "<button onclick=\"alert('click')\">Click me</button>";
         const result = serializeDOM(div);
         expect(result).not.toContain("onclick");
         expect(result).toContain("<button>Click me</button>");
@@ -68,8 +67,7 @@ describe("DOM Serializer", () => {
 
       it("should remove multiple event handlers", () => {
         const div = document.createElement("div");
-        div.innerHTML =
-          '<div onmouseover="x()" onmouseout="y()" onclick="z()">Content</div>';
+        div.innerHTML = '<div onmouseover="x()" onmouseout="y()" onclick="z()">Content</div>';
         const result = serializeDOM(div);
         expect(result).not.toContain("onmouseover");
         expect(result).not.toContain("onmouseout");
@@ -79,8 +77,7 @@ describe("DOM Serializer", () => {
 
       it("should remove event handlers from nested elements", () => {
         const div = document.createElement("div");
-        div.innerHTML =
-          '<div onclick="outer()"><span onmouseover="inner()">Text</span></div>';
+        div.innerHTML = '<div onclick="outer()"><span onmouseover="inner()">Text</span></div>';
         const result = serializeDOM(div);
         expect(result).not.toContain("onclick");
         expect(result).not.toContain("onmouseover");
@@ -144,8 +141,7 @@ describe("DOM Serializer", () => {
 
       it("should preserve ARIA attributes", () => {
         const div = document.createElement("div");
-        div.innerHTML =
-          '<button aria-label="Close" aria-pressed="false">X</button>';
+        div.innerHTML = '<button aria-label="Close" aria-pressed="false">X</button>';
         const result = serializeDOM(div);
         expect(result).toContain('aria-label="Close"');
         expect(result).toContain('aria-pressed="false"');
@@ -183,4 +179,3 @@ describe("DOM Serializer", () => {
     });
   });
 });
-

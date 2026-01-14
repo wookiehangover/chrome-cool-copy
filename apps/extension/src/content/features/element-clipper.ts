@@ -337,4 +337,3 @@ function generateSelector(element: Element): string {
 
   return path.join(" > ");
 }
-

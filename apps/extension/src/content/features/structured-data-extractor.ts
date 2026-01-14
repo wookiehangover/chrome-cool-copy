@@ -23,9 +23,7 @@ export function extractStructuredData(element: Element): StructuredData {
  * Extracts JSON-LD data from script[type="application/ld+json"] tags
  */
 function extractJsonLd(): Record<string, unknown>[] {
-  const jsonLdScripts = document.querySelectorAll(
-    'script[type="application/ld+json"]'
-  );
+  const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
   const jsonLdData: Record<string, unknown>[] = [];
 
   jsonLdScripts.forEach((script) => {
@@ -48,7 +46,7 @@ function extractJsonLd(): Record<string, unknown>[] {
  * Extracts microdata from elements with itemscope/itemprop attributes
  */
 function extractMicrodata(
-  element: Element
+  element: Element,
 ): Array<{ itemtype?: string; properties: Record<string, string[]> }> {
   const microdataItems: Array<{
     itemtype?: string;
@@ -141,4 +139,3 @@ function extractAriaAttributes(element: Element): Record<string, string[]> {
 
   return ariaAttrs;
 }
-

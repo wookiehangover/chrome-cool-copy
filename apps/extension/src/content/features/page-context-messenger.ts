@@ -101,7 +101,7 @@ export function broadcastPageContextUpdate(context: PageContext): void {
         action: "pageContextUpdate",
         context,
       },
-      (response) => {
+      (_response) => {
         if (chrome.runtime.lastError) {
           console.error(
             "[Page Context] Failed to broadcast update:",

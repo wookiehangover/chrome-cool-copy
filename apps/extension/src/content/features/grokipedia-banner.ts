@@ -11,7 +11,6 @@ import { checkGrokipediaPageExists } from "./grokipedia-checker.js";
 let bannerElement: HTMLDivElement | null = null;
 let styleInjected = false;
 let bannerEnabled = true; // Default to enabled
-let currentArticleTitle: string | null = null;
 
 const BANNER_STATE_KEY = "grokipedia_banner_enabled";
 const GROKIPEDIA_BASE_URL = "https://grokipedia.com/page";
@@ -102,7 +101,6 @@ export async function showGrokipediaBanner(): Promise<void> {
       return;
     }
 
-    currentArticleTitle = articleTitle;
     displayBanner(articleTitle);
   } catch (error) {
     console.error("[Grokipedia Banner] Error showing banner:", error);

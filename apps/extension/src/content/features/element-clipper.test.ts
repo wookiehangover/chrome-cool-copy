@@ -7,11 +7,11 @@ import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { captureElementClip } from "./element-clipper.js";
 
 // Mock TurndownService global
-global.TurndownService = class {
+(globalThis as any).TurndownService = class {
   turndown(html: string): string {
     return `# Markdown\n\n${html}`;
   }
-} as any;
+};
 
 // Mock the extraction modules
 vi.mock("./dom-serializer.js", () => ({
@@ -19,7 +19,9 @@ vi.mock("./dom-serializer.js", () => ({
 }));
 
 vi.mock("./style-extractor.js", () => ({
-  extractComputedStyles: vi.fn((element, scopeId) => `<style data-clip-scope="${scopeId}"></style>`),
+  extractComputedStyles: vi.fn(
+    (element, scopeId) => `<style data-clip-scope="${scopeId}"></style>`,
+  ),
 }));
 
 vi.mock("./structured-data-extractor.js", () => ({
@@ -41,7 +43,7 @@ beforeEach(() => {
     ok: true,
     blob: vi.fn().mockResolvedValue(new Blob(["fake image data"], { type: "image/png" })),
   });
-  global.fetch = fetchMock as any;
+  (globalThis as any).fetch = fetchMock;
 
   // Mock Image constructor
   imageMock = vi.fn(function (this: any) {
@@ -50,7 +52,7 @@ beforeEach(() => {
     this.onload = null;
     this.onerror = null;
   });
-  global.Image = imageMock as any;
+  (globalThis as any).Image = imageMock;
 });
 
 afterEach(() => {
@@ -150,4 +152,3 @@ describe("Element Clipper", () => {
     });
   });
 });
-

@@ -3,7 +3,7 @@
  * Tests for CRUD operations and domain matching
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   getBoosts,
   getBoost,

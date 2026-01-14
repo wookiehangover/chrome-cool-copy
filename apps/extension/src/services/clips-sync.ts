@@ -155,7 +155,9 @@ export async function deleteClipWithSync(
   }
 
   // Clean up IndexedDB assets if this is an element clip
-  if (clip && clip.type === "element") {
+  // The clip could be an ElementClip which has a 'type' property
+  const clipAsAny = clip as unknown as Record<string, unknown>;
+  if (clip && clipAsAny.type === "element") {
     try {
       await deleteClipAssets(localId);
       console.log("[Clips Sync] Deleted assets for clip:", localId);

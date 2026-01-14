@@ -102,4 +102,3 @@ function buildSummaryPrompt(clip: ElementClip): string {
 
   return `Please summarize this web element:\n\n${parts.join("\n\n")}`;
 }
-

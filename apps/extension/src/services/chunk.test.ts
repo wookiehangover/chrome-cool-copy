@@ -4,12 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  getSmartChunks,
-  getYouTubeChunks,
-  truncateAndGetChunks,
-  type ChunkOptions,
-} from "./chunk.js";
+import { getSmartChunks, getYouTubeChunks, truncateAndGetChunks } from "./chunk.js";
 
 describe("Text Chunking", () => {
   describe("getSmartChunks()", () => {

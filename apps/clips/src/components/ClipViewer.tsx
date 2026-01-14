@@ -352,7 +352,7 @@ export function ClipViewer() {
         <header className="viewer-header">
           <h1 className="viewer-title">
             {isElementClip && elementClip
-              ? `${elementClip.elementMeta.tagName} Element`
+              ? elementClip.aiTitle || `${elementClip.elementMeta.tagName} Element`
               : (clip as LocalClip).title}
           </h1>
           <div className="viewer-meta">

@@ -3,7 +3,7 @@
  * Tests for extractComputedStyles functionality
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { extractComputedStyles } from "./style-extractor";
 
 describe("extractComputedStyles", () => {
@@ -117,4 +117,3 @@ describe("extractComputedStyles", () => {
     expect(result).toContain(".class3");
   });
 });
-
