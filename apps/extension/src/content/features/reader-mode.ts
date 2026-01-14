@@ -1141,6 +1141,10 @@ async function createReaderModeUI(
   // Create note editor (will be positioned next to active highlight)
   noteEditor = createNoteEditor();
 
+  // Create reading progress indicator
+  const progressBar = document.createElement("div");
+  progressBar.className = "reader-progress-bar";
+
   // Assemble UI
   container.appendChild(header);
   container.appendChild(contentWrapper);
@@ -1148,6 +1152,7 @@ async function createReaderModeUI(
   wrapper.appendChild(settingsPanel);
   wrapper.appendChild(container);
   wrapper.appendChild(noteEditor);
+  wrapper.appendChild(progressBar);
   shadowRoot.appendChild(wrapper);
 
   document.body.appendChild(readerModeContainer);
@@ -1156,6 +1161,7 @@ async function createReaderModeUI(
   document.addEventListener("keydown", handleReaderModeKeydown);
   setupSelectionListener();
   setupHighlightListeners();
+  setupProgressIndicator(progressBar);
 }
 
 /**
@@ -1495,6 +1501,41 @@ function setupHighlightListeners(): void {
   copyBtn?.addEventListener("click", () => copyCurrentHighlight());
   saveBtn?.addEventListener("click", () => saveCurrentNote());
   deleteBtn?.addEventListener("click", () => deleteCurrentHighlight());
+}
+
+/**
+ * Setup reading progress indicator
+ */
+function setupProgressIndicator(progressBar: HTMLElement): void {
+  if (!shadowRoot || !readerModeContainer) return;
+
+  const container = readerModeContainer; // Capture for closure
+
+  const updateProgress = (): void => {
+    if (!container) return;
+
+    // Scroll happens on the :host element (readerModeContainer), not the wrapper
+    const scrollTop: number = container.scrollTop || 0;
+    const scrollHeight: number = container.scrollHeight || 0;
+    const clientHeight: number = container.clientHeight || 0;
+    const scrollableHeight = scrollHeight - clientHeight;
+
+    if (scrollableHeight <= 0) {
+      progressBar.style.setProperty("--scroll-progress", "0%");
+      return;
+    }
+
+    const progress = Math.min(100, (scrollTop / scrollableHeight) * 100);
+    progressBar.style.setProperty("--scroll-progress", `${progress}%`);
+  };
+
+  // Update on scroll - attach to the host element
+  container.addEventListener("scroll", updateProgress, { passive: true });
+  // Initial update
+  requestAnimationFrame(updateProgress);
+
+  // Also update on resize to handle content changes
+  window.addEventListener("resize", updateProgress, { passive: true });
 }
 
 /**

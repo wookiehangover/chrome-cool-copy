@@ -29,6 +29,8 @@ export function ClipViewer() {
   } | null>(null);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to highlight changes from other views (reader mode, etc.)
   const handleHighlightsChange = useCallback((newHighlights: Highlight[]) => {
@@ -36,6 +38,47 @@ export function ClipViewer() {
   }, []);
 
   useHighlightSync(clipId, handleHighlightsChange);
+
+  // Setup reading progress indicator
+  useEffect(() => {
+    const progressBar = progressBarRef.current;
+    if (!progressBar) return;
+
+    const updateProgress = (): void => {
+      if (!progressBar) return;
+      
+      // Use document/body scroll instead of container
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+      const clientHeight = window.innerHeight || document.documentElement.clientHeight;
+      const scrollableHeight = scrollHeight - clientHeight;
+
+      if (scrollableHeight <= 0) {
+        progressBar.style.setProperty("--scroll-progress", "0%");
+        return;
+      }
+
+      const progress = Math.min(100, Math.max(0, (scrollTop / scrollableHeight) * 100));
+      progressBar.style.setProperty("--scroll-progress", `${progress}%`);
+    };
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      updateProgress();
+      // Also update after a short delay to catch any async content loading
+      setTimeout(updateProgress, 100);
+    });
+
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    // Also listen for resize to handle content changes
+    window.addEventListener("resize", updateProgress, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", updateProgress);
+      window.removeEventListener("resize", updateProgress);
+    };
+  }, [clip, editContent, isLoading]); // Re-run when content changes or loading completes
 
   // Load clip on mount
   useEffect(() => {
@@ -325,24 +368,27 @@ export function ClipViewer() {
   const elementClip = isElementClip ? (clip as ElementClip) : null;
 
   return (
-    <div className="viewer-wrapper">
+    <div className="viewer-wrapper" ref={wrapperRef}>
       {!isElementClip && (
-        <ViewerToolbar
-          clip={clip as LocalClip}
-          isEditMode={isEditMode}
-          onEditModeChange={setIsEditMode}
-          onSettingsClick={() => setShowSettings(!showSettings)}
-          onSave={async (newContent) => {
-            setIsSaving(true);
-            try {
-              setEditContent(newContent);
-              setIsEditMode(false);
-            } finally {
-              setIsSaving(false);
-            }
-          }}
-          isSaving={isSaving}
-        />
+        <>
+          <ViewerToolbar
+            clip={clip as LocalClip}
+            isEditMode={isEditMode}
+            onEditModeChange={setIsEditMode}
+            onSettingsClick={() => setShowSettings(!showSettings)}
+            onSave={async (newContent) => {
+              setIsSaving(true);
+              try {
+                setEditContent(newContent);
+                setIsEditMode(false);
+              } finally {
+                setIsSaving(false);
+              }
+            }}
+            isSaving={isSaving}
+          />
+          <div className="viewer-progress-bar" ref={progressBarRef} />
+        </>
       )}
 
       {showSettings && <SettingsPanel />}

@@ -76,6 +76,32 @@
   position: relative;
 }
 
+/* Reading progress indicator - subtle top bar */
+.reader-progress-bar {
+  position: fixed;
+  position-anchor: --toolbar;
+  top: anchor(bottom);
+  left: anchor(left);
+  right: anchor(right);
+  margin-top: 4px;
+  height: 2px;
+  background: transparent;
+  z-index: 99;
+  pointer-events: none;
+}
+
+.reader-progress-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--scroll-progress, 0%);
+  background: var(--text-muted);
+  opacity: 0.4;
+  transition: width 0.1s linear;
+}
+
 /* Main container - optimal reading width */
 .reader-mode-container {
   max-width: 680px; /* ~65 characters per line */
@@ -109,6 +135,7 @@
   display: flex;
   gap: 4px;
   z-index: 100;
+  anchor-name: --toolbar;
 }
 
 .reader-mode-btn {
@@ -648,6 +675,13 @@
   .reader-settings-panel {
     top: 56px;
     right: 12px;
+  }
+
+  @supports not (anchor-name: --test) {
+    .reader-progress-bar {
+      top: 52px; /* Below toolbar on mobile (12px top + 36px button height + 4px spacing) */
+      right: 12px;
+    }
   }
 }
 
