@@ -1,103 +1,82 @@
-import { useEffect, useRef, useState } from "react";
-import { X, Trash2 } from "lucide-react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { Trash2, Copy, Check } from "lucide-react";
 
-interface HighlightPopoverProps {
-  highlightId: string;
-  initialNote: string;
-  onSave: (note: string) => Promise<void>;
-  onDelete: () => Promise<void>;
-  onClose: () => void;
-  position?: { top: number; left: number };
+export interface HighlightPopoverHandle {
+  show: (note: string) => void;
+  hide: () => void;
+  getNote: () => string;
+  setFallbackPosition: (top: number, left: number) => void;
+  contains: (element: HTMLElement) => boolean;
 }
 
-export function HighlightPopover({
-  initialNote,
-  onSave,
-  onDelete,
-  onClose,
-  position,
-}: HighlightPopoverProps) {
-  const [note, setNote] = useState(initialNote);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+interface HighlightPopoverProps {
+  onSave: () => void;
+  onDelete: () => void;
+  getHighlightText: () => string;
+}
 
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+export const HighlightPopover = forwardRef<HighlightPopoverHandle, HighlightPopoverProps>(
+  function HighlightPopover({ onSave, onDelete, getHighlightText }, ref) {
+    const [copied, setCopied] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await onSave(note);
-      onClose();
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    useImperativeHandle(ref, () => ({
+      show: (note: string) => {
+        if (textareaRef.current) {
+          textareaRef.current.value = note;
+        }
+        containerRef.current?.classList.add("visible");
+        textareaRef.current?.focus();
+      },
+      hide: () => {
+        containerRef.current?.classList.remove("visible");
+      },
+      getNote: () => textareaRef.current?.value || "",
+      setFallbackPosition: (top: number, left: number) => {
+        if (containerRef.current && !CSS.supports("anchor-name", "--test")) {
+          containerRef.current.style.top = `${top}px`;
+          containerRef.current.style.left = `${left}px`;
+        }
+      },
+      contains: (element: HTMLElement) => containerRef.current?.contains(element) ?? false,
+    }));
 
-  const handleDelete = async () => {
-    if (!confirm("Delete this highlight?")) return;
-    setIsDeleting(true);
-    try {
-      await onDelete();
-      onClose();
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const style = position
-    ? {
-        position: "absolute" as const,
-        top: `${position.top}px`,
-        left: `${position.left}px`,
+    const handleCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(getHighlightText());
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch (err) {
+        console.error("Failed to copy:", err);
       }
-    : {};
+    };
 
-  return (
-    <div className="highlight-popover" style={style} onClick={(e) => e.stopPropagation()}>
-      <div className="highlight-popover-header">
-        <h3 className="text-sm font-semibold">Add Note</h3>
-        <button onClick={onClose} className="p-1 hover:bg-muted rounded" aria-label="Close">
-          <X size={16} />
-        </button>
-      </div>
+    const handleDelete = () => {
+      if (confirm("Delete this highlight?")) {
+        onDelete();
+      }
+    };
 
-      <textarea
-        ref={textareaRef}
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Add a note about this highlight..."
-        className="highlight-popover-textarea"
-      />
-
-      <div className="highlight-popover-footer">
-        <button
-          onClick={handleDelete}
-          disabled={isDeleting || isSaving}
-          className="highlight-popover-btn highlight-popover-btn-delete"
-          title="Delete highlight"
-        >
-          <Trash2 size={16} />
-        </button>
-        <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            disabled={isSaving || isDeleting}
-            className="highlight-popover-btn highlight-popover-btn-cancel"
-          >
-            Cancel
+    return (
+      <div ref={containerRef} className="highlight-popover" onClick={(e) => e.stopPropagation()}>
+        <textarea
+          ref={textareaRef}
+          placeholder="Add a note..."
+          className="highlight-popover-textarea"
+        />
+        <div className="highlight-popover-actions">
+          <button onClick={handleCopy} className="highlight-popover-btn-icon" title="Copy highlight">
+            {copied ? <Check size={14} /> : <Copy size={14} />}
           </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving || isDeleting}
-            className="highlight-popover-btn highlight-popover-btn-save"
-          >
-            {isSaving ? "Saving..." : "Save"}
+          <button onClick={handleDelete} className="highlight-popover-btn-icon highlight-popover-btn-delete" title="Delete">
+            <Trash2 size={14} />
+          </button>
+          <button onClick={onSave} className="highlight-popover-btn highlight-popover-btn-save">
+            Save
           </button>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+);

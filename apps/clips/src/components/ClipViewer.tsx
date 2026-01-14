@@ -5,7 +5,7 @@ import { useHighlights, useHighlightSync } from "@/hooks/useHighlights";
 import type { LocalClip, ElementClip, Clip, Highlight } from "@repo/shared";
 import { ViewerToolbar } from "./ViewerToolbar";
 import { SettingsPanel } from "./SettingsPanel";
-import { HighlightPopover } from "./HighlightPopover";
+import { HighlightPopover, type HighlightPopoverHandle } from "./HighlightPopover";
 
 export function ClipViewer() {
   const { clipId } = useParams<{ clipId: string }>();
@@ -20,17 +20,14 @@ export function ClipViewer() {
   const [editContent, setEditContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
-  const [activePopover, setActivePopover] = useState<{
-    highlightId: string;
-    position: { top: number; left: number };
-  } | null>(null);
-  const [selectionButton, setSelectionButton] = useState<{
-    position: { top: number; left: number };
-  } | null>(null);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const activeHighlightIdRef = useRef<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HighlightPopoverHandle>(null);
+  const lastHighlightIdsRef = useRef<string>("");
+  const lastContentRef = useRef<string>("");
 
   // Subscribe to highlight changes from other views (reader mode, etc.)
   const handleHighlightsChange = useCallback((newHighlights: Highlight[]) => {
@@ -122,33 +119,80 @@ export function ClipViewer() {
     }
   }, [isEditMode]);
 
-  // Restore highlights in DOM when content or highlights change
+  // Restore highlights in DOM when content or highlights structurally change
   useEffect(() => {
     if (!contentRef.current || isEditMode) return;
 
-    // Clear existing marks
-    contentRef.current.querySelectorAll(".viewer-highlight").forEach((mark) => {
-      const parent = mark.parentNode;
-      if (parent) {
-        while (mark.firstChild) {
-          parent.insertBefore(mark.firstChild, mark);
+    // Check if highlights actually changed (not just note updates)
+    const currentIds = highlights.map((h) => h.id).sort().join(",");
+    const idsChanged = currentIds !== lastHighlightIdsRef.current;
+    const contentChanged = editContent !== lastContentRef.current;
+
+    // Use requestAnimationFrame to ensure DOM is updated after dangerouslySetInnerHTML
+    const rafId = requestAnimationFrame(() => {
+      if (!contentRef.current) return;
+
+      // Check if marks actually exist in DOM (dangerouslySetInnerHTML may have cleared them)
+      const existingMarks = contentRef.current.querySelectorAll(".viewer-highlight");
+      const marksExist = existingMarks.length > 0;
+
+      // Need to restore if: IDs changed, content changed, first render, or marks missing
+      const needsRestore = idsChanged || contentChanged || !lastHighlightIdsRef.current || 
+        (highlights.length > 0 && !marksExist);
+
+      if (needsRestore) {
+        // Remember active highlight before clearing
+        const activeId = activeHighlightIdRef.current || 
+          contentRef.current.querySelector(".viewer-highlight.active")?.getAttribute("data-highlight-id");
+
+        // Clear existing marks
+        existingMarks.forEach((mark) => {
+          const parent = mark.parentNode;
+          if (parent) {
+            while (mark.firstChild) {
+              parent.insertBefore(mark.firstChild, mark);
+            }
+            parent.removeChild(mark);
+          }
+        });
+
+        // Restore highlights
+        if (highlights.length > 0) {
+          const sorted = [...highlights].sort((a, b) => b.startOffset - a.startOffset);
+          for (const hl of sorted) {
+            try {
+              restoreHighlight(hl);
+            } catch {
+              console.warn("Could not restore highlight:", hl.text.slice(0, 30));
+            }
+          }
         }
-        parent.removeChild(mark);
+
+        // Restore active state if there was one
+        if (activeId) {
+          const activeMark = contentRef.current.querySelector(`[data-highlight-id="${activeId}"]`);
+          if (activeMark) {
+            activeMark.classList.add("active");
+          }
+        }
+
+        lastHighlightIdsRef.current = currentIds;
+        lastContentRef.current = editContent;
+      } else {
+        // Just update has-note class without recreating marks
+        highlights.forEach((hl) => {
+          const mark = contentRef.current?.querySelector(`[data-highlight-id="${hl.id}"]`);
+          if (mark) {
+            mark.classList.toggle("has-note", !!hl.note);
+          }
+        });
       }
     });
 
-    // Restore highlights
-    if (highlights.length > 0) {
-      const sorted = [...highlights].sort((a, b) => b.startOffset - a.startOffset);
-      for (const hl of sorted) {
-        try {
-          restoreHighlight(hl);
-        } catch {
-          console.warn("Could not restore highlight:", hl.text.slice(0, 30));
-        }
-      }
-    }
-  }, [highlights, isEditMode]);
+    return () => {
+      cancelAnimationFrame(rafId);
+    };
+  }, [highlights, isEditMode, editContent]);
 
   // Load screenshot for element clips
   useEffect(() => {
@@ -172,6 +216,28 @@ export function ClipViewer() {
       },
     );
   }, [clip]);
+
+  // Document-level click handler to close popover when clicking outside
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      // If no active highlight, nothing to do
+      if (!activeHighlightIdRef.current) return;
+
+      const target = e.target as HTMLElement;
+
+      // If click is inside the popover, ignore
+      if (popoverRef.current?.contains(target)) return;
+
+      // If click is on a highlight, let handleContentClick handle it
+      if (target.closest(".viewer-highlight")) return;
+
+      // Click was outside - save and close
+      handleSaveNote();
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, [highlights]); // Need highlights in deps for handleSaveNote
 
   const restoreHighlight = (highlight: Highlight) => {
     if (!contentRef.current) return;
@@ -229,118 +295,130 @@ export function ClipViewer() {
     return offset;
   };
 
-  const handleContentMouseUp = () => {
-    if (isEditMode) {
-      setSelectionButton(null);
-      return;
-    }
+  const handleContentMouseUp = async () => {
+    if (isEditMode || !clip) return;
 
     const selection = window.getSelection();
-    if (!selection || selection.toString().length === 0) {
-      setSelectionButton(null);
-      return;
-    }
+    if (!selection || selection.toString().trim().length === 0) return;
 
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-    const contentRect = contentRef.current?.getBoundingClientRect();
-
-    if (contentRect) {
-      setSelectionButton({
-        position: {
-          top: rect.bottom - contentRect.top + 8,
-          left: rect.left - contentRect.left + rect.width / 2 - 40,
-        },
-      });
-    }
-  };
-
-  const handleHighlightClick = (e: React.MouseEvent) => {
-    const mark = (e.target as HTMLElement).closest(".viewer-highlight") as HTMLElement;
-    if (!mark) return;
-
-    const highlightId = mark.dataset.highlightId;
-    if (!highlightId) return;
-
-    e.stopPropagation();
-
-    const rect = mark.getBoundingClientRect();
-    const contentRect = contentRef.current?.getBoundingClientRect();
-
-    if (contentRect) {
-      setActivePopover({
-        highlightId,
-        position: {
-          top: rect.bottom - contentRect.top + 8,
-          left: rect.left - contentRect.left,
-        },
-      });
-    }
-  };
-
-  const handleCreateHighlight = async () => {
-    if (!clip) return;
-
-    const selection = window.getSelection();
-    if (!selection || selection.toString().length === 0) return;
-
-    const text = selection.toString();
-    const range = selection.getRangeAt(0);
     const container = contentRef.current;
-
     if (!container) return;
 
-    // Calculate absolute offsets from the clip's text_content
+    // Check if selection is within our content
+    const anchorNode = selection.anchorNode;
+    if (!anchorNode || !container.contains(anchorNode)) return;
+
+    const text = selection.toString().trim();
+    const range = selection.getRangeAt(0);
     const startOffset = getTextOffset(container, range.startContainer, range.startOffset);
     const endOffset = getTextOffset(container, range.endContainer, range.endOffset);
 
     try {
-      await addHighlight(clip.id, {
+      const newHighlight = await addHighlight(clip.id, {
         text,
         startOffset,
         endOffset,
         color: "yellow",
       });
 
-      const newHighlight: Highlight = {
-        id: `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        text,
-        startOffset,
-        endOffset,
-        color: "yellow",
-        created_at: new Date().toISOString(),
-      };
+      if (newHighlight) {
+        setHighlights((prev) => {
+          if (prev.some((h) => h.id === newHighlight.id)) return prev;
+          return [...prev, newHighlight];
+        });
+      }
 
-      setHighlights([...highlights, newHighlight]);
       selection.removeAllRanges();
-      setSelectionButton(null);
     } catch (error) {
       console.error("Failed to create highlight:", error);
     }
   };
 
-  const handleSaveNote = async (note: string) => {
-    if (!clip || !activePopover) return;
+  // Handle click on content - show popover for highlights, hide for clicks outside
+  const handleContentClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const mark = target.closest(".viewer-highlight") as HTMLElement;
+
+    if (!mark) {
+      // Clicked outside highlight - save and hide
+      if (activeHighlightIdRef.current) {
+        handleSaveNote();
+      }
+      return;
+    }
+
+    const highlightId = mark.dataset.highlightId;
+    if (!highlightId) return;
+
+    // If clicking different highlight, save current first
+    if (activeHighlightIdRef.current && activeHighlightIdRef.current !== highlightId) {
+      handleSaveNote();
+    }
+
+    // Clear previous active and set new
+    contentRef.current?.querySelectorAll(".viewer-highlight.active").forEach((el) => {
+      el.classList.remove("active");
+    });
+    mark.classList.add("active");
+
+    // Show popover
+    activeHighlightIdRef.current = highlightId;
+    const highlightData = highlights.find((h) => h.id === highlightId);
+    
+    // Set fallback position for browsers without anchor positioning
+    const rect = mark.getBoundingClientRect();
+    popoverRef.current?.setFallbackPosition(rect.top, rect.right + 24);
+    popoverRef.current?.show(highlightData?.note || "");
+  };
+
+  // Save note and close popover
+  const handleSaveNote = async () => {
+    const highlightId = activeHighlightIdRef.current;
+    if (!clip || !highlightId) return;
+
+    const note = popoverRef.current?.getNote() || "";
 
     try {
-      await updateNote(clip.id, activePopover.highlightId, note);
+      await updateNote(clip.id, highlightId, note);
       setHighlights(
-        highlights.map((h) => (h.id === activePopover.highlightId ? { ...h, note } : h)),
+        highlights.map((h) => (h.id === highlightId ? { ...h, note } : h)),
       );
+
+      // Update has-note class
+      const markElement = contentRef.current?.querySelector(`[data-highlight-id="${highlightId}"]`);
+      markElement?.classList.toggle("has-note", !!note);
     } catch (error) {
       console.error("Failed to save note:", error);
     }
+
+    // Hide and clear
+    popoverRef.current?.hide();
+    contentRef.current?.querySelectorAll(".viewer-highlight.active").forEach((el) => {
+      el.classList.remove("active");
+    });
+    activeHighlightIdRef.current = null;
   };
 
+  // Delete highlight and close popover
   const handleDeleteHighlight = async () => {
-    if (!clip || !activePopover) return;
+    const highlightId = activeHighlightIdRef.current;
+    if (!clip || !highlightId) return;
 
     try {
-      await deleteHighlight(clip.id, activePopover.highlightId);
-      setHighlights(highlights.filter((h) => h.id !== activePopover.highlightId));
+      await deleteHighlight(clip.id, highlightId);
+      setHighlights(highlights.filter((h) => h.id !== highlightId));
     } catch (error) {
       console.error("Failed to delete highlight:", error);
     }
+
+    popoverRef.current?.hide();
+    activeHighlightIdRef.current = null;
+  };
+
+  // Get current highlight text for copy
+  const getHighlightText = () => {
+    const highlightId = activeHighlightIdRef.current;
+    return highlights.find((h) => h.id === highlightId)?.text || "";
   };
 
   if (isLoading) {
@@ -558,47 +636,28 @@ export function ClipViewer() {
 
         {/* Local Clip Rendering */}
         {!isElementClip && (
-          <>
-            <div
-              ref={contentRef}
-              className={`viewer-content ${isEditMode ? "outline-dashed outline-2 outline-border outline-offset-4" : ""}`}
-              contentEditable={isEditMode}
-              suppressContentEditableWarning
-              onInput={(e) => setEditContent(e.currentTarget.innerHTML)}
-              onMouseUp={handleContentMouseUp}
-              onClick={handleHighlightClick}
-              dangerouslySetInnerHTML={!isEditMode ? { __html: editContent } : undefined}
-            />
-
-            {/* Selection highlight button */}
-            {selectionButton && !isEditMode && (
-              <button
-                className="highlight-selection-btn"
-                style={{
-                  position: "absolute",
-                  top: `${selectionButton.position.top}px`,
-                  left: `${selectionButton.position.left}px`,
-                }}
-                onClick={handleCreateHighlight}
-              >
-                Highlight
-              </button>
-            )}
-
-            {/* Highlight popover */}
-            {activePopover && (
-              <HighlightPopover
-                highlightId={activePopover.highlightId}
-                initialNote={highlights.find((h) => h.id === activePopover.highlightId)?.note || ""}
-                onSave={handleSaveNote}
-                onDelete={handleDeleteHighlight}
-                onClose={() => setActivePopover(null)}
-                position={activePopover.position}
-              />
-            )}
-          </>
+          <div
+            ref={contentRef}
+            className={`viewer-content ${isEditMode ? "outline-dashed outline-2 outline-border outline-offset-4" : ""}`}
+            contentEditable={isEditMode}
+            suppressContentEditableWarning
+            onInput={(e) => setEditContent(e.currentTarget.innerHTML)}
+            onMouseUp={handleContentMouseUp}
+            onClick={handleContentClick}
+            dangerouslySetInnerHTML={!isEditMode ? { __html: editContent } : undefined}
+          />
         )}
       </div>
+
+      {/* Highlight popover - always rendered, shown/hidden via CSS like reader mode */}
+      {!isElementClip && (
+        <HighlightPopover
+          ref={popoverRef}
+          onSave={handleSaveNote}
+          onDelete={handleDeleteHighlight}
+          getHighlightText={getHighlightText}
+        />
+      )}
     </div>
   );
 }

@@ -494,101 +494,124 @@
 }
 
 .viewer-highlight:hover {
-  background: #ffff00;
+  background: #ffe066;
+}
+
+.viewer-highlight.active {
+  background: #ffe066;
+  anchor-name: --active-highlight;
 }
 
 .viewer-highlight.has-note {
   border-bottom: 1px dashed var(--muted-foreground);
 }
 
-/* Selection highlight button */
-.highlight-selection-btn {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-  z-index: 50;
-}
-
-.highlight-selection-btn:hover {
-  background: var(--primary);
-  opacity: 0.9;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* Highlight popover */
+/* Highlight popover - CSS anchor positioning like reader mode */
 .highlight-popover {
+  position: absolute;
+  position-anchor: --active-highlight;
+  top: anchor(top);
+  left: anchor(right);
+  margin-left: 24px;
+  width: 200px;
   background: var(--popover);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  padding: 12px;
-  min-width: 280px;
-  z-index: 50;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 10px;
+  z-index: 1000;
+  display: none;
+  pointer-events: auto;
+  box-sizing: border-box;
 }
 
-.highlight-popover-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+/* Fallback for browsers without anchor positioning */
+@supports not (anchor-name: --test) {
+  .highlight-popover {
+    position: fixed;
+  }
 }
 
-.highlight-popover-header h3 {
-  margin: 0;
-  color: var(--popover-foreground);
+.highlight-popover.visible {
+  display: block;
+}
+
+/* Connector line from highlight to comment */
+.highlight-popover::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 12px;
+  width: 24px;
+  height: 1px;
+  background: var(--border);
 }
 
 .highlight-popover-textarea {
+  display: block;
   width: 100%;
-  min-height: 80px;
-  padding: 8px;
+  min-height: 50px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--background);
   color: var(--foreground);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.4;
   resize: vertical;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
 }
 
 .highlight-popover-textarea:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+  border-color: var(--muted-foreground);
 }
 
-.highlight-popover-footer {
+.highlight-popover-textarea::placeholder {
+  color: var(--muted-foreground);
+}
+
+.highlight-popover-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 6px;
   align-items: center;
-  gap: 8px;
+}
+
+.highlight-popover-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: var(--muted);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  transition: background 0.15s ease;
+}
+
+.highlight-popover-btn-icon:hover {
+  background: var(--border);
+  color: var(--foreground);
 }
 
 .highlight-popover-btn {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--background);
-  color: var(--foreground);
-  font-size: 12px;
-  font-weight: 500;
+  padding: 4px 8px;
+  background: var(--muted);
+  border: none;
+  border-radius: 3px;
+  font-size: 11px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  color: var(--muted-foreground);
+  transition: background 0.15s ease;
+  margin-left: auto;
 }
 
 .highlight-popover-btn:hover:not(:disabled) {
-  background: var(--muted);
-  border-color: var(--border);
+  background: var(--border);
+  color: var(--foreground);
 }
 
 .highlight-popover-btn:disabled {
@@ -597,30 +620,13 @@
 }
 
 .highlight-popover-btn-delete {
-  padding: 6px 8px;
-  color: var(--destructive);
-  border-color: var(--destructive);
+  color: #c00;
 }
 
-.highlight-popover-btn-delete:hover:not(:disabled) {
-  background: rgba(220, 38, 38, 0.1);
+.highlight-popover-btn-delete:hover {
+  background: rgba(200, 0, 0, 0.1);
 }
 
-.highlight-popover-btn-cancel {
-  flex: 1;
-}
-
-.highlight-popover-btn-save {
-  flex: 1;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-color: var(--primary);
-}
-
-.highlight-popover-btn-save:hover:not(:disabled) {
-  background: var(--primary);
-  opacity: 0.9;
-}
 
 /* Element Clip Viewer Styles */
 .element-clip-container {
