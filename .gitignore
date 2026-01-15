@@ -87,3 +87,5 @@ dist
 
 # Environment files
 apps/share/.env.local
+.vercel
+.env*.local

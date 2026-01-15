@@ -83,6 +83,10 @@ export function ViewerToolbar({
         shareId = response.data.share_id;
       }
       
+      if (!shareId) {
+        throw new Error("Share ID is required");
+      }
+      
       await copyShareUrl(shareId);
     } catch (err) {
       console.error("Failed to share clip:", err);
