@@ -162,6 +162,118 @@ export async function getWebpage(id: string): Promise<Webpage | null> {
 }
 
 /**
+ * Update a webpage by share_id (used to sync highlights and other updates)
+ * @param shareId - The share_id to update
+ * @param updates - Partial webpage data to update
+ * @returns The result of the update operation
+ */
+export async function updateWebpageByShareId(
+  shareId: string,
+  updates: Partial<Webpage>,
+): Promise<ExecuteResult> {
+  const connection = ensureInitialized();
+
+  try {
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+
+    if (updates.url !== undefined) {
+      setClauses.push("url = ?");
+      params.push(updates.url);
+    }
+    if (updates.title !== undefined) {
+      setClauses.push("title = ?");
+      params.push(updates.title);
+    }
+    if (updates.dom_content !== undefined) {
+      setClauses.push("dom_content = ?");
+      params.push(updates.dom_content);
+    }
+    if (updates.text_content !== undefined) {
+      setClauses.push("text_content = ?");
+      params.push(updates.text_content);
+    }
+    if (updates.metadata !== undefined) {
+      setClauses.push("metadata = ?");
+      params.push(updates.metadata ? JSON.stringify(updates.metadata) : null);
+    }
+    if (updates.highlights !== undefined) {
+      setClauses.push("highlights = ?");
+      params.push(updates.highlights ? JSON.stringify(updates.highlights) : null);
+    }
+    if (updates.status_code !== undefined) {
+      setClauses.push("status_code = ?");
+      params.push(updates.status_code || null);
+    }
+    if (updates.content_type !== undefined) {
+      setClauses.push("content_type = ?");
+      params.push(updates.content_type || null);
+    }
+    if (updates.content_length !== undefined) {
+      setClauses.push("content_length = ?");
+      params.push(updates.content_length || null);
+    }
+    if (updates.last_modified !== undefined) {
+      setClauses.push("last_modified = ?");
+      params.push(updates.last_modified || null);
+    }
+    if (updates.captured_at !== undefined) {
+      setClauses.push("captured_at = ?");
+      params.push(updates.captured_at || null);
+    }
+
+    // Always update updated_at timestamp
+    setClauses.push("updated_at = ?");
+    params.push(new Date().toISOString());
+
+    if (setClauses.length === 0) {
+      throw new Error("No fields to update");
+    }
+
+    params.push(shareId);
+
+    const result = await connection.execute({
+      sql: `UPDATE webpages SET ${setClauses.join(", ")} WHERE share_id = ?`,
+      params,
+    });
+
+    console.log("[Database] Webpage updated by share_id:", shareId);
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to update webpage by share_id: ${message}`);
+  }
+}
+
+/**
+ * Get a webpage by share_id
+ * @param shareId - The share_id to query
+ * @returns The webpage or null if not found
+ */
+export async function getWebpageByShareId(shareId: string): Promise<Webpage | null> {
+  const connection = ensureInitialized();
+
+  try {
+    const result = await connection.execute({
+      sql: "SELECT * FROM webpages WHERE share_id = ? LIMIT 1",
+      params: [shareId],
+    });
+
+    const rows = result.results[0]?.rows || [];
+    if (rows.length === 0) {
+      console.log("[Database] Webpage not found by share_id:", shareId);
+      return null;
+    }
+
+    console.log("[Database] Retrieved webpage by share_id:", shareId);
+    return rows[0] as Webpage;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to retrieve webpage by share_id: ${message}`);
+  }
+}
+
+/**
  * Delete a webpage by ID
  * @param id - The webpage ID to delete
  * @returns The result of the delete operation

@@ -12,7 +12,7 @@ import {
   deleteLocalClip,
   getLocalClips,
 } from "./local-clips";
-import { initializeDatabase, saveWebpage, deleteWebpage } from "./database";
+import { initializeDatabase, saveWebpage, deleteWebpage, updateWebpageByShareId, getWebpageByShareId } from "./database";
 import { deleteClipAssets } from "./asset-store";
 
 /**
@@ -64,36 +64,61 @@ export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
   try {
     await initializeDatabase(config);
 
-    // Generate a unique share_id for this clip
-    const shareId = nanoid(10);
+    // Check if clip already has a share_id and if a record exists
+    let shareId = clip.share_id;
+    let existingWebpage = null;
 
-    const webpage = {
-      url: clip.url,
-      title: clip.title,
-      dom_content: clip.dom_content,
-      text_content: clip.text_content,
-      metadata: clip.metadata,
-      highlights: clip.highlights,
-      share_id: shareId,
-    };
-
-    await saveWebpage(webpage);
-
-    // Update the local clip with the share_id
-    await updateClipSyncStatus(clip.id, "synced", undefined, undefined);
-    // Update the clip with share_id
-    const clips = await getLocalClips();
-    const clipIndex = clips.findIndex((c) => c.id === clip.id);
-    if (clipIndex !== -1) {
-      clips[clipIndex] = {
-        ...clips[clipIndex],
-        share_id: shareId,
-        updated_at: new Date().toISOString(),
-      };
-      await chrome.storage.local.set({ local_clips: clips });
+    if (shareId) {
+      existingWebpage = await getWebpageByShareId(shareId);
     }
 
-    console.log("[Clips Sync] Synced clip to AgentDB:", clip.id, "with share_id:", shareId);
+    if (existingWebpage) {
+      // Update existing record with latest highlights and content
+      await updateWebpageByShareId(shareId, {
+        url: clip.url,
+        title: clip.title,
+        dom_content: clip.dom_content,
+        text_content: clip.text_content,
+        metadata: clip.metadata,
+        highlights: clip.highlights,
+      });
+
+      console.log("[Clips Sync] Updated existing clip in AgentDB:", clip.id, "with share_id:", shareId);
+    } else {
+      // Generate a unique share_id for this clip if it doesn't have one
+      if (!shareId) {
+        shareId = nanoid(10);
+      }
+
+      const webpage = {
+        url: clip.url,
+        title: clip.title,
+        dom_content: clip.dom_content,
+        text_content: clip.text_content,
+        metadata: clip.metadata,
+        highlights: clip.highlights,
+        share_id: shareId,
+      };
+
+      await saveWebpage(webpage);
+
+      // Update the local clip with the share_id
+      const clips = await getLocalClips();
+      const clipIndex = clips.findIndex((c) => c.id === clip.id);
+      if (clipIndex !== -1) {
+        clips[clipIndex] = {
+          ...clips[clipIndex],
+          share_id: shareId,
+          updated_at: new Date().toISOString(),
+        };
+        await chrome.storage.local.set({ local_clips: clips });
+      }
+
+      console.log("[Clips Sync] Synced clip to AgentDB:", clip.id, "with share_id:", shareId);
+    }
+
+    // Update sync status
+    await updateClipSyncStatus(clip.id, "synced", undefined, undefined);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await updateClipSyncStatus(clip.id, "error", undefined, errorMessage);

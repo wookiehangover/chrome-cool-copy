@@ -66,22 +66,18 @@ export function ViewerToolbar({
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      let shareId = clip.share_id;
+      // Always sync the clip to ensure highlights are up to date
+      const response = await chrome.runtime.sendMessage({
+        action: "syncSingleClip",
+        clipId: clip.id,
+      });
       
-      // If no share_id, sync the clip first
-      if (!shareId) {
-        const response = await chrome.runtime.sendMessage({
-          action: "syncSingleClip",
-          clipId: clip.id,
-        });
-        
-        if (!response?.success || !response?.data?.share_id) {
-          const errorMsg = response?.error || "Failed to sync clip. Is AgentDB configured?";
-          throw new Error(errorMsg);
-        }
-        
-        shareId = response.data.share_id;
+      if (!response?.success || !response?.data?.share_id) {
+        const errorMsg = response?.error || "Failed to sync clip. Is AgentDB configured?";
+        throw new Error(errorMsg);
       }
+      
+      const shareId = response.data.share_id;
       
       if (!shareId) {
         throw new Error("Share ID is required");
