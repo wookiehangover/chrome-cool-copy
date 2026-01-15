@@ -36,6 +36,9 @@ const dbTypeSelect = document.getElementById("dbType") as HTMLSelectElement;
 const aiGatewayApiKeyInput = document.getElementById("aiGatewayApiKey") as HTMLInputElement;
 const aiGatewayModelInput = document.getElementById("aiGatewayModel") as HTMLSelectElement;
 
+// Share Server form elements
+const shareServerHostnameInput = document.getElementById("shareServerHostname") as HTMLInputElement;
+
 // Common elements
 const testConnectionBtn = document.getElementById("testConnectionBtn") as HTMLButtonElement;
 const backToPopup = document.getElementById("backToPopup") as HTMLAnchorElement;
@@ -90,7 +93,11 @@ function populateModelOptions(): void {
  */
 async function loadSettings(): Promise<void> {
   try {
-    const result = await chrome.storage.sync.get(["agentdbConfig", "aiGatewayConfig"]);
+    const result = await chrome.storage.sync.get([
+      "agentdbConfig",
+      "aiGatewayConfig",
+      "shareServerHostname",
+    ]);
 
     // Load AgentDB config
     const agentdbConfig = result.agentdbConfig as AgentDBConfig | undefined;
@@ -110,10 +117,34 @@ async function loadSettings(): Promise<void> {
       // Set defaults if no config exists
       aiGatewayModelInput.value = DEFAULT_MODEL;
     }
+
+    // Load Share Server hostname
+    const shareServerHostname = result.shareServerHostname as string | undefined;
+    if (shareServerHostname) {
+      shareServerHostnameInput.value = shareServerHostname;
+    } else {
+      // Set default if no config exists
+      shareServerHostnameInput.value = "localhost:5173";
+    }
   } catch (error) {
     console.error("[Settings] Error loading settings:", error);
     showStatus("Failed to load settings", "error");
   }
+}
+
+/**
+ * Normalize share server hostname by stripping protocol and trailing slashes
+ */
+function normalizeShareServerHostname(hostname: string): string {
+  let normalized = hostname.trim();
+
+  // Strip protocol prefixes
+  normalized = normalized.replace(/^https?:\/\//, "");
+
+  // Strip trailing slashes
+  normalized = normalized.replace(/\/$/, "");
+
+  return normalized;
 }
 
 /**
@@ -144,6 +175,9 @@ async function saveSettings(e: Event): Promise<void> {
     model: aiGatewayModelInput.value.trim() || DEFAULT_MODEL,
   };
 
+  // Get Share Server hostname
+  const shareServerHostname = normalizeShareServerHostname(shareServerHostnameInput.value);
+
   // Only validate AI Gateway - AgentDB is optional
   if (!aiGatewayConfig.apiKey || !aiGatewayConfig.model) {
     showStatus("Please fill in all Vercel AI Gateway required fields", "error");
@@ -159,6 +193,14 @@ async function saveSettings(e: Event): Promise<void> {
     } else {
       // Remove agentdbConfig if cleared
       await chrome.storage.sync.remove(["agentdbConfig"]);
+    }
+
+    // Save Share Server hostname if provided
+    if (shareServerHostname) {
+      storageData.shareServerHostname = shareServerHostname;
+    } else {
+      // Remove shareServerHostname if cleared
+      await chrome.storage.sync.remove(["shareServerHostname"]);
     }
 
     await chrome.storage.sync.set(storageData);
