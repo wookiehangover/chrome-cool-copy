@@ -190,6 +190,7 @@ export interface LocalClip {
   sync_status: SyncStatus;
   sync_error?: string;
   agentdb_id?: string; // ID in AgentDB if synced
+  share_id?: string; // Shareable URL identifier
 }
 
 /**

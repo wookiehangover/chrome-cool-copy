@@ -16,6 +16,7 @@ export interface Webpage {
   url: string;
   text_content?: string;
   created_at?: string;
+  share_id?: string;
 }
 
 export function initializeDatabase(config: AgentDBConfig): Promise<void>;
