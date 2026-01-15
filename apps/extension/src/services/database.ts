@@ -4,6 +4,7 @@
  */
 
 import { DatabaseService, DatabaseConnection, ExecuteResult } from "@agentdb/sdk";
+import type { Highlight } from "@repo/shared";
 
 /**
  * Webpage data interface matching the database schema
@@ -15,6 +16,7 @@ export interface Webpage {
   dom_content: string;
   text_content: string;
   metadata?: Record<string, unknown>;
+  highlights?: Highlight[];
   status_code?: number;
   content_type?: string;
   content_length?: number;
@@ -82,15 +84,16 @@ export async function saveWebpage(webpage: Webpage): Promise<ExecuteResult> {
   try {
     const result = await connection.execute({
       sql: `INSERT INTO webpages (
-        url, title, dom_content, text_content, metadata,
+        url, title, dom_content, text_content, metadata, highlights,
         status_code, content_type, content_length, last_modified, captured_at, share_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
         webpage.url,
         webpage.title,
         webpage.dom_content,
         webpage.text_content,
         webpage.metadata ? JSON.stringify(webpage.metadata) : null,
+        webpage.highlights ? JSON.stringify(webpage.highlights) : null,
         webpage.status_code || null,
         webpage.content_type || null,
         webpage.content_length || null,

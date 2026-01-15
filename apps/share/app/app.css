@@ -386,3 +386,38 @@
     font-size: 22px;
   }
 }
+
+/* Highlight styles */
+.viewer-highlight {
+  background-color: rgba(255, 230, 0, 0.35);
+  border-radius: 2px;
+  padding: 0 1px;
+  cursor: default;
+}
+
+.viewer-highlight.has-note {
+  background-color: rgba(255, 200, 0, 0.45);
+  border-bottom: 2px solid rgba(200, 150, 0, 0.6);
+  cursor: help;
+  position: relative;
+}
+
+/* Tooltip for notes on hover */
+.viewer-highlight.has-note:hover::after {
+  content: attr(data-note);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--foreground);
+  color: var(--background);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 280px;
+  white-space: pre-wrap;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  pointer-events: none;
+}

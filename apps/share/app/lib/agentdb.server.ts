@@ -16,6 +16,7 @@ export interface SharedClip {
   dom_content: string;
   text_content: string;
   metadata?: string;
+  highlights?: string; // JSON string containing serialized Highlight objects
   captured_at: string;
   status_code?: number;
   content_type?: string;

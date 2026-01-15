@@ -15,6 +15,7 @@ export interface Webpage {
   title?: string;
   url: string;
   text_content?: string;
+  highlights?: string; // JSON string containing serialized Highlight objects
   created_at?: string;
   share_id?: string;
 }

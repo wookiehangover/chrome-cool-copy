@@ -101,7 +101,8 @@ CREATE TABLE IF NOT EXISTS webpages (
     
     -- Metadata (stored as JSON string)
     metadata TEXT,  -- JSON: Record<string, unknown>
-    
+    highlights TEXT,  -- JSON: Highlight[]
+
     -- HTTP response metadata
     status_code INTEGER,
     content_type TEXT,

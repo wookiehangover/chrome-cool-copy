@@ -73,6 +73,7 @@ export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
       dom_content: clip.dom_content,
       text_content: clip.text_content,
       metadata: clip.metadata,
+      highlights: clip.highlights,
       share_id: shareId,
     };
 
