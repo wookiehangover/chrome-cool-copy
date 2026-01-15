@@ -7,9 +7,9 @@ import { showToast } from "@/lib/toast";
  */
 export function useShareUrl() {
   const getShareUrl = useCallback(async (shareId: string): Promise<string> => {
-    const { shareServerHostname } = await chrome.storage.sync.get({
+    const { shareServerHostname } = (await chrome.storage.sync.get({
       shareServerHostname: "localhost:5173",
-    });
+    })) as { shareServerHostname: string };
 
     // Ensure protocol
     const host = shareServerHostname.startsWith("http")
