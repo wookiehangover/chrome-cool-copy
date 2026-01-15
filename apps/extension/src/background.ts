@@ -1326,6 +1326,7 @@ Return ONLY valid HTML, no explanations or markdown.`;
       return true;
     } else if (message.action === "syncSingleClip") {
       // Handle sync single clip request - syncs a clip to AgentDB and returns the updated clip with share_id
+      // Always syncs to ensure highlights and other data are up to date
       (async () => {
         try {
           const { clipId } = message;
@@ -1336,12 +1337,7 @@ Return ONLY valid HTML, no explanations or markdown.`;
           if (!clip) {
             throw new Error("Clip not found");
           }
-          // If already has share_id, just return the clip
-          if (clip.share_id) {
-            sendResponse({ success: true, data: clip });
-            return;
-          }
-          // Sync to AgentDB
+          // Always sync to AgentDB to update highlights and other data
           await syncClipToAgentDB(clip);
           // Get updated clip with share_id
           const updatedClip = await getLocalClip(clipId);
