@@ -1,6 +1,7 @@
-import { type RouteConfig, route } from "@react-router/dev/routes";
+import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
   route("share/:shareId", "routes/share.$shareId.tsx"),
   route("*", "routes/$.tsx"),
+  index('routes/index.tsx')
 ] satisfies RouteConfig;

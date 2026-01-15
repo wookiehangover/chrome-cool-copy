@@ -1,8 +1,15 @@
-import { Link, redirect } from "react-router";
+import { Link } from "react-router";
 import type { Route } from "./+types/$";
 
 export async function loader() {
-  return redirect("https://sambreed.dev");
+  // redirect to sambreed.dev
+  return new Response("Redirecting to sambreed.dev", {
+    status: 302,
+    headers: {
+      Location: "https://sambreed.dev",
+    },
+  });
+  
 }
 
 export function meta(_args: Route.MetaArgs) {
@@ -15,6 +22,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function NotFound() {
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
+      hello world
       <div className="flex items-center justify-center flex-1">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">404</h1>
