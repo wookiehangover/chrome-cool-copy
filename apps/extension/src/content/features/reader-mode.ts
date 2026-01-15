@@ -21,6 +21,7 @@ let originalBodyOverflow: string = "";
 
 // Current clip data
 let currentClipId: string | null = null;
+let currentClipShareId: string | null = null;
 let currentHighlights: Highlight[] = [];
 
 // UI elements (inside shadow DOM)
@@ -33,6 +34,7 @@ let editModeBtn: HTMLButtonElement | null = null;
 let tidyBtn: HTMLButtonElement | null = null;
 let resetBtn: HTMLButtonElement | null = null;
 let exportBtn: HTMLButtonElement | null = null;
+let shareBtn: HTMLButtonElement | null = null;
 
 // Settings defaults
 interface ReaderSettings {
@@ -72,6 +74,15 @@ function setupHighlightSyncListener(): void {
     // Find our clip in the updated clips
     const updatedClip = newValue.find((c: { id: string }) => c.id === currentClipId);
     if (!updatedClip) return;
+
+    // Update share_id if it was just synced
+    if (updatedClip.share_id && !currentClipShareId) {
+      currentClipShareId = updatedClip.share_id;
+      // Show share button if it's now available
+      if (shareBtn) {
+        shareBtn.style.display = "";
+      }
+    }
 
     const newHighlights: Highlight[] = updatedClip.highlights || [];
 
@@ -403,6 +414,7 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
 
     if (checkResponse?.clip) {
       currentClipId = checkResponse.clip.id;
+      currentClipShareId = checkResponse.clip.share_id || null;
       currentHighlights = checkResponse.clip.highlights || [];
 
       // Restore saved highlights to the DOM
@@ -425,6 +437,7 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
 
     if (saveResponse?.success && saveResponse?.clipId) {
       currentClipId = saveResponse.clipId;
+      currentClipShareId = saveResponse.shareId || null;
       currentHighlights = [];
     } else {
       console.warn("[Reader Mode] Failed to save clip:", saveResponse?.error);
@@ -606,6 +619,7 @@ export async function activateReaderMode(): Promise<void> {
       content = document.createElement("div");
       content.innerHTML = existingClip.dom_content;
       currentClipId = existingClip.id;
+      currentClipShareId = (existingClip as any).share_id || null;
       currentHighlights = existingClip.highlights || [];
     } else {
       // Extract fresh content from the page
@@ -1056,6 +1070,40 @@ async function resetContent(): Promise<void> {
 }
 
 /**
+ * Copy share URL to clipboard
+ */
+async function shareClip(): Promise<void> {
+  if (!currentClipShareId || !shareBtn) return;
+
+  shareBtn.classList.add("loading");
+  shareBtn.disabled = true;
+
+  try {
+    // Get share server hostname from storage
+    const { shareServerHostname } = await chrome.storage.sync.get({
+      shareServerHostname: "localhost:5173",
+    });
+
+    // Ensure protocol
+    const host = shareServerHostname.startsWith("http")
+      ? shareServerHostname
+      : `https://${shareServerHostname}`;
+
+    const shareUrl = `${host}/share/${currentClipShareId}`;
+
+    // Copy to clipboard
+    await copyToClipboard(shareUrl);
+    showToast("Share URL copied!");
+  } catch (error) {
+    console.error("[Reader Mode] Share error:", error);
+    showToast("Failed to copy share URL");
+  } finally {
+    shareBtn.classList.remove("loading");
+    shareBtn.disabled = false;
+  }
+}
+
+/**
  * Create the reader mode UI with Shadow DOM
  */
 async function createReaderModeUI(
@@ -1090,6 +1138,9 @@ async function createReaderModeUI(
   const exportIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></svg>`;
   exportBtn = createToolbarButton(exportIcon, "Export Highlights", exportHighlights);
   exportBtn.style.display = currentHighlights.length > 0 ? "" : "none";
+  const shareIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-share-2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
+  shareBtn = createToolbarButton(shareIcon, "Copy share URL", shareClip);
+  shareBtn.style.display = currentClipShareId ? "" : "none";
   const closeBtn = createToolbarButton("×", "Exit (Esc)", deactivateReaderMode);
 
   toolbar.appendChild(settingsBtn);
@@ -1097,6 +1148,7 @@ async function createReaderModeUI(
   toolbar.appendChild(tidyBtn);
   toolbar.appendChild(resetBtn);
   toolbar.appendChild(exportBtn);
+  toolbar.appendChild(shareBtn);
   toolbar.appendChild(closeBtn);
 
   // Create settings panel
