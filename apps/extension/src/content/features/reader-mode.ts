@@ -1085,9 +1085,9 @@ async function shareClip(): Promise<void> {
     });
 
     // Ensure protocol
-    const host = shareServerHostname.startsWith("http")
-      ? shareServerHostname
-      : `https://${shareServerHostname}`;
+    const host = (shareServerHostname as string).startsWith("http")
+      ? (shareServerHostname as string)
+      : `https://${shareServerHostname as string}`;
 
     const shareUrl = `${host}/share/${currentClipShareId}`;
 
