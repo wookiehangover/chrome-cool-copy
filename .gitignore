@@ -82,5 +82,8 @@ key.pem
 .augment
 dist
 
+# React Router generated types
+.react-router/
+
 # Environment files
 apps/share/.env.local

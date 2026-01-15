@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import type { SharedClip } from "@/lib/agentdb";
+import type { SharedClip } from "~/lib/agentdb.server";
 
 interface ShareViewerProps {
   clip: SharedClip;
@@ -78,4 +78,3 @@ export function ShareViewer({ clip }: ShareViewerProps) {
     </div>
   );
 }
-

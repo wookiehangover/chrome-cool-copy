@@ -1,6 +1,6 @@
 /**
- * AgentDB Client for Share App
- * Handles fetching clips by share_id from the AgentDB database
+ * AgentDB Server-Side Client for Share App
+ * Handles fetching clips by share_id from the AgentDB database on the server
  */
 
 import { DatabaseService, DatabaseConnection } from "@agentdb/sdk";
@@ -41,18 +41,19 @@ let dbConnection: DatabaseConnection | null = null;
 
 /**
  * Get database configuration from environment variables
+ * Uses process.env for server-side environment variables
  * @returns Database configuration object
  */
 export function getConfig(): DatabaseConfig {
-  const baseUrl = import.meta.env.VITE_AGENTDB_BASE_URL;
-  const apiKey = import.meta.env.VITE_AGENTDB_API_KEY;
-  const token = import.meta.env.VITE_AGENTDB_TOKEN;
-  const dbName = import.meta.env.VITE_AGENTDB_DB_NAME;
+  const baseUrl = process.env.AGENTDB_BASE_URL;
+  const apiKey = process.env.AGENTDB_API_KEY;
+  const token = process.env.AGENTDB_TOKEN;
+  const dbName = process.env.AGENTDB_DB_NAME;
 
   if (!baseUrl || !apiKey || !token || !dbName) {
     throw new Error(
       "Missing required AgentDB environment variables. " +
-        "Please set VITE_AGENTDB_BASE_URL, VITE_AGENTDB_API_KEY, VITE_AGENTDB_TOKEN, and VITE_AGENTDB_DB_NAME"
+        "Please set AGENTDB_BASE_URL, AGENTDB_API_KEY, AGENTDB_TOKEN, and AGENTDB_DB_NAME"
     );
   }
 
@@ -78,7 +79,7 @@ async function initializeConnection(): Promise<void> {
     const config = getConfig();
     dbService = new DatabaseService(config.baseUrl, config.apiKey);
     dbConnection = dbService.connect(config.token, config.dbName, config.dbType);
-    console.log("[AgentDB] Connection initialized");
+    console.log("[AgentDB] Server connection initialized");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to initialize AgentDB connection: ${message}`);
@@ -117,4 +118,3 @@ export async function getClipByShareId(shareId: string): Promise<SharedClip | nu
     throw new Error(`Failed to fetch clip by share_id: ${message}`);
   }
 }
-

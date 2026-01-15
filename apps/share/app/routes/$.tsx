@@ -1,6 +1,14 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
+import type { Route } from "./+types/$";
 
-export function NotFound() {
+export function meta(_args: Route.MetaArgs) {
+  return [
+    { title: "404 - Page Not Found" },
+    { name: "description", content: "The requested page could not be found." },
+  ];
+}
+
+export default function NotFound() {
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
       <div className="flex items-center justify-center flex-1">
@@ -20,4 +28,3 @@ export function NotFound() {
     </div>
   );
 }
-
