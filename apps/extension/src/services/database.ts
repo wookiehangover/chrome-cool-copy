@@ -22,6 +22,7 @@ export interface Webpage {
   captured_at?: string;
   created_at?: string;
   updated_at?: string;
+  share_id?: string;
 }
 
 /**
@@ -81,9 +82,9 @@ export async function saveWebpage(webpage: Webpage): Promise<ExecuteResult> {
   try {
     const result = await connection.execute({
       sql: `INSERT INTO webpages (
-        url, title, dom_content, text_content, metadata, 
-        status_code, content_type, content_length, last_modified, captured_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        url, title, dom_content, text_content, metadata,
+        status_code, content_type, content_length, last_modified, captured_at, share_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
         webpage.url,
         webpage.title,
@@ -95,6 +96,7 @@ export async function saveWebpage(webpage: Webpage): Promise<ExecuteResult> {
         webpage.content_length || null,
         webpage.last_modified || null,
         webpage.captured_at || new Date().toISOString(),
+        webpage.share_id || null,
       ],
     });
 

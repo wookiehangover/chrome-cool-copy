@@ -3,12 +3,14 @@
  * Handles optional synchronization of local clips to AgentDB
  */
 
+import { nanoid } from "nanoid";
 import type { LocalClip } from "@repo/shared";
 import {
   getPendingClips,
   updateClipSyncStatus,
   getLocalClip,
   deleteLocalClip,
+  getLocalClips,
 } from "./local-clips";
 import { initializeDatabase, saveWebpage, deleteWebpage } from "./database";
 import { deleteClipAssets } from "./asset-store";
@@ -62,20 +64,35 @@ export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
   try {
     await initializeDatabase(config);
 
+    // Generate a unique share_id for this clip
+    const shareId = nanoid(10);
+
     const webpage = {
       url: clip.url,
       title: clip.title,
       dom_content: clip.dom_content,
       text_content: clip.text_content,
       metadata: clip.metadata,
+      share_id: shareId,
     };
 
     await saveWebpage(webpage);
 
-    // Mark as synced (we don't have access to the AgentDB ID from the result)
-    await updateClipSyncStatus(clip.id, "synced");
+    // Update the local clip with the share_id
+    await updateClipSyncStatus(clip.id, "synced", undefined, undefined);
+    // Update the clip with share_id
+    const clips = await getLocalClips();
+    const clipIndex = clips.findIndex((c) => c.id === clip.id);
+    if (clipIndex !== -1) {
+      clips[clipIndex] = {
+        ...clips[clipIndex],
+        share_id: shareId,
+        updated_at: new Date().toISOString(),
+      };
+      await chrome.storage.local.set({ local_clips: clips });
+    }
 
-    console.log("[Clips Sync] Synced clip to AgentDB:", clip.id);
+    console.log("[Clips Sync] Synced clip to AgentDB:", clip.id, "with share_id:", shareId);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await updateClipSyncStatus(clip.id, "error", undefined, errorMessage);
