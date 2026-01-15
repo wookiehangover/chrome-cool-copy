@@ -389,7 +389,7 @@
 
 /* Highlight styles */
 .viewer-highlight {
-  background-color: rgba(255, 230, 0, 0.35);
+  background-color: yellow;
   border-radius: 2px;
   padding: 0 1px;
   cursor: default;
