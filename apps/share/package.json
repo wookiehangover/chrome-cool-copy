@@ -24,7 +24,7 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
-    "@agentdb/sdk": "^0.1.0",
+    "@agentdb/sdk": "^1.1.26",
     "@repo/shared": "workspace:*",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
