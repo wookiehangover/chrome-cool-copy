@@ -1,5 +1,9 @@
-import { Link } from "react-router";
+import { Link, redirect } from "react-router";
 import type { Route } from "./+types/$";
+
+export async function loader() {
+  return redirect("https://sambreed.dev");
+}
 
 export function meta(_args: Route.MetaArgs) {
   return [
