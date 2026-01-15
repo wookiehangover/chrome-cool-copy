@@ -27,6 +27,17 @@ export interface SharedClip {
 }
 
 /**
+ * Lightweight clip interface for list operations
+ * Contains only essential fields without heavy content
+ */
+export interface LightweightClip {
+  share_id: string;
+  title: string;
+  url: string;
+  captured_at: string;
+}
+
+/**
  * Database configuration interface
  */
 interface DatabaseConfig {
@@ -117,5 +128,32 @@ export async function getClipByShareId(shareId: string): Promise<SharedClip | nu
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to fetch clip by share_id: ${message}`);
+  }
+}
+
+/**
+ * Fetch all clips from the webpages table
+ * @returns Array of lightweight clip data ordered by captured_at descending
+ */
+export async function getAllClips(): Promise<LightweightClip[]> {
+  try {
+    await initializeConnection();
+
+    if (!dbConnection) {
+      throw new Error("Database connection not initialized");
+    }
+
+    const result = await dbConnection.execute({
+      sql: "SELECT share_id, title, url, captured_at FROM webpages ORDER BY captured_at DESC",
+      params: [],
+    });
+
+    const rows = result.results[0]?.rows || [];
+
+    console.log("[AgentDB] Retrieved", rows.length, "clips");
+    return rows as LightweightClip[];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to fetch all clips: ${message}`);
   }
 }
