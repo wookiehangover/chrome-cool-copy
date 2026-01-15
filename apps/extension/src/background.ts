@@ -1324,6 +1324,37 @@ Return ONLY valid HTML, no explanations or markdown.`;
         }
       })();
       return true;
+    } else if (message.action === "syncSingleClip") {
+      // Handle sync single clip request - syncs a clip to AgentDB and returns the updated clip with share_id
+      (async () => {
+        try {
+          const { clipId } = message;
+          if (!clipId) {
+            throw new Error("Clip ID is required");
+          }
+          const clip = await getLocalClip(clipId);
+          if (!clip) {
+            throw new Error("Clip not found");
+          }
+          // If already has share_id, just return the clip
+          if (clip.share_id) {
+            sendResponse({ success: true, data: clip });
+            return;
+          }
+          // Sync to AgentDB
+          await syncClipToAgentDB(clip);
+          // Get updated clip with share_id
+          const updatedClip = await getLocalClip(clipId);
+          sendResponse({ success: true, data: updatedClip });
+        } catch (error) {
+          console.error("[Clips] Error in syncSingleClip handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
     } else if (message.action === "isAgentDBConfigured") {
       // Handle check if AgentDB is configured request
       (async () => {

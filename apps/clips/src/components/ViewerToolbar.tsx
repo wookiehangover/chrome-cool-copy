@@ -64,10 +64,31 @@ export function ViewerToolbar({
   };
 
   const handleShare = async () => {
-    if (!clip.share_id) return;
     setIsSharing(true);
     try {
-      await copyShareUrl(clip.share_id);
+      let shareId = clip.share_id;
+      
+      // If no share_id, sync the clip first
+      if (!shareId) {
+        const response = await chrome.runtime.sendMessage({
+          action: "syncSingleClip",
+          clipId: clip.id,
+        });
+        
+        if (!response?.success || !response?.data?.share_id) {
+          const errorMsg = response?.error || "Failed to sync clip. Is AgentDB configured?";
+          throw new Error(errorMsg);
+        }
+        
+        shareId = response.data.share_id;
+      }
+      
+      await copyShareUrl(shareId);
+    } catch (err) {
+      console.error("Failed to share clip:", err);
+      // Import showToast if not already imported
+      const { showToast } = await import("@/lib/toast");
+      showToast(err instanceof Error ? err.message : "Failed to share clip");
     } finally {
       setIsSharing(false);
     }
@@ -119,16 +140,14 @@ export function ViewerToolbar({
           <button className="viewer-btn" onClick={handleReset} title="Reset Content">
             <RotateCcw className="h-4 w-4" strokeWidth={1} />
           </button>
-          {clip.share_id && (
-            <button
-              className={cn("viewer-btn", isSharing && "loading")}
-              onClick={handleShare}
-              disabled={isSharing}
-              title="Copy share URL"
-            >
-              <Share2 className="h-4 w-4" strokeWidth={1} />
-            </button>
-          )}
+          <button
+            className={cn("viewer-btn", isSharing && "loading")}
+            onClick={handleShare}
+            disabled={isSharing}
+            title={clip.share_id ? "Copy share URL" : "Create share URL"}
+          >
+            <Share2 className="h-4 w-4" strokeWidth={1} />
+          </button>
         </>
       )}
     </div>
