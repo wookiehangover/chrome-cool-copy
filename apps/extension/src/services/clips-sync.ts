@@ -12,7 +12,13 @@ import {
   deleteLocalClip,
   getLocalClips,
 } from "./local-clips";
-import { initializeDatabase, saveWebpage, deleteWebpage, updateWebpageByShareId, getWebpageByShareId } from "./database";
+import {
+  initializeDatabase,
+  saveWebpage,
+  deleteWebpage,
+  updateWebpageByShareId,
+  getWebpageByShareId,
+} from "./database";
 import { deleteClipAssets } from "./asset-store";
 
 /**
@@ -65,7 +71,7 @@ export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
     await initializeDatabase(config);
 
     // Check if clip already has a share_id and if a record exists
-    let shareId = clip.share_id;
+    let shareId = clip.share_id!;
     let existingWebpage = null;
 
     if (shareId) {
@@ -83,7 +89,12 @@ export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
         highlights: clip.highlights,
       });
 
-      console.log("[Clips Sync] Updated existing clip in AgentDB:", clip.id, "with share_id:", shareId);
+      console.log(
+        "[Clips Sync] Updated existing clip in AgentDB:",
+        clip.id,
+        "with share_id:",
+        shareId,
+      );
     } else {
       // Generate a unique share_id for this clip if it doesn't have one
       if (!shareId) {
