@@ -1,12 +1,13 @@
-import { data } from "react-router";
+import { data, Form, useNavigation } from "react-router";
 import type { Route } from "./+types/all";
 import { getAllClips } from "~/lib/agentdb.server";
 import { ClipsList } from "~/components/ClipsList";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { cn } from "~/lib/utils";
+import { isAuthenticated, getAuthCookieHeader } from "~/lib/auth.server";
 
 // Password constant
 const PASSWORD = "swordfish";
-const AUTH_COOKIE_NAME = "all_clips_auth";
 
 /**
  * Server-side action - handles password submission
@@ -21,13 +22,12 @@ export async function action({ request }: Route.ActionArgs) {
     const password = formData.get("password");
 
     if (password === PASSWORD) {
-      // Set authentication cookie
       return data(
         { success: true },
         {
           status: 200,
           headers: {
-            "Set-Cookie": `${AUTH_COOKIE_NAME}=authenticated; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`,
+            "Set-Cookie": getAuthCookieHeader(),
           },
         }
       );
@@ -46,16 +46,10 @@ export async function action({ request }: Route.ActionArgs) {
  */
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    // Check for authentication cookie
-    const cookieHeader = request.headers.get("Cookie");
-    const isAuthenticated = cookieHeader?.includes(`${AUTH_COOKIE_NAME}=authenticated`) ?? false;
-
-    if (!isAuthenticated) {
-      // Return flag to show login form
+    if (!isAuthenticated(request)) {
       return { authenticated: false, clips: null };
     }
 
-    // Fetch clips if authenticated
     const clips = await getAllClips();
     return { authenticated: true, clips };
   } catch (error) {
@@ -80,55 +74,38 @@ export function meta(): Route.MetaDescriptors {
  */
 export default function AllClipsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { authenticated, clips } = loaderData;
-  const [password, setPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { state } = useNavigation()
+  const isSubmitting = useMemo(() => state === "submitting", [state]);
 
   const actionError = actionData && "error" in actionData ? actionData.error : undefined;
 
   if (!authenticated) {
     return (
-      <div className="flex h-screen w-full flex-col bg-background text-foreground">
-        <div className="flex items-center justify-center flex-1">
+      <div className="grid place-items-center bg-background text-foreground h-full">
           <div className="w-full max-w-md px-6">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold mb-2">All Clips</h1>
-              <p className="text-muted-foreground">Enter password to view all clips</p>
-            </div>
-
-            <form method="POST" className="space-y-4">
+            <Form method="POST" className={cn("space-y-4", { "opacity-50 cursor-not-allowed": isSubmitting })}>
               <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-2">
+                <label htmlFor="password" className="block text-sm font-medium mb-2 sr-only">
                   Password
                 </label>
                 <input
                   id="password"
                   type="password"
                   name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
-                  className="w-full px-4 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  disabled={isSubmitting}
+                  className="w-full px-4 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none"
+                  required
                 />
               </div>
 
-              {actionError && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive text-sm">
-                  {actionError}
-                </div>
-              )}
-
               <button
                 type="submit"
-                disabled={isSubmitting || !password}
-                onClick={() => setIsSubmitting(true)}
                 className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isSubmitting ? "Authenticating..." : "Unlock"}
+                {isSubmitting ? "Authenticating..." : "Submit"}
               </button>
-            </form>
+            </Form>
           </div>
-        </div>
       </div>
     );
   }
@@ -164,4 +141,3 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     </div>
   );
 }
-

@@ -1,5 +1,6 @@
+import { Loader2, Share, Share2 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { Link } from "react-router";
+import { Link, useFetcher } from "react-router";
 import type { LightweightClip } from "~/lib/agentdb.server";
 
 interface ClipsListProps {
@@ -57,20 +58,7 @@ export function ClipsList({ clips }: ClipsListProps) {
         ) : (
           <div className="flex flex-col">
             {filteredClips.map((clip) => (
-              <Link
-                key={clip.share_id}
-                to={`/share/${clip.share_id}`}
-                className="group py-3 px-3 border-b border-border cursor-pointer hover:bg-muted/30 transition-all rounded flex flex-col gap-1"
-              >
-                <h3 className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors">
-                  {clip.title}
-                </h3>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>🔗 {new URL(clip.url).hostname}</span>
-                  <span>•</span>
-                  <time>{new Date(clip.captured_at).toLocaleDateString()}</time>
-                </div>
-              </Link>
+              <ClipItem key={clip.id} clip={clip} />
             ))}
           </div>
         )}
@@ -79,3 +67,50 @@ export function ClipsList({ clips }: ClipsListProps) {
   );
 }
 
+function ClipItem({ clip }: { clip: LightweightClip }) {
+  const fetcher = useFetcher();
+
+  const handleShare = (id: number) => {
+    fetcher.submit({
+      action: "/api/share",
+      method: "POST",
+      body: JSON.stringify({ id }),
+    });
+  };
+
+  const shareId = useMemo(
+    () => fetcher.data?.share_id ?? clip.share_id,
+    [fetcher.data, clip.share_id]
+  );
+
+  return (
+    <div className="group py-3 px-3 border-b border-border cursor-pointerrounded flex items-center">
+      <Link to={`/share/${shareId}`} className="space-y-1 grow">
+        <h3 className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors">
+          {clip.title}
+        </h3>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{new URL(clip.url).hostname}</span>
+          <span>•</span>
+          <time>{new Date(clip.captured_at).toLocaleDateString()}</time>
+        </div>
+      </Link>
+      {shareId === null && (
+        <fetcher.Form method="POST" action="/api/share">
+          <button
+            type="submit"
+            name="id"
+            value={clip.id}
+            className="group-hover:text-foreground transition-colors border border-border rounded-md p-1"
+          >
+            {fetcher.state === "submitting" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Share className="w-4 h-4" />
+            )}
+          </button>
+        </fetcher.Form>
+      )}
+    </div>
+  );
+}

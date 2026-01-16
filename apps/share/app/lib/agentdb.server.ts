@@ -4,6 +4,7 @@
  */
 
 import { DatabaseService, DatabaseConnection } from "@agentdb/sdk";
+import { nanoid } from "nanoid";
 
 /**
  * Shared clip interface matching the webpages table schema
@@ -31,6 +32,7 @@ export interface SharedClip {
  * Contains only essential fields without heavy content
  */
 export interface LightweightClip {
+  id: number;
   share_id: string;
   title: string;
   url: string;
@@ -144,7 +146,7 @@ export async function getAllClips(): Promise<LightweightClip[]> {
     }
 
     const result = await dbConnection.execute({
-      sql: "SELECT share_id, title, url, captured_at FROM webpages ORDER BY captured_at DESC",
+      sql: "SELECT id, share_id, title, url, captured_at FROM webpages ORDER BY captured_at DESC",
       params: [],
     });
 
@@ -155,5 +157,64 @@ export async function getAllClips(): Promise<LightweightClip[]> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to fetch all clips: ${message}`);
+  }
+}
+
+
+/**
+ * Share a clip by generating or retrieving its share_id
+ * If the clip already has a share_id, it's returned
+ * If not, a new share_id is generated and the clip is updated
+ * @param identifier - Either the database ID (number) or URL (string) of the clip
+ * @returns The share_id for the clip, or null if clip not found
+ */
+export async function shareClip(
+  identifier: number
+): Promise<string | null> {
+  try {
+    await initializeConnection();
+
+    if (!dbConnection) {
+      throw new Error("Database connection not initialized");
+    }
+
+    // Determine if identifier is an ID or URL
+    const query =  "SELECT * FROM webpages WHERE id = ? LIMIT 1"
+    const params = [identifier];
+
+    const result = await dbConnection.execute({
+      sql: query,
+      params,
+    });
+
+    const rows = result.results[0]?.rows || [];
+
+    if (rows.length === 0) {
+      console.log("[AgentDB] Clip not found for identifier:", identifier);
+      return null;
+    }
+
+    const clip = rows[0] as SharedClip;
+
+    // If clip already has a share_id, return it
+    if (clip.share_id) {
+      console.log("[AgentDB] Clip already has share_id:", clip.share_id);
+      return clip.share_id;
+    }
+
+    // Generate a new share_id
+    const shareId = nanoid(10);
+
+    // Update the clip with the new share_id
+    await dbConnection.execute({
+      sql: "UPDATE webpages SET share_id = ?, updated_at = ? WHERE id = ?",
+      params: [shareId, new Date().toISOString(), clip.id],
+    });
+
+    console.log("[AgentDB] Generated share_id for clip:", clip.id, shareId);
+    return shareId;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to share clip: ${message}`);
   }
 }
