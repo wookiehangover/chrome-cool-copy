@@ -19,11 +19,11 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const formData = await request.formData();
-    const password = formData.get("password");
+    const password = formData.get("access_code");
 
     if (password === PASSWORD) {
       return data(
-        { success: true },
+        { success: true, error: null },
         {
           status: 200,
           headers: {
@@ -32,12 +32,12 @@ export async function action({ request }: Route.ActionArgs) {
         },
       );
     } else {
-      return data({ error: "Invalid password" }, { status: 401 });
+      return data({ error: "Invalid password", success: false }, { status: 401 });
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to process password";
     console.error("[All Clips Route] Action error:", message);
-    return data({ error: message }, { status: 500 });
+    return data({ error: message, success: false }, { status: 500 });
   }
 }
 
@@ -72,32 +72,29 @@ export function meta(): Route.MetaDescriptors {
 /**
  * All clips page component
  */
-export default function AllClipsPage({
-  loaderData,
-  actionData: _actionData,
-}: Route.ComponentProps) {
+export default function AllClipsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { authenticated, clips } = loaderData;
   const { state } = useNavigation();
   const isSubmitting = useMemo(() => state === "submitting", [state]);
 
-  if (!authenticated) {
+  if (actionData?.error || !authenticated) {
     return (
-      <div className="grid place-items-center bg-background text-foreground h-full">
+      <div className="grid place-items-center bg-background text-foreground h-screen max-h-screen">
         <div className="w-full max-w-md px-6">
           <Form
             method="POST"
             className={cn("space-y-4", { "opacity-50 cursor-not-allowed": isSubmitting })}
           >
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2 sr-only">
-                Password
-              </label>
               <input
-                id="password"
+                id="access_code"
                 type="password"
-                name="password"
+                name="access_code"
                 placeholder="Enter password"
                 className="w-full px-4 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none"
+                data-1p-ignore
+                data-op-ignore
+                autoComplete="off"
                 required
               />
             </div>
@@ -106,7 +103,7 @@ export default function AllClipsPage({
               type="submit"
               className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isSubmitting ? "Authenticating..." : "Submit"}
+              {actionData?.error ? "Incorrect" : isSubmitting ? "Authenticating..." : "Submit"}
             </button>
           </Form>
         </div>
