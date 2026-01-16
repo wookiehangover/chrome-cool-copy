@@ -89,3 +89,5 @@ dist
 apps/share/.env.local
 .vercel
 .env*.local
+
+.pnpm-store
