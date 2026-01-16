@@ -8,8 +8,6 @@
     "watch": "vite build --watch",
     "dev": "vite",
     "preview": "vite preview",
-    "lint": "oxlint src",
-    "format": "oxfmt src",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -18,8 +16,6 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.2.0",
-    "oxfmt": "^0.19.0",
-    "oxlint": "^1.35.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
     "vite": "^5.0.0"

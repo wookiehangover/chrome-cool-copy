@@ -6,7 +6,6 @@ import {
   getSession,
   saveSession,
   deleteSession,
-  getCurrentSessionId,
   setCurrentSessionId,
   createNewSession,
   updateSessionMessages,

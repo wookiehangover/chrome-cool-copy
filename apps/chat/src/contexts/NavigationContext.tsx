@@ -37,7 +37,7 @@ interface NavigationProviderProps {
 export function NavigationProvider({ children }: NavigationProviderProps) {
   const [path, setPath] = useState<NavigationPath>('/chat')
   const [params, setParams] = useState<Record<string, string> | undefined>()
-  const [history, setHistory] = useState<NavigationState[]>([{ path: '/chat' }])
+  const [_history, setHistory] = useState<NavigationState[]>([{ path: '/chat' }])
 
   const navigate = useCallback(
     (newPath: NavigationPath, newParams?: Record<string, string>) => {

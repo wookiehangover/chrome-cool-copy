@@ -2,7 +2,7 @@ import { data, Form, useNavigation } from "react-router";
 import type { Route } from "./+types/all";
 import { getAllClips } from "~/lib/agentdb.server";
 import { ClipsList } from "~/components/ClipsList";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { cn } from "~/lib/utils";
 import { isAuthenticated, getAuthCookieHeader } from "~/lib/auth.server";
 
@@ -72,12 +72,10 @@ export function meta(): Route.MetaDescriptors {
 /**
  * All clips page component
  */
-export default function AllClipsPage({ loaderData, actionData }: Route.ComponentProps) {
+export default function AllClipsPage({ loaderData, actionData: _actionData }: Route.ComponentProps) {
   const { authenticated, clips } = loaderData;
   const { state } = useNavigation()
   const isSubmitting = useMemo(() => state === "submitting", [state]);
-
-  const actionError = actionData && "error" in actionData ? actionData.error : undefined;
 
   if (!authenticated) {
     return (

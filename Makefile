@@ -92,10 +92,10 @@ dev: extension
 #------------------------------------------------------------------------------
 
 lint:
-	$(call spinner,Linting...,pnpm -F @repo/extension lint)
+	$(call spinner,Linting...,pnpm lint)
 
 format:
-	$(call spinner,Formatting...,pnpm -F @repo/extension format)
+	$(call spinner,Formatting...,pnpm format)
 
 typecheck:
 	$(call spinner,Typechecking extension...,pnpm -F @repo/extension typecheck)
@@ -105,7 +105,7 @@ typecheck:
 # Run lint and typecheck in parallel
 checks:
 	@tmpdir=$$(mktemp -d); \
-	pnpm -F @repo/extension lint > "$$tmpdir/lint.out" 2>&1 & lint_pid=$$!; \
+	pnpm lint > "$$tmpdir/lint.out" 2>&1 & lint_pid=$$!; \
 	pnpm -F @repo/extension typecheck > "$$tmpdir/tc-ext.out" 2>&1 & tc_ext_pid=$$!; \
 	pnpm -F @repo/chat typecheck > "$$tmpdir/tc-chat.out" 2>&1 & tc_chat_pid=$$!; \
 	pnpm -F @repo/clips typecheck > "$$tmpdir/tc-clips.out" 2>&1 & tc_clips_pid=$$!; \

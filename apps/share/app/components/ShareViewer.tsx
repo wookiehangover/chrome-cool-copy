@@ -115,7 +115,7 @@ export function ShareViewer({ clip }: ShareViewerProps) {
       for (const hl of sorted) {
         try {
           restoreHighlight(hl);
-        } catch (error) {
+        } catch {
           console.warn("Could not restore highlight:", hl.text.slice(0, 30));
         }
       }

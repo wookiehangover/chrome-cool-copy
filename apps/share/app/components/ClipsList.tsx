@@ -1,4 +1,4 @@
-import { Loader2, Share, Share2 } from "lucide-react";
+import { Loader2, Share } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Link, useFetcher } from "react-router";
 import type { LightweightClip } from "~/lib/agentdb.server";
@@ -69,14 +69,6 @@ export function ClipsList({ clips }: ClipsListProps) {
 
 function ClipItem({ clip }: { clip: LightweightClip }) {
   const fetcher = useFetcher();
-
-  const handleShare = (id: number) => {
-    fetcher.submit({
-      action: "/api/share",
-      method: "POST",
-      body: JSON.stringify({ id }),
-    });
-  };
 
   const shareId = useMemo(
     () => fetcher.data?.share_id ?? clip.share_id,

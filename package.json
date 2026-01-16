@@ -12,10 +12,14 @@
     "dev": "pnpm build:extension && pnpm watch:chat",
     "watch:chat": "pnpm -F @repo/chat watch",
     "watch:extension": "pnpm -F @repo/extension watch",
-    "lint": "pnpm -F @repo/extension lint",
-    "format": "pnpm -F @repo/extension format",
+    "lint": "oxlint apps/extension/src apps/chat/src apps/clips/src apps/share/app packages/shared/src",
+    "format": "oxfmt apps/extension/src apps/chat/src apps/clips/src apps/share/app packages/shared/src",
     "clean": "rm -rf apps/extension/dist",
     "test": "pnpm -F @repo/extension test",
     "typecheck": "pnpm -F @repo/extension typecheck"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.19.0",
+    "oxlint": "^1.35.0"
   }
 }
