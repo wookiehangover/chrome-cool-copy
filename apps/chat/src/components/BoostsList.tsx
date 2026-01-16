@@ -1,40 +1,43 @@
-import { useState, useMemo } from 'react'
-import { useBoosts } from '@/hooks/useBoosts'
-import { BoostCard } from '@/components/BoostCard'
+import { useState, useMemo } from "react";
+import { useBoosts } from "@/hooks/useBoosts";
+import { BoostCard } from "@/components/BoostCard";
 
 // Build a fuzzy regex: "gb" -> /g.*b/i (matches "GitHub", "global", etc.)
 function fuzzyMatch(query: string, text: string): boolean {
-  if (!query) return true
-  const pattern = query.split('').map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')
-  return new RegExp(pattern, 'i').test(text)
+  if (!query) return true;
+  const pattern = query
+    .split("")
+    .map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join(".*");
+  return new RegExp(pattern, "i").test(text);
 }
 
 export function BoostsList() {
-  const { boosts, boostsByDomain, isLoading, deleteBoost, runBoost } = useBoosts()
-  const [search, setSearch] = useState('')
+  const { boosts, boostsByDomain, isLoading, deleteBoost, runBoost } = useBoosts();
+  const [search, setSearch] = useState("");
 
   // Filter boosts by fuzzy matching title
   const filteredByDomain = useMemo(() => {
-    if (!search.trim()) return boostsByDomain
+    if (!search.trim()) return boostsByDomain;
 
-    const result: typeof boostsByDomain = {}
+    const result: typeof boostsByDomain = {};
     for (const [domain, domainBoosts] of Object.entries(boostsByDomain)) {
-      const matched = domainBoosts.filter(b => fuzzyMatch(search, b.name))
+      const matched = domainBoosts.filter((b) => fuzzyMatch(search, b.name));
       if (matched.length > 0) {
-        result[domain] = matched
+        result[domain] = matched;
       }
     }
-    return result
-  }, [boostsByDomain, search])
+    return result;
+  }, [boostsByDomain, search]);
 
   // Sort domains, but put '*' (all sites) at the end
   const sortedDomains = Object.keys(filteredByDomain).sort((a, b) => {
-    if (a === '*') return 1
-    if (b === '*') return -1
-    return a.localeCompare(b)
-  })
+    if (a === "*") return 1;
+    if (b === "*") return -1;
+    return a.localeCompare(b);
+  });
 
-  const hasResults = sortedDomains.length > 0
+  const hasResults = sortedDomains.length > 0;
 
   return (
     <div className="flex h-full w-full flex-col bg-background text-foreground">
@@ -71,7 +74,7 @@ export function BoostsList() {
               <div key={domain}>
                 {/* Domain header */}
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                  {domain === '*' ? 'All Sites' : domain}
+                  {domain === "*" ? "All Sites" : domain}
                 </h3>
                 {/* Boosts for this domain */}
                 <div className="space-y-2">
@@ -91,6 +94,5 @@ export function BoostsList() {
         )}
       </div>
     </div>
-  )
+  );
 }
-

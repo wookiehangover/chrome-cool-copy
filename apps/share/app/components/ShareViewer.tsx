@@ -57,7 +57,8 @@ export function ShareViewer({ clip }: ShareViewerProps) {
       if (!progressBar) return;
 
       // Use document/body scroll instead of container
-      const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
+      const scrollTop =
+        window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
       const clientHeight = window.innerHeight || document.documentElement.clientHeight;
       const scrollableHeight = scrollHeight - clientHeight;

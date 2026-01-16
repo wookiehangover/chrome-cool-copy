@@ -16,10 +16,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   const clip = await getClipByShareId(shareId);
 
   if (!clip) {
-    throw data(
-      { message: `Clip not found for share ID: ${shareId}` },
-      { status: 404 }
-    );
+    throw data({ message: `Clip not found for share ID: ${shareId}` }, { status: 404 });
   }
 
   return { clip };
@@ -69,7 +66,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   // Handle 404 errors
   if (error && typeof error === "object" && "status" in error) {
     const routeError = error as { status: number; data?: { message?: string } };
-    
+
     if (routeError.status === 404) {
       return (
         <div className="flex h-screen w-full flex-col bg-background text-foreground">

@@ -1,67 +1,64 @@
-import {
-  Message,
-  MessageContent,
-  MessageResponse,
-} from '@/components/ai-elements/message'
-import {
-  Reasoning,
-  ReasoningTrigger,
-  ReasoningContent,
-} from '@/components/ai-elements/reasoning'
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ai-elements/reasoning";
 import {
   Tool,
   ToolHeader,
   ToolContent,
   ToolInput,
   ToolOutput,
-} from '@/components/ai-elements/tool'
-import { getToolName, type DynamicToolUIPart, type ToolUIPart, type UITools, type UIMessage } from 'ai'
-import { useChatContext } from '@/contexts/ChatContext'
+} from "@/components/ai-elements/tool";
+import {
+  getToolName,
+  type DynamicToolUIPart,
+  type ToolUIPart,
+  type UITools,
+  type UIMessage,
+} from "ai";
+import { useChatContext } from "@/contexts/ChatContext";
 
 // Helper type for tool parts (either typed or dynamic)
-type AnyToolUIPart = DynamicToolUIPart | ToolUIPart<UITools>
+type AnyToolUIPart = DynamicToolUIPart | ToolUIPart<UITools>;
 
 interface MessageListProps {
   /** Optional messages array - falls back to ChatContext if not provided */
-  messages?: UIMessage[]
+  messages?: UIMessage[];
   /** Optional getMessageContent function - falls back to ChatContext if not provided */
-  getMessageContent?: (message: UIMessage) => string
+  getMessageContent?: (message: UIMessage) => string;
   /** Optional reasoning text - falls back to ChatContext if not provided */
-  reasoning?: string
+  reasoning?: string;
   /** Optional flag for reasoning streaming - falls back to ChatContext if not provided */
-  isReasoningStreaming?: boolean
+  isReasoningStreaming?: boolean;
   /** Optional error - falls back to ChatContext if not provided */
-  error?: Error | null
+  error?: Error | null;
 }
 
 export function MessageList(props: MessageListProps) {
-  const context = useChatContext()
+  const context = useChatContext();
 
   // Use props if provided, otherwise fall back to context
-  const messages = props.messages ?? context.messages
-  const getMessageContent = props.getMessageContent ?? context.getMessageContent
-  const reasoning = props.reasoning ?? context.reasoning
-  const isReasoningStreaming = props.isReasoningStreaming ?? context.isReasoningStreaming
-  const error = props.error ?? context.error
+  const messages = props.messages ?? context.messages;
+  const getMessageContent = props.getMessageContent ?? context.getMessageContent;
+  const reasoning = props.reasoning ?? context.reasoning;
+  const isReasoningStreaming = props.isReasoningStreaming ?? context.isReasoningStreaming;
+  const error = props.error ?? context.error;
   return (
     <>
       {messages.map((message, index) => {
         const isLastAssistantMessage =
-          message.role === 'assistant' && index === messages.length - 1
+          message.role === "assistant" && index === messages.length - 1;
 
         // Show reasoning for the last assistant message if we have reasoning content
-        const showReasoning =
-          isLastAssistantMessage && (reasoning || isReasoningStreaming)
+        const showReasoning = isLastAssistantMessage && (reasoning || isReasoningStreaming);
 
         // Extract tool parts from the message
         const toolParts = message.parts
-          .filter((part) => part.type.startsWith('tool-') || part.type === 'dynamic-tool')
-          .map((part) => part as unknown as AnyToolUIPart)
+          .filter((part) => part.type.startsWith("tool-") || part.type === "dynamic-tool")
+          .map((part) => part as unknown as AnyToolUIPart);
 
         return (
           <Message key={message.id} from={message.role}>
             <MessageContent>
-              {message.role === 'assistant' ? (
+              {message.role === "assistant" ? (
                 <>
                   {showReasoning && (
                     <Reasoning isStreaming={isReasoningStreaming}>
@@ -70,7 +67,7 @@ export function MessageList(props: MessageListProps) {
                     </Reasoning>
                   )}
                   {toolParts.map((toolPart) => {
-                    const toolName = getToolName(toolPart)
+                    const toolName = getToolName(toolPart);
                     return (
                       <Tool key={toolPart.toolCallId} className="group">
                         <ToolHeader
@@ -85,7 +82,7 @@ export function MessageList(props: MessageListProps) {
                           )}
                         </ToolContent>
                       </Tool>
-                    )
+                    );
                   })}
                   <MessageResponse>{getMessageContent(message)}</MessageResponse>
                 </>
@@ -94,20 +91,22 @@ export function MessageList(props: MessageListProps) {
               )}
             </MessageContent>
           </Message>
-        )
+        );
       })}
 
       {/* Show reasoning while streaming before any text response */}
-      {isReasoningStreaming && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-        <Message from="assistant">
-          <MessageContent>
-            <Reasoning isStreaming={isReasoningStreaming}>
-              <ReasoningTrigger />
-              <ReasoningContent>{reasoning}</ReasoningContent>
-            </Reasoning>
-          </MessageContent>
-        </Message>
-      )}
+      {isReasoningStreaming &&
+        messages.length > 0 &&
+        messages[messages.length - 1].role === "user" && (
+          <Message from="assistant">
+            <MessageContent>
+              <Reasoning isStreaming={isReasoningStreaming}>
+                <ReasoningTrigger />
+                <ReasoningContent>{reasoning}</ReasoningContent>
+              </Reasoning>
+            </MessageContent>
+          </Message>
+        )}
 
       {error && (
         <div className="border-l-2 border-destructive pl-3 text-sm">
@@ -115,6 +114,5 @@ export function MessageList(props: MessageListProps) {
         </div>
       )}
     </>
-  )
+  );
 }
-

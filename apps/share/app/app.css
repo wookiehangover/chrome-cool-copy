@@ -418,6 +418,6 @@
   max-width: 280px;
   white-space: pre-wrap;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   pointer-events: none;
 }

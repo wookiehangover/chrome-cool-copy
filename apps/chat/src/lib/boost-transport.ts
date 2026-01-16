@@ -254,4 +254,3 @@ export class BoostTransport implements ChatTransport<UIMessage> {
     return null;
   }
 }
-

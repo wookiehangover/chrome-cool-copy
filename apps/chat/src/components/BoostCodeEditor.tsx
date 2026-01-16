@@ -20,7 +20,7 @@ export function BoostCodeEditor({
     (value: string) => {
       onChange(value);
     },
-    [onChange]
+    [onChange],
   );
 
   return (
@@ -47,4 +47,3 @@ export function BoostCodeEditor({
     </div>
   );
 }
-

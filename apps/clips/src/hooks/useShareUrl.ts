@@ -37,4 +37,3 @@ export function useShareUrl() {
 
   return { getShareUrl, copyShareUrl };
 }
-

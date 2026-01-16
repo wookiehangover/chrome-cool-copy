@@ -1,6 +1,5 @@
-import { BoostAuthoring } from '@/components/BoostAuthoring'
+import { BoostAuthoring } from "@/components/BoostAuthoring";
 
 export function BoostCreate() {
-  return <BoostAuthoring />
+  return <BoostAuthoring />;
 }
-

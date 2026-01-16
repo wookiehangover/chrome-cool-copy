@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  MODELS_BY_PROVIDER,
-  type ModelId,
-  SUPPORTED_MODELS,
-} from "@repo/shared";
+import { MODELS_BY_PROVIDER, type ModelId, SUPPORTED_MODELS } from "@repo/shared";
 import {
   Select,
   SelectContent,
@@ -22,11 +18,7 @@ export type ModelPickerProps = ComponentProps<typeof Select> & {
   onValueChange: (model: ModelId) => void;
 };
 
-export const ModelPicker = ({
-  value,
-  onValueChange,
-  ...props
-}: ModelPickerProps) => (
+export const ModelPicker = ({ value, onValueChange, ...props }: ModelPickerProps) => (
   <Select value={value} onValueChange={onValueChange} {...props}>
     <ModelPickerTrigger value={value} />
     <ModelPickerContent />
@@ -37,11 +29,7 @@ export type ModelPickerTriggerProps = ComponentProps<typeof SelectTrigger> & {
   value: ModelId;
 };
 
-export const ModelPickerTrigger = ({
-  value,
-  className,
-  ...props
-}: ModelPickerTriggerProps) => {
+export const ModelPickerTrigger = ({ value, className, ...props }: ModelPickerTriggerProps) => {
   const selectedModel = SUPPORTED_MODELS.find((m) => m.id === value);
 
   return (
@@ -49,7 +37,7 @@ export const ModelPickerTrigger = ({
       className={cn(
         "border-none bg-transparent font-medium text-muted-foreground shadow-none transition-colors",
         "hover:bg-accent hover:text-foreground aria-expanded:bg-accent aria-expanded:text-foreground",
-        className
+        className,
       )}
       {...props}
     >
@@ -62,10 +50,7 @@ export const ModelPickerTrigger = ({
 
 export type ModelPickerContentProps = ComponentProps<typeof SelectContent>;
 
-export const ModelPickerContent = ({
-  className,
-  ...props
-}: ModelPickerContentProps) => (
+export const ModelPickerContent = ({ className, ...props }: ModelPickerContentProps) => (
   <SelectContent className={cn(className)} {...props}>
     {Object.entries(MODELS_BY_PROVIDER).map(([provider, models]) => (
       <SelectGroup key={provider}>
@@ -79,4 +64,3 @@ export const ModelPickerContent = ({
     ))}
   </SelectContent>
 );
-

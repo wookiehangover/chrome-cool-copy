@@ -8,9 +8,9 @@ import { isAuthenticated } from "~/lib/auth.server";
  * Accepts POST requests with either:
  * - { id: number } - Database ID of the clip
  * - { url: string } - URL of the clip
- * 
+ *
  * Returns the share_id for the clip
- * 
+ *
  * Requires authentication via cookie
  */
 export async function action({ request }: Route.ActionArgs) {
@@ -29,19 +29,13 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Validate input
     if (!id) {
-      return data(
-        { error: "Either 'id' (number) or 'url' (string) is required" },
-        { status: 400 }
-      );
+      return data({ error: "Either 'id' (number) or 'url' (string) is required" }, { status: 400 });
     }
 
     const shareId = await shareClip(id);
 
     if (!shareId) {
-      return data(
-        { error: "Clip not found" },
-        { status: 404 }
-      );
+      return data({ error: "Clip not found" }, { status: 404 });
     }
 
     return data({ share_id: shareId }, { status: 200 });

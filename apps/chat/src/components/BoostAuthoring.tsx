@@ -67,7 +67,7 @@ export function BoostAuthoring() {
               "gap-1.5 rounded-md px-3 py-1 text-xs",
               viewMode === "chat"
                 ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <MessageSquareIcon className="h-3.5 w-3.5" />
@@ -81,7 +81,7 @@ export function BoostAuthoring() {
               "gap-1.5 rounded-md px-3 py-1 text-xs",
               viewMode === "code"
                 ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <CodeIcon className="h-3.5 w-3.5" />
@@ -127,11 +127,7 @@ export function BoostAuthoring() {
         <>
           {/* Code Editor */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            <BoostCodeEditor
-              code={currentCode}
-              onChange={setCurrentCode}
-              className="h-full"
-            />
+            <BoostCodeEditor code={currentCode} onChange={setCurrentCode} className="h-full" />
           </div>
 
           {/* Save Button for Code View */}
@@ -162,4 +158,3 @@ export function BoostAuthoring() {
     </div>
   );
 }
-

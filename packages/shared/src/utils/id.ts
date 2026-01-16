@@ -37,4 +37,3 @@ export function generateId(prefix?: string): string {
   const id = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   return prefix ? `${prefix}_${id}` : id;
 }
-

@@ -627,7 +627,6 @@
   background: rgba(200, 0, 0, 0.1);
 }
 
-
 /* Element Clip Viewer Styles */
 .element-clip-container {
   display: flex;
@@ -776,7 +775,6 @@
   overflow: auto;
   background: var(--background);
 }
-
 
 /* Toast notification styles */
 .clips-viewer-toast {

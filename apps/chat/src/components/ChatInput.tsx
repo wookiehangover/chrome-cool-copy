@@ -1,13 +1,13 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect } from "react";
 import {
   PromptInput,
   PromptInputTextarea,
   PromptInputFooter,
   PromptInputSubmit,
-} from '@/components/ai-elements/prompt-input'
-import { ModelPicker } from '@/components/ai-elements/model-picker'
-import { PageContextBadge } from './PageContextBadge'
-import { useChatContext } from '@/contexts/ChatContext'
+} from "@/components/ai-elements/prompt-input";
+import { ModelPicker } from "@/components/ai-elements/model-picker";
+import { PageContextBadge } from "./PageContextBadge";
+import { useChatContext } from "@/contexts/ChatContext";
 
 export function ChatInput() {
   const {
@@ -21,74 +21,69 @@ export function ChatInput() {
     status,
     selectedModel,
     setSelectedModel,
-  } = useChatContext()
+  } = useChatContext();
 
   // Load model from storage on mount
   useEffect(() => {
     const loadModel = async () => {
       try {
         const result = await new Promise<{ aiGatewayConfig?: { model?: string } }>((resolve) => {
-          chrome.storage.sync.get(['aiGatewayConfig'], (result) => {
-            resolve(result)
-          })
-        })
+          chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
+            resolve(result);
+          });
+        });
 
-        const model = result.aiGatewayConfig?.model
+        const model = result.aiGatewayConfig?.model;
         if (model) {
-          setSelectedModel(model as any)
+          setSelectedModel(model as any);
         }
       } catch (error) {
-        console.error('[ChatInput] Failed to load model from storage:', error)
+        console.error("[ChatInput] Failed to load model from storage:", error);
       }
-    }
+    };
 
-    loadModel()
-  }, [setSelectedModel])
+    loadModel();
+  }, [setSelectedModel]);
 
   // Save model to storage when it changes
   const handleModelChange = useCallback(
     (model: any) => {
-      setSelectedModel(model)
+      setSelectedModel(model);
 
       // Save to chrome.storage.sync
       chrome.runtime.sendMessage(
         {
-          action: 'updateAIGatewayConfig',
+          action: "updateAIGatewayConfig",
           config: { model },
         },
         (response) => {
           if (chrome.runtime.lastError) {
-            console.error('[ChatInput] Failed to save model:', chrome.runtime.lastError)
+            console.error("[ChatInput] Failed to save model:", chrome.runtime.lastError);
           } else if (response?.success) {
-            console.log('[ChatInput] Model saved successfully:', model)
+            console.log("[ChatInput] Model saved successfully:", model);
           }
-        }
-      )
+        },
+      );
     },
-    [setSelectedModel]
-  )
+    [setSelectedModel],
+  );
 
   const handleSubmit = useCallback(
     ({ text }: { text: string }) => {
-      if (!text.trim()) return
-      setInput('')
-      sendMessage({ parts: [{ type: 'text', text }] })
+      if (!text.trim()) return;
+      setInput("");
+      sendMessage({ parts: [{ type: "text", text }] });
     },
-    [sendMessage, setInput]
-  )
+    [sendMessage, setInput],
+  );
 
-  const placeholder = pageContext ? 'Ask about this page...' : 'Ask a question...'
-  const isSubmitDisabled = isLoading || !input.trim() || isLoadingContext
+  const placeholder = pageContext ? "Ask about this page..." : "Ask a question...";
+  const isSubmitDisabled = isLoading || !input.trim() || isLoadingContext;
 
   return (
     <div className="border-t border-border p-4">
-      {pageContext && (
-        <PageContextBadge context={pageContext} onClear={clearContext} />
-      )}
-      <PromptInput
-        onSubmit={handleSubmit}
-        className="rounded-lg border border-input bg-background"
-      >
+      {pageContext && <PageContextBadge context={pageContext} onClear={clearContext} />}
+      <PromptInput onSubmit={handleSubmit} className="rounded-lg border border-input bg-background">
         <PromptInputTextarea
           placeholder={placeholder}
           disabled={isLoading || isLoadingContext}
@@ -105,6 +100,5 @@ export function ChatInput() {
         </PromptInputFooter>
       </PromptInput>
     </div>
-  )
+  );
 }
-

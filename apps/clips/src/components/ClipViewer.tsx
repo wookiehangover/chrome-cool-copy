@@ -43,9 +43,10 @@ export function ClipViewer() {
 
     const updateProgress = (): void => {
       if (!progressBar) return;
-      
+
       // Use document/body scroll instead of container
-      const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
+      const scrollTop =
+        window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
       const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
       const clientHeight = window.innerHeight || document.documentElement.clientHeight;
       const scrollableHeight = scrollHeight - clientHeight;
@@ -124,7 +125,10 @@ export function ClipViewer() {
     if (!contentRef.current || isEditMode) return;
 
     // Check if highlights actually changed (not just note updates)
-    const currentIds = highlights.map((h) => h.id).sort().join(",");
+    const currentIds = highlights
+      .map((h) => h.id)
+      .sort()
+      .join(",");
     const idsChanged = currentIds !== lastHighlightIdsRef.current;
     const contentChanged = editContent !== lastContentRef.current;
 
@@ -137,13 +141,19 @@ export function ClipViewer() {
       const marksExist = existingMarks.length > 0;
 
       // Need to restore if: IDs changed, content changed, first render, or marks missing
-      const needsRestore = idsChanged || contentChanged || !lastHighlightIdsRef.current || 
+      const needsRestore =
+        idsChanged ||
+        contentChanged ||
+        !lastHighlightIdsRef.current ||
         (highlights.length > 0 && !marksExist);
 
       if (needsRestore) {
         // Remember active highlight before clearing
-        const activeId = activeHighlightIdRef.current || 
-          contentRef.current.querySelector(".viewer-highlight.active")?.getAttribute("data-highlight-id");
+        const activeId =
+          activeHighlightIdRef.current ||
+          contentRef.current
+            .querySelector(".viewer-highlight.active")
+            ?.getAttribute("data-highlight-id");
 
         // Clear existing marks
         existingMarks.forEach((mark) => {
@@ -364,7 +374,7 @@ export function ClipViewer() {
     // Show popover
     activeHighlightIdRef.current = highlightId;
     const highlightData = highlights.find((h) => h.id === highlightId);
-    
+
     // Set fallback position for browsers without anchor positioning
     const rect = mark.getBoundingClientRect();
     popoverRef.current?.setFallbackPosition(rect.top, rect.right + 24);
@@ -380,9 +390,7 @@ export function ClipViewer() {
 
     try {
       await updateNote(clip.id, highlightId, note);
-      setHighlights(
-        highlights.map((h) => (h.id === highlightId ? { ...h, note } : h)),
-      );
+      setHighlights(highlights.map((h) => (h.id === highlightId ? { ...h, note } : h)));
 
       // Update has-note class
       const markElement = contentRef.current?.querySelector(`[data-highlight-id="${highlightId}"]`);
@@ -486,7 +494,9 @@ export function ClipViewer() {
             <span className="viewer-meta-separator">•</span>
             <time>
               {new Date(
-                isElementClip && elementClip ? elementClip.createdAt : (clip as LocalClip).created_at,
+                isElementClip && elementClip
+                  ? elementClip.createdAt
+                  : (clip as LocalClip).created_at,
               ).toLocaleDateString()}
             </time>
           </div>

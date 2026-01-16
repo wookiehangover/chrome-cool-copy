@@ -72,7 +72,7 @@ function ClipItem({ clip }: { clip: LightweightClip }) {
 
   const shareId = useMemo(
     () => fetcher.data?.share_id ?? clip.share_id,
-    [fetcher.data, clip.share_id]
+    [fetcher.data, clip.share_id],
   );
 
   return (

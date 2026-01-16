@@ -29,17 +29,14 @@ export function BoostAuthoringInput({
       setInput("");
       onSendMessage(text);
     },
-    [onSendMessage]
+    [onSendMessage],
   );
 
   const isSubmitDisabled = isLoading || !input.trim();
 
   return (
     <div className="space-y-3">
-      <PromptInput
-        onSubmit={handleSubmit}
-        className="rounded-lg border border-input bg-background"
-      >
+      <PromptInput onSubmit={handleSubmit} className="rounded-lg border border-input bg-background">
         <PromptInputTextarea
           placeholder="Describe what you want your boost to do..."
           disabled={isLoading}
@@ -57,10 +54,12 @@ export function BoostAuthoringInput({
             <SaveIcon className="h-4 w-4" />
             Save
           </Button>
-          <PromptInputSubmit status={isLoading ? "streaming" : "ready"} disabled={isSubmitDisabled} />
+          <PromptInputSubmit
+            status={isLoading ? "streaming" : "ready"}
+            disabled={isSubmitDisabled}
+          />
         </PromptInputFooter>
       </PromptInput>
     </div>
   );
 }
-

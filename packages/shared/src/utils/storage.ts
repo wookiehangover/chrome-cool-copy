@@ -46,9 +46,7 @@ export async function removeStorageItem(key: string): Promise<void> {
  * @param keys - Array of storage keys to retrieve
  * @returns Promise resolving to an object with key-value pairs
  */
-export async function getStorageItems<T = Record<string, unknown>>(
-  keys: string[],
-): Promise<T> {
+export async function getStorageItems<T = Record<string, unknown>>(keys: string[]): Promise<T> {
   return new Promise((resolve) => {
     chrome.storage.local.get(keys, (result) => {
       resolve((result as T) || ({} as T));
@@ -66,4 +64,3 @@ export async function clearStorage(): Promise<void> {
     });
   });
 }
-

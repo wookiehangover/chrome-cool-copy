@@ -38,10 +38,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
   const [isReasoningStreaming, setIsReasoningStreaming] = useState(false);
 
   // Create transport for boost agent
-  const transport = useMemo(
-    () => new BoostTransport({ domain: options.domain }),
-    [options.domain]
-  );
+  const transport = useMemo(() => new BoostTransport({ domain: options.domain }), [options.domain]);
 
   // Reasoning callbacks
   const handleReasoningStart = useCallback(() => {
@@ -67,7 +64,13 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
   }, [transport, handleReasoningStart, handleReasoningDelta, handleReasoningEnd]);
 
   // Use the chat hook with boost transport
-  const { messages, status, error, sendMessage: sendChatMessage, setMessages } = useChat({
+  const {
+    messages,
+    status,
+    error,
+    sendMessage: sendChatMessage,
+    setMessages,
+  } = useChat({
     transport,
   });
 
@@ -78,22 +81,19 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
       return;
     }
 
-    chrome.runtime.sendMessage(
-      { action: "getBoosts" },
-      (response) => {
-        if (response?.success && response?.data) {
-          const boost = response.data.find((b: Boost) => b.id === options.boostId);
-          if (boost) {
-            setExistingBoost(boost);
-            setCurrentCode(boost.code);
-            // Load chat history if available
-            if (boost.chatHistory && Array.isArray(boost.chatHistory)) {
-              setMessages(boost.chatHistory as UIMessage[]);
-            }
+    chrome.runtime.sendMessage({ action: "getBoosts" }, (response) => {
+      if (response?.success && response?.data) {
+        const boost = response.data.find((b: Boost) => b.id === options.boostId);
+        if (boost) {
+          setExistingBoost(boost);
+          setCurrentCode(boost.code);
+          // Load chat history if available
+          if (boost.chatHistory && Array.isArray(boost.chatHistory)) {
+            setMessages(boost.chatHistory as UIMessage[]);
           }
         }
       }
-    );
+    });
   }, [options.boostId, setMessages]);
 
   // Track code updates from file tool calls
@@ -138,7 +138,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
       if (!content.trim()) return;
       sendChatMessage({ parts: [{ type: "text", text: content }] });
     },
-    [sendChatMessage]
+    [sendChatMessage],
   );
 
   const handleSaveBoost = useCallback(
@@ -170,7 +170,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
                 } else {
                   reject(new Error(response?.error || "Failed to update boost"));
                 }
-              }
+              },
             );
           });
         } else {
@@ -193,7 +193,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
                 } else {
                   reject(new Error(response?.error || "Failed to save boost"));
                 }
-              }
+              },
             );
           });
         }
@@ -205,7 +205,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
         setIsSaving(false);
       }
     },
-    [currentCode, messages, setMessages, isEditMode, existingBoost]
+    [currentCode, messages, setMessages, isEditMode, existingBoost],
   );
 
   // Helper to clear messages and reasoning
@@ -230,4 +230,3 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
     existingBoost,
   };
 }
-

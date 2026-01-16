@@ -71,18 +71,18 @@ export function ViewerToolbar({
         action: "syncSingleClip",
         clipId: clip.id,
       });
-      
+
       if (!response?.success || !response?.data?.share_id) {
         const errorMsg = response?.error || "Failed to sync clip. Is AgentDB configured?";
         throw new Error(errorMsg);
       }
-      
+
       const shareId = response.data.share_id;
-      
+
       if (!shareId) {
         throw new Error("Share ID is required");
       }
-      
+
       await copyShareUrl(shareId);
     } catch (err) {
       console.error("Failed to share clip:", err);

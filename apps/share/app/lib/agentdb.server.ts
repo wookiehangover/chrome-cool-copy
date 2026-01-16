@@ -67,7 +67,7 @@ export function getConfig(): DatabaseConfig {
   if (!baseUrl || !apiKey || !token || !dbName) {
     throw new Error(
       "Missing required AgentDB environment variables. " +
-        "Please set AGENTDB_BASE_URL, AGENTDB_API_KEY, AGENTDB_TOKEN, and AGENTDB_DB_NAME"
+        "Please set AGENTDB_BASE_URL, AGENTDB_API_KEY, AGENTDB_TOKEN, and AGENTDB_DB_NAME",
     );
   }
 
@@ -160,7 +160,6 @@ export async function getAllClips(): Promise<LightweightClip[]> {
   }
 }
 
-
 /**
  * Share a clip by generating or retrieving its share_id
  * If the clip already has a share_id, it's returned
@@ -168,9 +167,7 @@ export async function getAllClips(): Promise<LightweightClip[]> {
  * @param identifier - Either the database ID (number) or URL (string) of the clip
  * @returns The share_id for the clip, or null if clip not found
  */
-export async function shareClip(
-  identifier: number
-): Promise<string | null> {
+export async function shareClip(identifier: number): Promise<string | null> {
   try {
     await initializeConnection();
 
@@ -179,7 +176,7 @@ export async function shareClip(
     }
 
     // Determine if identifier is an ID or URL
-    const query =  "SELECT * FROM webpages WHERE id = ? LIMIT 1"
+    const query = "SELECT * FROM webpages WHERE id = ? LIMIT 1";
     const params = [identifier];
 
     const result = await dbConnection.execute({

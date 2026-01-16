@@ -1,8 +1,8 @@
-import type { PageContext } from '@repo/shared'
+import type { PageContext } from "@repo/shared";
 
 interface PageContextBadgeProps {
-  context: PageContext
-  onClear: () => void
+  context: PageContext;
+  onClear: () => void;
 }
 
 export function PageContextBadge({ context, onClear }: PageContextBadgeProps) {
@@ -35,5 +35,5 @@ export function PageContextBadge({ context, onClear }: PageContextBadgeProps) {
         </button>
       </span>
     </div>
-  )
+  );
 }

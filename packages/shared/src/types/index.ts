@@ -215,7 +215,7 @@ export interface StructuredData {
  * Media asset reference in an element clip
  */
 export interface MediaAssetReference {
-  type: 'image' | 'video' | 'background';
+  type: "image" | "video" | "background";
   assetId?: string; // IndexedDB reference if downloaded
   originalSrc: string; // Original URL
   alt?: string;
@@ -243,7 +243,7 @@ export interface ElementMetadata {
  */
 export interface ElementClip {
   id: string;
-  type: 'element'; // Differentiates from page clips
+  type: "element"; // Differentiates from page clips
 
   // Source context
   url: string;
@@ -268,7 +268,7 @@ export interface ElementClip {
 
   // AI-generated
   aiSummary?: string;
-  aiSummaryStatus: 'pending' | 'complete' | 'error';
+  aiSummaryStatus: "pending" | "complete" | "error";
   aiTitle?: string;
   aiDescription?: string;
 
@@ -286,7 +286,7 @@ export interface ElementClip {
 export interface ClipAsset {
   id: string; // UUID
   clipId: string; // Reference to parent clip
-  type: 'screenshot' | 'image' | 'video' | 'background';
+  type: "screenshot" | "image" | "video" | "background";
   mimeType: string;
   data: Blob; // Binary data
   originalUrl?: string;

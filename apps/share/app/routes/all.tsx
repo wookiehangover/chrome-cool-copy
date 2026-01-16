@@ -29,7 +29,7 @@ export async function action({ request }: Route.ActionArgs) {
           headers: {
             "Set-Cookie": getAuthCookieHeader(),
           },
-        }
+        },
       );
     } else {
       return data({ error: "Invalid password" }, { status: 401 });
@@ -72,38 +72,44 @@ export function meta(): Route.MetaDescriptors {
 /**
  * All clips page component
  */
-export default function AllClipsPage({ loaderData, actionData: _actionData }: Route.ComponentProps) {
+export default function AllClipsPage({
+  loaderData,
+  actionData: _actionData,
+}: Route.ComponentProps) {
   const { authenticated, clips } = loaderData;
-  const { state } = useNavigation()
+  const { state } = useNavigation();
   const isSubmitting = useMemo(() => state === "submitting", [state]);
 
   if (!authenticated) {
     return (
       <div className="grid place-items-center bg-background text-foreground h-full">
-          <div className="w-full max-w-md px-6">
-            <Form method="POST" className={cn("space-y-4", { "opacity-50 cursor-not-allowed": isSubmitting })}>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-2 sr-only">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  name="password"
-                  placeholder="Enter password"
-                  className="w-full px-4 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none"
-                  required
-                />
-              </div>
+        <div className="w-full max-w-md px-6">
+          <Form
+            method="POST"
+            className={cn("space-y-4", { "opacity-50 cursor-not-allowed": isSubmitting })}
+          >
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium mb-2 sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="Enter password"
+                className="w-full px-4 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none"
+                required
+              />
+            </div>
 
-              <button
-                type="submit"
-                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSubmitting ? "Authenticating..." : "Submit"}
-              </button>
-            </Form>
-          </div>
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? "Authenticating..." : "Submit"}
+            </button>
+          </Form>
+        </div>
       </div>
     );
   }

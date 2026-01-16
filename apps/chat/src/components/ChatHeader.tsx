@@ -1,9 +1,9 @@
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 
 interface ChatHeaderProps {
-  title: string
-  onOpenSessions: () => void
-  onNewChat: () => void
+  title: string;
+  onOpenSessions: () => void;
+  onNewChat: () => void;
 }
 
 export function ChatHeader({ title, onOpenSessions, onNewChat }: ChatHeaderProps) {
@@ -34,9 +34,7 @@ export function ChatHeader({ title, onOpenSessions, onNewChat }: ChatHeaderProps
         </button>
 
         {/* Center: Conversation title */}
-        <h1 className="flex-1 truncate text-center text-sm font-medium tracking-tight">
-          {title}
-        </h1>
+        <h1 className="flex-1 truncate text-center text-sm font-medium tracking-tight">{title}</h1>
 
         {/* Right: New chat button */}
         <Button
@@ -63,6 +61,5 @@ export function ChatHeader({ title, onOpenSessions, onNewChat }: ChatHeaderProps
         </Button>
       </div>
     </header>
-  )
+  );
 }
-

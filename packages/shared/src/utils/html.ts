@@ -14,4 +14,3 @@ export function escapeHtml(text: string): string {
   div.textContent = text;
   return div.innerHTML;
 }
-

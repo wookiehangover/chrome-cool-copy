@@ -66,10 +66,18 @@ export const HighlightPopover = forwardRef<HighlightPopoverHandle, HighlightPopo
           className="highlight-popover-textarea"
         />
         <div className="highlight-popover-actions">
-          <button onClick={handleCopy} className="highlight-popover-btn-icon" title="Copy highlight">
+          <button
+            onClick={handleCopy}
+            className="highlight-popover-btn-icon"
+            title="Copy highlight"
+          >
             {copied ? <Check size={14} /> : <Copy size={14} />}
           </button>
-          <button onClick={handleDelete} className="highlight-popover-btn-icon highlight-popover-btn-delete" title="Delete">
+          <button
+            onClick={handleDelete}
+            className="highlight-popover-btn-icon highlight-popover-btn-delete"
+            title="Delete"
+          >
             <Trash2 size={14} />
           </button>
           <button onClick={onSave} className="highlight-popover-btn highlight-popover-btn-save">
@@ -78,5 +86,5 @@ export const HighlightPopover = forwardRef<HighlightPopoverHandle, HighlightPopo
         </div>
       </div>
     );
-  }
+  },
 );

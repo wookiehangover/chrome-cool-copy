@@ -57,4 +57,3 @@ export function showToast(message: string): void {
     console.log("[Clips Viewer] Toast message:", message);
   }
 }
-

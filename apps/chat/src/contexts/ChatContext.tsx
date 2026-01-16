@@ -1,81 +1,74 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useMemo,
-  type ReactNode,
-} from 'react'
-import type { UIMessage } from 'ai'
-import { useExtensionChat } from '@/hooks/useExtensionChat'
-import { useConversationStore } from '@/hooks/useConversationStore'
-import { usePageContext } from '@/hooks/usePageContext'
-import type { PageContext, ModelId } from '@repo/shared'
-import { getRandomStrategy } from '@/constants/oblique-strategies'
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
+import type { UIMessage } from "ai";
+import { useExtensionChat } from "@/hooks/useExtensionChat";
+import { useConversationStore } from "@/hooks/useConversationStore";
+import { usePageContext } from "@/hooks/usePageContext";
+import type { PageContext, ModelId } from "@repo/shared";
+import { getRandomStrategy } from "@/constants/oblique-strategies";
 
 interface ChatContextValue {
   // Input state
-  input: string
-  setInput: (value: string) => void
+  input: string;
+  setInput: (value: string) => void;
 
   // Model selection
-  selectedModel: ModelId
-  setSelectedModel: (model: ModelId) => void
+  selectedModel: ModelId;
+  setSelectedModel: (model: ModelId) => void;
 
   // Chat state from useExtensionChat
-  messages: UIMessage[]
-  sendMessage: (message: { parts: Array<{ type: 'text'; text: string }> }) => void
-  status: 'streaming' | 'submitted' | 'ready' | 'error'
-  error: Error | null | undefined
-  clearMessages: () => void
-  getMessageContent: (message: UIMessage) => string
-  isLoading: boolean
-  reasoning: string
-  isReasoningStreaming: boolean
+  messages: UIMessage[];
+  sendMessage: (message: { parts: Array<{ type: "text"; text: string }> }) => void;
+  status: "streaming" | "submitted" | "ready" | "error";
+  error: Error | null | undefined;
+  clearMessages: () => void;
+  getMessageContent: (message: UIMessage) => string;
+  isLoading: boolean;
+  reasoning: string;
+  isReasoningStreaming: boolean;
 
   // Page context
-  pageContext: PageContext | null
-  isLoadingContext: boolean
-  clearContext: () => void
+  pageContext: PageContext | null;
+  isLoadingContext: boolean;
+  clearContext: () => void;
 
   // Session management
-  currentSession: ReturnType<typeof useConversationStore>['currentSession']
-  sessions: ReturnType<typeof useConversationStore>['sessions']
-  isLoadingStore: boolean
-  loadSession: (sessionId: string) => Promise<void>
-  startNewSession: () => Promise<ReturnType<typeof useConversationStore>['currentSession']>
-  deleteSessionById: (sessionId: string) => Promise<void>
+  currentSession: ReturnType<typeof useConversationStore>["currentSession"];
+  sessions: ReturnType<typeof useConversationStore>["sessions"];
+  isLoadingStore: boolean;
+  loadSession: (sessionId: string) => Promise<void>;
+  startNewSession: () => Promise<ReturnType<typeof useConversationStore>["currentSession"]>;
+  deleteSessionById: (sessionId: string) => Promise<void>;
 
   // UI state
-  showSessionList: boolean
-  setShowSessionList: (show: boolean) => void
-  randomStrategy: string
+  showSessionList: boolean;
+  setShowSessionList: (show: boolean) => void;
+  randomStrategy: string;
 
   // Derived state
-  isAppLoading: boolean
+  isAppLoading: boolean;
 }
 
-const ChatContext = createContext<ChatContextValue | null>(null)
+const ChatContext = createContext<ChatContextValue | null>(null);
 
 export function useChatContext() {
-  const context = useContext(ChatContext)
+  const context = useContext(ChatContext);
   if (!context) {
-    throw new Error('useChatContext must be used within a ChatProvider')
+    throw new Error("useChatContext must be used within a ChatProvider");
   }
-  return context
+  return context;
 }
 
 interface ChatProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function ChatProvider({ children }: ChatProviderProps) {
-  const [input, setInput] = useState('')
-  const [showSessionList, setShowSessionList] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<ModelId>('anthropic/claude-sonnet-4.5')
+  const [input, setInput] = useState("");
+  const [showSessionList, setShowSessionList] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ModelId>("anthropic/claude-sonnet-4.5");
 
   // Page context from the active tab
-  const { pageContext, isLoading: isLoadingContext, clearContext } = usePageContext()
+  const { pageContext, isLoading: isLoadingContext, clearContext } = usePageContext();
 
   // Conversation store for persistence
   const {
@@ -86,15 +79,15 @@ export function ChatProvider({ children }: ChatProviderProps) {
     startNewSession,
     deleteSessionById,
     persistMessages,
-  } = useConversationStore()
+  } = useConversationStore();
 
   // Handle message persistence
   const handleFinish = useCallback(
     (messages: Parameters<typeof persistMessages>[0]) => {
-      persistMessages(messages)
+      persistMessages(messages);
     },
-    [persistMessages]
-  )
+    [persistMessages],
+  );
 
   const {
     messages,
@@ -111,12 +104,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
     model: selectedModel,
     initialMessages: currentSession?.messages,
     onFinish: handleFinish,
-  })
+  });
 
   // Get a random strategy when session changes
-  const randomStrategy = useMemo(() => getRandomStrategy(), [currentSession?.id])
+  const randomStrategy = useMemo(() => getRandomStrategy(), [currentSession?.id]);
 
-  const isAppLoading = isLoadingContext || isLoadingStore
+  const isAppLoading = isLoadingContext || isLoadingStore;
 
   const value: ChatContextValue = {
     input,
@@ -145,8 +138,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setShowSessionList,
     randomStrategy,
     isAppLoading,
-  }
+  };
 
-  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
-

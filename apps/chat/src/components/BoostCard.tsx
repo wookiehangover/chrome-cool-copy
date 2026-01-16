@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { MoreHorizontalIcon, PlayIcon, PencilIcon, TrashIcon } from 'lucide-react'
-import type { Boost } from '@repo/shared'
-import { Button } from '@/components/ui/button'
+import { useState } from "react";
+import { MoreHorizontalIcon, PlayIcon, PencilIcon, TrashIcon } from "lucide-react";
+import type { Boost } from "@repo/shared";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,49 +9,44 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useNavigationContext } from '@/contexts/NavigationContext'
+} from "@/components/ui/dropdown-menu";
+import { useNavigationContext } from "@/contexts/NavigationContext";
 
 interface BoostCardProps {
-  boost: Boost
-  onDelete: (id: string) => Promise<void>
-  onRun: (id: string) => Promise<void>
-  isLoading?: boolean
+  boost: Boost;
+  onDelete: (id: string) => Promise<void>;
+  onRun: (id: string) => Promise<void>;
+  isLoading?: boolean;
 }
 
-export function BoostCard({
-  boost,
-  onDelete,
-  onRun,
-  isLoading = false,
-}: BoostCardProps) {
-  const { navigate } = useNavigationContext()
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+export function BoostCard({ boost, onDelete, onRun, isLoading = false }: BoostCardProps) {
+  const { navigate } = useNavigationContext();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    setIsDeleting(true)
+    setIsDeleting(true);
     try {
-      await onDelete(boost.id)
-      setShowDeleteDialog(false)
+      await onDelete(boost.id);
+      setShowDeleteDialog(false);
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
-  }
+  };
 
   const handleEdit = () => {
-    navigate('/boosts/create', { boostId: boost.id })
-  }
+    navigate("/boosts/create", { boostId: boost.id });
+  };
 
   const handleRun = async () => {
-    await onRun(boost.id)
-  }
+    await onRun(boost.id);
+  };
 
   return (
     <>
@@ -60,9 +55,7 @@ export function BoostCard({
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-sm text-foreground">{boost.name}</h3>
           {boost.description && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-              {boost.description}
-            </p>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{boost.description}</p>
           )}
         </div>
         {/* Overflow menu */}
@@ -73,7 +66,7 @@ export function BoostCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {boost.runMode === 'manual' && (
+            {boost.runMode === "manual" && (
               <DropdownMenuItem onClick={handleRun}>
                 <PlayIcon className="h-4 w-4" />
                 Run
@@ -83,10 +76,7 @@ export function BoostCard({
               <PencilIcon className="h-4 w-4" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => setShowDeleteDialog(true)}
-            >
+            <DropdownMenuItem variant="destructive" onClick={() => setShowDeleteDialog(true)}>
               <TrashIcon className="h-4 w-4" />
               Delete
             </DropdownMenuItem>
@@ -111,17 +101,12 @@ export function BoostCard({
             >
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
-

@@ -5,7 +5,10 @@ import type { Highlight, LocalClip } from "@repo/shared";
 const LOCAL_CLIPS_STORAGE_KEY = "local_clips";
 
 export interface UseHighlightsReturn {
-  addHighlight: (clipId: string, highlight: Omit<Highlight, "id" | "created_at">) => Promise<Highlight | null>;
+  addHighlight: (
+    clipId: string,
+    highlight: Omit<Highlight, "id" | "created_at">,
+  ) => Promise<Highlight | null>;
   updateNote: (clipId: string, highlightId: string, note: string) => Promise<void>;
   deleteHighlight: (clipId: string, highlightId: string) => Promise<void>;
 }
@@ -44,7 +47,10 @@ export function useHighlightSync(
 
 export function useHighlights(): UseHighlightsReturn {
   const addHighlight = useCallback(
-    async (clipId: string, highlight: Omit<Highlight, "id" | "created_at">): Promise<Highlight | null> => {
+    async (
+      clipId: string,
+      highlight: Omit<Highlight, "id" | "created_at">,
+    ): Promise<Highlight | null> => {
       try {
         const response = await chrome.runtime.sendMessage({
           action: "addHighlight",

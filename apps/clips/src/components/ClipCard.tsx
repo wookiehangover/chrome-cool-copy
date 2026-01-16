@@ -88,12 +88,13 @@ export function ClipCard({ clip, viewMode, onDelete }: ClipCardProps) {
 
   // Get title - handle different field names for element clips
   const title = isElementClip
-    ? (clip as ElementClip).aiTitle || `Element: ${(clip as ElementClip).elementMeta?.tagName || "Unknown"}`
+    ? (clip as ElementClip).aiTitle ||
+      `Element: ${(clip as ElementClip).elementMeta?.tagName || "Unknown"}`
     : (clip as LocalClip).title;
 
   // Debug logging when fallback is used
   if (isElementClip && !(clip as ElementClip).aiTitle) {
-    console.log('[ClipCard] No aiTitle, using fallback for clip:', clip.id);
+    console.log("[ClipCard] No aiTitle, using fallback for clip:", clip.id);
   }
 
   if (viewMode === "grid") {

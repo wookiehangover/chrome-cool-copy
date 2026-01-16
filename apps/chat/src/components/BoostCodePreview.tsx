@@ -18,7 +18,11 @@ export function BoostCodePreview({ code, className }: BoostCodePreviewProps) {
   }
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className={cn("border-b border-border", className)}>
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className={cn("border-b border-border", className)}
+    >
       <CollapsibleTrigger asChild>
         <Button
           variant="ghost"
@@ -26,9 +30,7 @@ export function BoostCodePreview({ code, className }: BoostCodePreviewProps) {
           className="w-full justify-between rounded-none px-4 py-3 text-sm font-medium hover:bg-accent"
         >
           <span>Boost Code Preview</span>
-          <ChevronDownIcon
-            className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")}
-          />
+          <ChevronDownIcon className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="border-t border-border bg-muted/30 p-4">
@@ -37,4 +39,3 @@ export function BoostCodePreview({ code, className }: BoostCodePreviewProps) {
     </Collapsible>
   );
 }
-

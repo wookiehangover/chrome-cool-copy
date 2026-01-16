@@ -95,4 +95,3 @@ export const MODELS_BY_PROVIDER: Record<ModelProvider, ModelDefinition[]> = {
   Google: SUPPORTED_MODELS.filter((m) => m.provider === "Google"),
   "X.AI": SUPPORTED_MODELS.filter((m) => m.provider === "X.AI"),
 };
-
