@@ -833,7 +833,12 @@ async function createReaderModeUI(
       const handleChunkComplete = (event: Event) => {
         const detail = (event as CustomEvent).detail;
         const { chunkId, html, success, error } = detail;
-        console.log(`[Tidy Content] Handling chunk event:`, chunkId, success, `(expected: ${[...expectedChunkIds].join(", ")})`);
+        console.log(
+          `[Tidy Content] Handling chunk event:`,
+          chunkId,
+          success,
+          `(expected: ${[...expectedChunkIds].join(", ")})`,
+        );
 
         if (!expectedChunkIds.has(chunkId) && chunkId !== "error") {
           console.log(`[Tidy Content] Ignoring unknown chunk: ${chunkId}`);

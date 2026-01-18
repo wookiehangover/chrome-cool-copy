@@ -1286,9 +1286,25 @@ Preserve:
 - Tables with data
 - Links within the content
 
-Return ONLY valid HTML, no explanations or markdown.`;
+IMPORTANT: Return ONLY raw HTML. Do NOT wrap in markdown code fences like \`\`\`html. Do NOT add any explanation text. Just the HTML tags directly.`;
 
-          // Process chunks with concurrency limit
+          // Strip markdown code fences if AI accidentally adds them
+          const stripCodeFences = (text: string): string => {
+            let result = text.trim();
+            // Remove opening ```html or ```
+            if (result.startsWith("```html")) {
+              result = result.slice(7);
+            } else if (result.startsWith("```")) {
+              result = result.slice(3);
+            }
+            // Remove closing ```
+            if (result.endsWith("```")) {
+              result = result.slice(0, -3);
+            }
+            return result.trim();
+          };
+
+          // Process a single chunk
           const processChunk = async (chunk: { id: string; html: string }) => {
             try {
               const result = await generateText({
@@ -1303,11 +1319,11 @@ Return ONLY valid HTML, no explanations or markdown.`;
                 maxOutputTokens: 20_000,
               });
 
-              // Send result back to the tab
+              // Send result back to the tab (strip any accidental code fences)
               chrome.tabs.sendMessage(tabId, {
                 action: "tidyChunkComplete",
                 chunkId: chunk.id,
-                html: result.text,
+                html: stripCodeFences(result.text),
                 success: true,
               });
             } catch (error) {
@@ -1322,30 +1338,30 @@ Return ONLY valid HTML, no explanations or markdown.`;
             }
           };
 
-          // Process chunks with concurrency limit using a simple pool
-          const pool: Promise<void>[] = [];
-          for (const chunk of chunks) {
-            const task = processChunk(chunk);
-            pool.push(task);
+          // Process chunks in order with limited concurrency
+          // This ensures earlier chunks (visible to user) complete first
+          const processInOrder = async () => {
+            const pending: Promise<void>[] = [];
 
-            if (pool.length >= concurrency) {
-              await Promise.race(pool);
-              // Remove completed promises
-              for (let i = pool.length - 1; i >= 0; i--) {
-                // Create a flag to check if promise is settled
-                const isSettled = await Promise.race([
-                  pool[i].then(() => true),
-                  Promise.resolve(false),
-                ]);
-                if (isSettled) {
-                  pool.splice(i, 1);
-                }
+            for (let i = 0; i < chunks.length; i++) {
+              const chunk = chunks[i];
+              const task = processChunk(chunk);
+              pending.push(task);
+
+              // Start processing but limit how far ahead we go
+              // This balances order with parallelism
+              if (pending.length >= concurrency) {
+                // Wait for the oldest task to complete before starting more
+                await pending[0];
+                pending.shift();
               }
             }
-          }
 
-          // Wait for remaining tasks
-          await Promise.all(pool);
+            // Wait for remaining tasks
+            await Promise.all(pending);
+          };
+
+          await processInOrder();
         } catch (error) {
           console.error("[Clean Link Copy] Error in tidyContentChunked handler:", error);
           // Send error as a chunk complete message so caller knows processing failed
