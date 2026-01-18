@@ -218,6 +218,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.23
         version: 10.4.23(postcss@8.5.6)
+      esbuild:
+        specifier: ^0.27.2
+        version: 0.27.2
       jsdom:
         specifier: ^27.3.0
         version: 27.3.0

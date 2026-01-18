@@ -1286,11 +1286,12 @@ Return ONLY valid HTML, no explanations or markdown.`;
           const chunks = getHtmlChunks(domContent);
           const totalChunks = chunks.length;
 
-          // Send initial response with chunk count
+          // Send initial response with chunk count and chunk data
+          // Content script needs full chunk data to wrap DOM before processing starts
           sendResponse({
             success: true,
             totalChunks,
-            chunkIds: chunks.map((c) => c.id),
+            chunks: chunks.map((c) => ({ id: c.id, html: c.html })),
           });
 
           // Process chunks with concurrency limit
@@ -1316,10 +1317,7 @@ Return ONLY valid HTML, no explanations or markdown.`;
                 success: true,
               });
             } catch (error) {
-              console.error(
-                `[Clean Link Copy] Error processing chunk ${chunk.id}:`,
-                error,
-              );
+              console.error(`[Clean Link Copy] Error processing chunk ${chunk.id}:`, error);
               chrome.tabs.sendMessage(tabId, {
                 action: "tidyChunkComplete",
                 chunkId: chunk.id,
@@ -1355,10 +1353,7 @@ Return ONLY valid HTML, no explanations or markdown.`;
           // Wait for remaining tasks
           await Promise.all(pool);
         } catch (error) {
-          console.error(
-            "[Clean Link Copy] Error in tidyContentChunked handler:",
-            error,
-          );
+          console.error("[Clean Link Copy] Error in tidyContentChunked handler:", error);
           // Send error as a chunk complete message so caller knows processing failed
           chrome.tabs.sendMessage(tabId, {
             action: "tidyChunkComplete",

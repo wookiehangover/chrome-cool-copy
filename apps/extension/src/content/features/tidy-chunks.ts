@@ -18,10 +18,7 @@ export interface TidyChunk {
  * @param container - The container element holding the content
  * @param chunks - Array of chunks with IDs and content
  */
-export function wrapContentInChunks(
-  container: HTMLElement,
-  chunks: TidyChunk[],
-): void {
+export function wrapContentInChunks(container: HTMLElement, chunks: TidyChunk[]): void {
   // Clear existing content
   container.innerHTML = "";
 
@@ -103,9 +100,7 @@ export function markChunkComplete(
  *
  * @param root - The root element or shadow root to search in
  */
-export function markAllChunksLoading(
-  root: HTMLElement | ShadowRoot | Document,
-): void {
+export function markAllChunksLoading(root: HTMLElement | ShadowRoot | Document): void {
   const chunks = root.querySelectorAll("[data-tidy-chunk]");
   chunks.forEach((chunk) => {
     chunk.classList.add("tidy-loading");
@@ -117,9 +112,7 @@ export function markAllChunksLoading(
  *
  * @param root - The root element or shadow root to search in
  */
-export function clearAllLoadingStates(
-  root: HTMLElement | ShadowRoot | Document,
-): void {
+export function clearAllLoadingStates(root: HTMLElement | ShadowRoot | Document): void {
   const chunks = root.querySelectorAll(".tidy-loading");
   chunks.forEach((chunk) => {
     chunk.classList.remove("tidy-loading");
@@ -132,12 +125,9 @@ export function clearAllLoadingStates(
  * @param root - The root element or shadow root to search in
  * @returns Array of chunk IDs
  */
-export function getChunkIds(
-  root: HTMLElement | ShadowRoot | Document,
-): string[] {
+export function getChunkIds(root: HTMLElement | ShadowRoot | Document): string[] {
   const chunks = root.querySelectorAll("[data-tidy-chunk]");
-  return Array.from(chunks).map(
-    (chunk) => chunk.getAttribute("data-tidy-chunk") || "",
-  ).filter(Boolean);
+  return Array.from(chunks)
+    .map((chunk) => chunk.getAttribute("data-tidy-chunk") || "")
+    .filter(Boolean);
 }
-

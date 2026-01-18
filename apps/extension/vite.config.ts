@@ -1,12 +1,13 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
 import { readdirSync } from 'fs'
+import { build as esbuild } from 'esbuild'
 
-// Plugin to copy static assets and wrap IIFE scripts
+// Plugin to copy static assets and build content script with esbuild
 function copyAssetsPlugin() {
   return {
     name: 'copy-assets',
-    apply: 'build',
+    apply: 'build' as const,
     async closeBundle() {
       const fs = await import('fs/promises')
       const path = await import('path')
@@ -93,13 +94,23 @@ function copyAssetsPlugin() {
         console.warn('Could not copy manifest.json')
       }
 
-      // Wrap content.js in IIFE (Chrome content scripts need IIFE)
+      // Build content script with esbuild as IIFE (no ES module imports)
+      // This is necessary because Chrome content scripts cannot use dynamic imports
       try {
-        let contentCode = await fs.readFile('dist/content.js', 'utf-8')
-        contentCode = `(function() {\n${contentCode}\n})();`
-        await fs.writeFile('dist/content.js', contentCode)
+        await esbuild({
+          entryPoints: ['src/content/index.ts'],
+          bundle: true,
+          format: 'iife',
+          outfile: 'dist/content.js',
+          sourcemap: true,
+          minify: false,
+          target: 'chrome100',
+          // Handle CSS imports
+          loader: { '.css': 'text' },
+        })
+        console.log('Built content.js with esbuild (IIFE format)')
       } catch (e) {
-        console.warn('Could not wrap content.js in IIFE')
+        console.error('Failed to build content.js with esbuild:', e)
       }
 
       // Wrap popup.js in IIFE
@@ -122,7 +133,8 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: {
-        content: resolve(__dirname, 'src/content/index.ts'),
+        // Note: content script is built separately with esbuild (see closeBundle hook)
+        // This is because content scripts cannot use ES module imports
         background: resolve(__dirname, 'src/background.ts'),
         'services/database': resolve(__dirname, 'src/services/database.ts'),
         'services/local-clips': resolve(__dirname, 'src/services/local-clips.ts'),
@@ -147,9 +159,6 @@ export default defineConfig({
         },
         // Sanitize all filenames to avoid underscore prefixes and colons
         sanitizeFileName: (name) => name.replace(/^_+/, 'x').replace(/:/g, '-'),
-        // Force @repo/shared modules to be included in each entry that uses them
-        // rather than being extracted to a shared chunk
-        manualChunks: undefined,
       },
     },
   },

@@ -10,7 +10,6 @@ import styles from "./reader-mode.css?raw";
 import type { Highlight } from "@repo/shared";
 import { showToast } from "../toast.js";
 import { copyToClipboard } from "../clipboard.js";
-import { getHtmlChunks } from "../../services/html-chunk-splitter.js";
 import {
   wrapContentInChunks,
   markAllChunksLoading,
@@ -798,25 +797,35 @@ async function createReaderModeUI(
     try {
       const originalHtml = contentWrapper.innerHTML;
 
-      // Split content into chunks
-      const htmlChunks = getHtmlChunks(originalHtml);
+      // Send chunked tidy request to background - it will split and return chunk info
+      const response = await chrome.runtime.sendMessage({
+        action: "tidyContentChunked",
+        domContent: originalHtml,
+        concurrency: 4,
+      });
 
-      if (htmlChunks.length === 0) {
+      if (!response?.success) {
+        throw new Error(response?.error || "Failed to start chunked tidy");
+      }
+
+      // Response contains chunks array with {id, html} from background
+      const chunks: Array<{ id: string; html: string }> = response.chunks || [];
+
+      if (chunks.length === 0) {
         console.warn("[Tidy Content] No chunks generated from content");
+        tidyBtn.disabled = false;
+        tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
         return;
       }
 
-      // Map HtmlChunk to TidyChunk format (html -> content)
-      const tidyChunks = htmlChunks.map((c) => ({ id: c.id, content: c.html }));
-
-      // Wrap content with chunk divs and mark as loading
+      // Map to TidyChunk format and wrap content with chunk divs
+      const tidyChunks = chunks.map((c) => ({ id: c.id, content: c.html }));
       wrapContentInChunks(contentWrapper, tidyChunks);
       markAllChunksLoading(shadowRoot);
 
       // Track completed chunks
-      const expectedChunkIds = new Set(htmlChunks.map((c) => c.id));
+      const expectedChunkIds = new Set(chunks.map((c) => c.id));
       const completedChunkIds = new Set<string>();
-      let hasError = false;
 
       // Setup listener for chunk completion events
       const handleChunkComplete = (event: Event) => {
@@ -829,7 +838,6 @@ async function createReaderModeUI(
 
         if (chunkId === "error" || !success) {
           console.error(`[Tidy Content] Chunk ${chunkId} failed:`, error);
-          hasError = true;
           // On error, clear loading states and restore button
           clearAllLoadingStates(shadowRoot!);
           tidyBtn.disabled = false;
@@ -866,18 +874,6 @@ async function createReaderModeUI(
 
       window.addEventListener("tidyChunkComplete", handleChunkComplete);
 
-      // Send chunked tidy request to background
-      const response = await chrome.runtime.sendMessage({
-        action: "tidyContentChunked",
-        domContent: originalHtml,
-        concurrency: 4,
-      });
-
-      if (!response?.success) {
-        throw new Error(response?.error || "Failed to start chunked tidy");
-      }
-
-      // Response contains totalChunks and chunkIds for verification
       console.log(`[Tidy Content] Started processing ${response.totalChunks} chunks`);
     } catch (err) {
       console.error("Failed to tidy content:", err);

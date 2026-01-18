@@ -72,7 +72,7 @@ function splitByHeadings(
   body: HTMLElement,
   headings: Element[],
   minChars: number,
-  maxChars: number
+  maxChars: number,
 ): HtmlChunk[] {
   const chunks: HtmlChunk[] = [];
   const sections: string[] = [];
@@ -83,8 +83,7 @@ function splitByHeadings(
 
   for (const node of children) {
     const nodeHtml = getNodeHtml(node);
-    const isHeading = node.nodeType === Node.ELEMENT_NODE &&
-      headings.includes(node as Element);
+    const isHeading = node.nodeType === Node.ELEMENT_NODE && headings.includes(node as Element);
 
     if (isHeading && currentSection.trim()) {
       // Save current section and start new one
@@ -162,7 +161,7 @@ function getNodeHtml(node: Node): string {
 function splitByTopLevelElements(
   body: HTMLElement,
   minChars: number,
-  maxChars: number
+  maxChars: number,
 ): HtmlChunk[] {
   const chunks: HtmlChunk[] = [];
   const children = Array.from(body.childNodes);
@@ -211,11 +210,7 @@ function splitByTopLevelElements(
 /**
  * Split a large HTML section (string) into smaller chunks.
  */
-function splitLargeSection(
-  sectionHtml: string,
-  minChars: number,
-  maxChars: number
-): HtmlChunk[] {
+function splitLargeSection(sectionHtml: string, minChars: number, maxChars: number): HtmlChunk[] {
   // Parse this section and split by its children
   const parser = new DOMParser();
   const doc = parser.parseFromString(sectionHtml, "text/html");
@@ -225,11 +220,7 @@ function splitLargeSection(
 /**
  * Split a large element by its children recursively.
  */
-function splitLargeElement(
-  element: Element,
-  minChars: number,
-  maxChars: number
-): HtmlChunk[] {
+function splitLargeElement(element: Element, minChars: number, maxChars: number): HtmlChunk[] {
   const chunks: HtmlChunk[] = [];
   const children = Array.from(element.childNodes);
 
@@ -309,4 +300,3 @@ function splitTextBySize(text: string, maxSize: number): string[] {
 
   return chunks;
 }
-
