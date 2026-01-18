@@ -8,7 +8,9 @@ import type { LocalClip } from "@repo/shared";
 import {
   ArrowLeft,
   MoreHorizontal,
+  Pause,
   Pencil,
+  Play,
   RotateCcw,
   ScrollText,
   Settings,
@@ -42,6 +44,7 @@ import {
  */
 class HybridStreamingPlayer {
   private audioContext: AudioContext;
+  private gainNode: GainNode;
   private sampleRate = 0;
   private numChannels = 0;
   private headerParsed = false;
@@ -61,9 +64,20 @@ class HybridStreamingPlayer {
   private playbackStartContextTime = 0;
   private totalScheduledDuration = 0;
 
+  // For pause/resume functionality
+  private _isPaused = false;
+  private pauseStartTime = 0;
+  private totalPausedDuration = 0;
+
   constructor(onFirstAudio?: () => void) {
     this.audioContext = new AudioContext();
+    this.gainNode = this.audioContext.createGain();
+    this.gainNode.connect(this.audioContext.destination);
     this.onFirstAudio = onFirstAudio;
+  }
+
+  get isPaused(): boolean {
+    return this._isPaused;
   }
 
   private parseWavHeader(header: Uint8Array): void {
@@ -125,7 +139,7 @@ class HybridStreamingPlayer {
 
     const source = this.audioContext.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(this.audioContext.destination);
+    source.connect(this.gainNode);
 
     const currentTime = this.audioContext.currentTime;
     const startTime = Math.max(currentTime, this.nextStartTime);
@@ -203,6 +217,26 @@ class HybridStreamingPlayer {
   // Get total duration of all scheduled audio
   getTotalDuration(): number {
     return this.totalScheduledDuration;
+  }
+
+  // Pause playback without stopping the stream
+  pause(): void {
+    if (this._isPaused || this.stopped) return;
+    this._isPaused = true;
+    this.pauseStartTime = this.audioContext.currentTime;
+    this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+    this.audioContext.suspend();
+    console.log("[TTS] Playback paused");
+  }
+
+  // Resume playback
+  resume(): void {
+    if (!this._isPaused || this.stopped) return;
+    this._isPaused = false;
+    this.totalPausedDuration += this.audioContext.currentTime - this.pauseStartTime;
+    this.audioContext.resume();
+    this.gainNode.gain.setValueAtTime(1, this.audioContext.currentTime);
+    console.log("[TTS] Playback resumed");
   }
 
   // Stop playback and return current position for seamless handoff
@@ -307,6 +341,18 @@ function stopStreamingTTS(): void {
   }
 }
 
+function pauseStreamingTTS(): void {
+  if (currentPlayer) {
+    currentPlayer.pause();
+  }
+}
+
+function resumeStreamingTTS(): void {
+  if (currentPlayer) {
+    currentPlayer.resume();
+  }
+}
+
 /**
  * Check if the TTS server is available
  * Uses a HEAD request with a short timeout to quickly determine availability
@@ -358,6 +404,7 @@ export function ViewerToolbar({
   const [isSharing, setIsSharing] = useState(false);
   const [isTTSLoading, setIsTTSLoading] = useState(false);
   const [isTTSStreaming, setIsTTSStreaming] = useState(false);
+  const [isTTSPaused, setIsTTSPaused] = useState(false);
   const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
   const [audioHandoffTime, setAudioHandoffTime] = useState<number | null>(null);
   const [showTTSServerDialog, setShowTTSServerDialog] = useState(false);
@@ -516,6 +563,17 @@ export function ViewerToolbar({
     stopStreamingTTS();
     setIsTTSStreaming(false);
     setIsTTSLoading(false);
+    setIsTTSPaused(false);
+  }, []);
+
+  const handlePauseTTS = useCallback(() => {
+    pauseStreamingTTS();
+    setIsTTSPaused(true);
+  }, []);
+
+  const handleResumeTTS = useCallback(() => {
+    resumeStreamingTTS();
+    setIsTTSPaused(false);
   }, []);
 
   const handleCloseAudioPlayer = useCallback(() => {
@@ -617,14 +675,24 @@ export function ViewerToolbar({
             {(isTTSLoading || isTTSStreaming) && (
               <div className="absolute inset-0 flex items-center justify-center gap-2 bg-card/80 rounded">
                 <Volume2
-                  className={`h-4 w-4 ${isTTSStreaming ? "text-primary animate-pulse" : "text-muted-foreground"}`}
+                  className={`h-4 w-4 ${isTTSStreaming && !isTTSPaused ? "text-primary animate-pulse" : "text-muted-foreground"}`}
                 />
                 <span className="text-sm font-medium">
-                  {isTTSLoading ? "Loading..." : "Streaming..."}
+                  {isTTSLoading ? "Loading..." : isTTSPaused ? "Paused" : "Streaming..."}
                 </span>
               </div>
             )}
           </div>
+          {/* Pause/Resume button - only show when streaming (not loading) */}
+          {isTTSStreaming && (
+            <button
+              className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+              onClick={isTTSPaused ? handleResumeTTS : handlePauseTTS}
+              title={isTTSPaused ? "Resume" : "Pause"}
+            >
+              {isTTSPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            </button>
+          )}
           <button
             className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
             onClick={isTTSLoading || isTTSStreaming ? handleStopTTS : handleCloseAudioPlayer}
