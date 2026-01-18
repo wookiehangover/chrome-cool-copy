@@ -470,6 +470,15 @@ export function ViewerToolbar({
       return;
     }
 
+    // Check if TTS server is available before streaming
+    const isServerAvailable = await checkTTSServerAvailable(ttsUrl);
+    if (!isServerAvailable) {
+      console.log("[TTS] Server not available at", ttsUrl);
+      setIsTTSLoading(false);
+      setShowTTSServerDialog(true);
+      return;
+    }
+
     startStreamingTTS(
       textContent,
       ttsUrl,
@@ -621,6 +630,28 @@ export function ViewerToolbar({
           </button>
         </div>
       )}
+
+      {/* TTS Server Unavailable Dialog */}
+      <Dialog open={showTTSServerDialog} onOpenChange={setShowTTSServerDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>TTS Server Unavailable</DialogTitle>
+            <DialogDescription>
+              The text-to-speech server is not running. Please start the pocket-tts server to use
+              this feature.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-muted rounded-md p-3 font-mono text-sm">pocket-tts serve</div>
+          <DialogFooter>
+            <button
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90"
+              onClick={() => setShowTTSServerDialog(false)}
+            >
+              Got it
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
