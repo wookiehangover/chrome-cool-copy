@@ -55,9 +55,7 @@ export const HighlightPopover = forwardRef<HighlightPopoverHandle, HighlightPopo
     };
 
     const handleDelete = () => {
-      if (confirm("Delete this highlight?")) {
-        onDelete();
-      }
+      onDelete();
     };
 
     const iconBtnClass =
