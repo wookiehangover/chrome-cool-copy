@@ -25,6 +25,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 /**
  * Hybrid Streaming WAV Player using Web Audio API
@@ -299,6 +307,27 @@ function stopStreamingTTS(): void {
   }
 }
 
+/**
+ * Check if the TTS server is available
+ * Uses a HEAD request with a short timeout to quickly determine availability
+ */
+async function checkTTSServerAvailable(serverUrl: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch(serverUrl, {
+      method: "HEAD",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 interface ViewerToolbarProps {
   clip: LocalClip;
   isEditMode: boolean;
@@ -556,39 +585,36 @@ export function ViewerToolbar({
         )}
       </div>
 
-      {/* Floating TTS status indicator (during streaming) */}
-      {(isTTSLoading || isTTSStreaming) && (
-        <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-card border border-border px-3 py-2 rounded-lg shadow-lg z-[200]">
-          <Volume2
-            className={`h-4 w-4 ${isTTSStreaming ? "text-primary" : "text-muted-foreground"}`}
-          />
-          <span className="text-sm">{isTTSLoading ? "Loading..." : "Streaming..."}</span>
-          <button
-            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-            onClick={handleStopTTS}
-            title="Stop"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Audio player for replay (after streaming completes) */}
-      {audioBlobUrl && !isTTSStreaming && (
+      {/* Unified TTS audio player with streaming overlay */}
+      {(isTTSLoading || isTTSStreaming || audioBlobUrl) && (
         <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-card border border-border p-3 rounded-lg shadow-lg z-[200]">
-          <audio
-            ref={audioRef}
-            controls
-            src={audioBlobUrl}
-            className="h-8"
-            onEnded={() => {
-              // Keep the player available for replay
-            }}
-          />
+          {/* Audio player container with overlay during streaming */}
+          <div className="relative">
+            <audio
+              ref={audioRef}
+              controls
+              src={audioBlobUrl || undefined}
+              className={`h-8 ${isTTSLoading || isTTSStreaming ? "opacity-40 pointer-events-none" : ""}`}
+              onEnded={() => {
+                // Keep the player available for replay
+              }}
+            />
+            {/* Streaming overlay */}
+            {(isTTSLoading || isTTSStreaming) && (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 bg-card/80 rounded">
+                <Volume2
+                  className={`h-4 w-4 ${isTTSStreaming ? "text-primary animate-pulse" : "text-muted-foreground"}`}
+                />
+                <span className="text-sm font-medium">
+                  {isTTSLoading ? "Loading..." : "Streaming..."}
+                </span>
+              </div>
+            )}
+          </div>
           <button
             className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-            onClick={handleCloseAudioPlayer}
-            title="Close"
+            onClick={isTTSLoading || isTTSStreaming ? handleStopTTS : handleCloseAudioPlayer}
+            title={isTTSLoading || isTTSStreaming ? "Stop" : "Close"}
           >
             <X className="h-4 w-4" />
           </button>
