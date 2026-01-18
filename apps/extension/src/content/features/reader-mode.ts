@@ -3,7 +3,6 @@
  * Provides a clean, distraction-free reading experience with:
  * - Auto-clip on entry
  * - Text highlighting with annotations
- * - Customizable typography settings
  * Uses Shadow DOM for complete style isolation
  */
 
@@ -11,6 +10,10 @@ import styles from "./reader-mode.css?raw";
 import type { Highlight } from "@repo/shared";
 import { showToast } from "../toast.js";
 import { copyToClipboard } from "../clipboard.js";
+
+// =============================================================================
+// Reader Mode
+// =============================================================================
 
 // Reader mode state
 let readerModeActive = false;
@@ -21,20 +24,12 @@ let originalBodyOverflow: string = "";
 
 // Current clip data
 let currentClipId: string | null = null;
-let currentClipShareId: string | null = null;
 let currentHighlights: Highlight[] = [];
 
 // UI elements (inside shadow DOM)
 let contentWrapper: HTMLElement | null = null;
-let settingsPanel: HTMLElement | null = null;
 let noteEditor: HTMLElement | null = null;
 let activeHighlightId: string | null = null;
-let editModeActive = false;
-let editModeBtn: HTMLButtonElement | null = null;
-let tidyBtn: HTMLButtonElement | null = null;
-let resetBtn: HTMLButtonElement | null = null;
-let exportBtn: HTMLButtonElement | null = null;
-let shareBtn: HTMLButtonElement | null = null;
 
 // Settings defaults
 interface ReaderSettings {
@@ -74,15 +69,6 @@ function setupHighlightSyncListener(): void {
     // Find our clip in the updated clips
     const updatedClip = newValue.find((c: { id: string }) => c.id === currentClipId);
     if (!updatedClip) return;
-
-    // Update share_id if it was just synced
-    if (updatedClip.share_id && !currentClipShareId) {
-      currentClipShareId = updatedClip.share_id;
-      // Show share button if it's now available
-      if (shareBtn) {
-        shareBtn.style.display = "";
-      }
-    }
 
     const newHighlights: Highlight[] = updatedClip.highlights || [];
 
@@ -142,7 +128,6 @@ function setupHighlightSyncListener(): void {
 
     // Update local state
     currentHighlights = newHighlights;
-    updateExportButtonVisibility();
   };
 
   chrome.storage.local.onChanged.addListener(storageChangeListener);
@@ -414,7 +399,6 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
 
     if (checkResponse?.clip) {
       currentClipId = checkResponse.clip.id;
-      currentClipShareId = checkResponse.clip.share_id || null;
       currentHighlights = checkResponse.clip.highlights || [];
 
       // Restore saved highlights to the DOM
@@ -437,7 +421,6 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
 
     if (saveResponse?.success && saveResponse?.clipId) {
       currentClipId = saveResponse.clipId;
-      currentClipShareId = saveResponse.shareId || null;
       currentHighlights = [];
     } else {
       console.warn("[Reader Mode] Failed to save clip:", saveResponse?.error);
@@ -465,8 +448,6 @@ function restoreHighlights(): void {
       console.error("[Reader Mode] Error restoring highlight:", error);
     }
   }
-
-  updateExportButtonVisibility();
 }
 
 /**
@@ -619,7 +600,6 @@ export async function activateReaderMode(): Promise<void> {
       content = document.createElement("div");
       content.innerHTML = existingClip.dom_content;
       currentClipId = existingClip.id;
-      currentClipShareId = (existingClip as any).share_id || null;
       currentHighlights = existingClip.highlights || [];
     } else {
       // Extract fresh content from the page
@@ -720,269 +700,6 @@ function createToolbarButton(icon: string, title: string, onClick: () => void): 
 }
 
 /**
- * Export highlights and comments as markdown
- */
-async function exportHighlights(): Promise<void> {
-  if (currentHighlights.length === 0) {
-    showToast("No highlights to export");
-    return;
-  }
-
-  // Get the title from the reader mode header
-  const titleElement = shadowRoot?.querySelector(".reader-mode-title");
-  const title = titleElement?.textContent || document.title;
-  const url = window.location.href;
-
-  // Build markdown output
-  const lines: string[] = [];
-
-  // Header with title and URL
-  lines.push(`[${title}](${url})`);
-  lines.push("");
-
-  // Sort highlights by their position in the document (startOffset)
-  const sortedHighlights = [...currentHighlights].sort((a, b) => a.startOffset - b.startOffset);
-
-  // Add each highlight as a blockquote with optional comment
-  for (const highlight of sortedHighlights) {
-    lines.push(`> ${highlight.text}`);
-    lines.push("");
-
-    if (highlight.note && highlight.note.trim()) {
-      lines.push(highlight.note.trim());
-      lines.push("");
-    }
-  }
-
-  const markdown = lines.join("\n").trim();
-
-  const success = await copyToClipboard(markdown);
-  if (success) {
-    showToast("Highlights copied");
-  } else {
-    showToast("Failed to copy");
-  }
-}
-
-/**
- * Update export button visibility based on highlights
- */
-function updateExportButtonVisibility(): void {
-  if (!exportBtn) return;
-  exportBtn.style.display = currentHighlights.length > 0 ? "" : "none";
-}
-
-/**
- * Create the settings panel
- */
-function createSettingsPanel(settings: ReaderSettings): HTMLElement {
-  const panel = document.createElement("div");
-  panel.className = "reader-settings-panel";
-
-  // Font family group
-  const fontGroup = document.createElement("div");
-  fontGroup.className = "settings-group";
-  const fontLabel = document.createElement("label");
-  fontLabel.className = "settings-label";
-  fontLabel.textContent = "Font";
-  const fontButtons = document.createElement("div");
-  fontButtons.className = "font-buttons";
-
-  const fonts: Array<{ id: ReaderSettings["fontFamily"]; label: string }> = [
-    { id: "sans", label: "Aa" },
-    { id: "serif", label: "Aa" },
-    { id: "mono", label: "Aa" },
-  ];
-
-  fonts.forEach((font) => {
-    const btn = document.createElement("button");
-    btn.className = `font-btn ${settings.fontFamily === font.id ? "active" : ""}`;
-    btn.textContent = font.label;
-    btn.style.fontFamily =
-      font.id === "sans" ? "sans-serif" : font.id === "serif" ? "Georgia, serif" : "monospace";
-    btn.addEventListener("click", () => updateFontFamily(font.id));
-    fontButtons.appendChild(btn);
-  });
-
-  fontGroup.appendChild(fontLabel);
-  fontGroup.appendChild(fontButtons);
-
-  // Font size group
-  const sizeGroup = document.createElement("div");
-  sizeGroup.className = "settings-group";
-  const sizeLabel = document.createElement("label");
-  sizeLabel.className = "settings-label";
-  sizeLabel.textContent = "Size";
-
-  const sizeSlider = document.createElement("input");
-  sizeSlider.type = "range";
-  sizeSlider.className = "size-slider";
-  sizeSlider.min = "14";
-  sizeSlider.max = "22";
-  sizeSlider.value = settings.fontSize.toString();
-  sizeSlider.addEventListener("input", () => updateFontSize(parseInt(sizeSlider.value)));
-
-  const sizeValue = document.createElement("div");
-  sizeValue.className = "size-value";
-  sizeValue.textContent = `${settings.fontSize}px`;
-  sizeValue.id = "size-value-display";
-
-  sizeGroup.appendChild(sizeLabel);
-  sizeGroup.appendChild(sizeSlider);
-  sizeGroup.appendChild(sizeValue);
-
-  panel.appendChild(fontGroup);
-  panel.appendChild(sizeGroup);
-
-  return panel;
-}
-
-/**
- * Update font family setting
- */
-async function updateFontFamily(family: ReaderSettings["fontFamily"]): Promise<void> {
-  if (!shadowRoot) return;
-
-  const wrapper = shadowRoot.querySelector(".reader-mode-wrapper");
-  if (!wrapper) return;
-
-  // Update class
-  wrapper.classList.remove("font-sans", "font-serif", "font-mono");
-  wrapper.classList.add(`font-${family}`);
-
-  // Update button states
-  const buttons = shadowRoot.querySelectorAll(".font-btn");
-  const families: ReaderSettings["fontFamily"][] = ["sans", "serif", "mono"];
-  buttons.forEach((btn, i) => {
-    btn.classList.toggle("active", families[i] === family);
-  });
-
-  // Save setting
-  const settings = await loadSettings();
-  await saveSettings({ ...settings, fontFamily: family });
-}
-
-/**
- * Update font size setting
- */
-async function updateFontSize(size: number): Promise<void> {
-  if (!shadowRoot) return;
-
-  const wrapper = shadowRoot.querySelector(".reader-mode-wrapper") as HTMLElement;
-  if (!wrapper) return;
-
-  wrapper.style.setProperty("--font-size-base", `${size}px`);
-
-  // Update display
-  const display = shadowRoot.getElementById("size-value-display");
-  if (display) display.textContent = `${size}px`;
-
-  // Save setting
-  const settings = await loadSettings();
-  await saveSettings({ ...settings, fontSize: size });
-}
-
-/**
- * Toggle settings panel visibility
- */
-function toggleSettings(): void {
-  if (settingsPanel) {
-    settingsPanel.classList.toggle("visible");
-  }
-}
-
-/**
- * Toggle edit mode on/off
- */
-function toggleEditMode(): void {
-  if (!contentWrapper || !shadowRoot) return;
-
-  if (editModeActive) {
-    // Exiting edit mode - save the content
-    saveEditedContent();
-  } else {
-    // Entering edit mode
-    editModeActive = true;
-
-    // Toggle contentEditable on the content wrapper
-    contentWrapper.contentEditable = "true";
-
-    // Update button icon to checkmark
-    if (editModeBtn) {
-      editModeBtn.innerHTML = "✓";
-      editModeBtn.title = "Save Edits";
-      editModeBtn.setAttribute("aria-pressed", "true");
-    }
-
-    // Add edit-mode class on wrapper for visual indication
-    const wrapper = shadowRoot.querySelector(".reader-mode-wrapper");
-    if (wrapper) {
-      wrapper.classList.add("edit-mode");
-    }
-
-    // Hide note editor if open
-    if (noteEditor?.classList.contains("visible")) {
-      saveCurrentNote();
-    }
-  }
-}
-
-/**
- * Save edited content and exit edit mode
- */
-async function saveEditedContent(): Promise<void> {
-  if (!contentWrapper || !shadowRoot || !currentClipId) return;
-
-  try {
-    // Get the edited content
-    const domContent = contentWrapper.innerHTML;
-    const textContent = contentWrapper.textContent || "";
-
-    // Send update to background script
-    const response = await chrome.runtime.sendMessage({
-      action: "updateClipContent",
-      clipId: currentClipId,
-      domContent,
-      textContent,
-    });
-
-    if (response?.success) {
-      showToast("Edits saved");
-    } else {
-      showToast("Failed to save edits");
-      console.error("[Reader Mode] Failed to save edits:", response?.error);
-    }
-  } catch (error) {
-    console.error("[Reader Mode] Error saving edits:", error);
-    showToast("Failed to save edits");
-  }
-
-  // Exit edit mode regardless of save success
-  editModeActive = false;
-  contentWrapper.contentEditable = "false";
-
-  // Update button icon back to edit
-  if (editModeBtn) {
-    editModeBtn.innerHTML = "✎";
-    editModeBtn.title = "Edit Mode";
-    editModeBtn.setAttribute("aria-pressed", "false");
-  }
-
-  // Remove edit-mode class
-  const wrapper = shadowRoot.querySelector(".reader-mode-wrapper");
-  if (wrapper) {
-    wrapper.classList.remove("edit-mode");
-  }
-}
-
-/**
- * Check if edit mode is active (used by selection listener)
- */
-function isEditMode(): boolean {
-  return editModeActive;
-}
-
-/**
  * Create note editor element (positioned to the right of highlights)
  */
 function createNoteEditor(): HTMLElement {
@@ -1000,106 +717,14 @@ function createNoteEditor(): HTMLElement {
 }
 
 /**
- * SVG icon for the Tidy button
+ * Open the clip in the clips viewer
  */
-const TIDY_BUTTON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scroll-text-icon lucide-scroll-text"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>`;
-
-/**
- * Tidy content by sending it to the background handler
- */
-async function tidyContent(): Promise<void> {
-  if (!contentWrapper || !currentClipId || !tidyBtn) return;
-
-  // Show loading state
-  tidyBtn.classList.add("loading");
-  contentWrapper.classList.add("tidying");
-  tidyBtn.disabled = true;
-
-  try {
-    const domContent = contentWrapper.innerHTML;
-
-    const response = await chrome.runtime.sendMessage({
-      action: "tidyContent",
-      domContent,
+function openInClipViewer(): void {
+  if (currentClipId) {
+    chrome.runtime.sendMessage({
+      action: "openClipViewer",
+      clipId: currentClipId,
     });
-
-    if (response?.success && response.content) {
-      // Update content
-      contentWrapper.innerHTML = response.content;
-      // Save the tidied content
-      await saveEditedContent();
-      showToast("Content tidied");
-    } else {
-      showToast(response?.error || "Failed to tidy content");
-    }
-  } catch (error) {
-    console.error("[Reader Mode] Tidy error:", error);
-    showToast("Failed to tidy content");
-  } finally {
-    // Remove loading state
-    tidyBtn.classList.remove("loading");
-    contentWrapper.classList.remove("tidying");
-    tidyBtn.disabled = false;
-  }
-}
-
-/**
- * Reset content by re-extracting from the original page
- */
-async function resetContent(): Promise<void> {
-  if (!contentWrapper || !currentClipId) return;
-
-  try {
-    // Re-extract content from original page
-    const { content } = extractArticleContent();
-
-    // Update display
-    contentWrapper.innerHTML = content.innerHTML;
-
-    // Clear any highlights since they were on the edited content
-    currentHighlights = [];
-
-    // Save to database
-    await saveEditedContent();
-
-    showToast("Content reset");
-  } catch (error) {
-    console.error("[Reader Mode] Reset error:", error);
-    showToast("Failed to reset content");
-  }
-}
-
-/**
- * Copy share URL to clipboard
- */
-async function shareClip(): Promise<void> {
-  if (!currentClipShareId || !shareBtn) return;
-
-  shareBtn.classList.add("loading");
-  shareBtn.disabled = true;
-
-  try {
-    // Get share server hostname from storage
-    const { shareServerHostname } = await chrome.storage.sync.get({
-      shareServerHostname: "localhost:5173",
-    });
-
-    // Ensure protocol
-    const host = (shareServerHostname as string).startsWith("http")
-      ? (shareServerHostname as string)
-      : `https://${shareServerHostname as string}`;
-
-    const shareUrl = `${host}/share/${currentClipShareId}`;
-
-    // Copy to clipboard
-    await copyToClipboard(shareUrl);
-    showToast("Share URL copied!");
-  } catch (error) {
-    console.error("[Reader Mode] Share error:", error);
-    showToast("Failed to copy share URL");
-  } finally {
-    shareBtn.classList.remove("loading");
-    shareBtn.disabled = false;
   }
 }
 
@@ -1130,29 +755,117 @@ async function createReaderModeUI(
   const toolbar = document.createElement("div");
   toolbar.className = "reader-mode-toolbar";
 
-  const settingsBtn = createToolbarButton("Aa", "Settings", toggleSettings);
-  editModeBtn = createToolbarButton("✎", "Edit Mode", toggleEditMode);
-  tidyBtn = createToolbarButton(TIDY_BUTTON_SVG, "Tidy Content", tidyContent);
-  const resetIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw-icon lucide-rotate-ccw"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`;
-  resetBtn = createToolbarButton(resetIcon, "Reset Content", resetContent);
-  const exportIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13"/><path d="m16 6-4-4-4 4"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></svg>`;
-  exportBtn = createToolbarButton(exportIcon, "Export Highlights", exportHighlights);
-  exportBtn.style.display = currentHighlights.length > 0 ? "" : "none";
-  const shareIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-share-2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
-  shareBtn = createToolbarButton(shareIcon, "Copy share URL", shareClip);
-  shareBtn.style.display = currentClipShareId ? "" : "none";
+  // Icons
+  const moreIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>`;
+  const tidyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V11a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h3"/></svg>`;
+  const resetIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`;
+  const clipIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>`;
+  const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+
+  // Create dropdown container
+  const dropdown = document.createElement("div");
+  dropdown.className = "reader-dropdown";
+
+  const dropdownBtn = createToolbarButton(moreIcon, "More options", () => {
+    dropdownMenu.classList.toggle("visible");
+  });
+
+  const dropdownMenu = document.createElement("div");
+  dropdownMenu.className = "reader-dropdown-menu";
+
+  // Tidy Content
+  const tidyBtn = document.createElement("button");
+  tidyBtn.className = "reader-dropdown-item";
+  tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
+  tidyBtn.addEventListener("click", async () => {
+    dropdownMenu.classList.remove("visible");
+    tidyBtn.disabled = true;
+    tidyBtn.innerHTML = `${tidyIcon} Tidying...`;
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: "tidyContent",
+        domContent: contentWrapper?.innerHTML || "",
+      });
+      if (response?.data && contentWrapper) {
+        contentWrapper.innerHTML = response.data;
+        // Update the clip in storage
+        if (currentClipId) {
+          await chrome.runtime.sendMessage({
+            action: "updateClip",
+            clipId: currentClipId,
+            updates: { dom_content: response.data },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to tidy content:", err);
+    } finally {
+      tidyBtn.disabled = false;
+      tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
+    }
+  });
+
+  // Reset Content
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "reader-dropdown-item";
+  resetBtn.innerHTML = `${resetIcon} Reset Content`;
+  resetBtn.addEventListener("click", () => {
+    dropdownMenu.classList.remove("visible");
+    window.location.reload();
+  });
+
+  // Separator
+  const separator = document.createElement("div");
+  separator.className = "reader-dropdown-separator";
+
+  // View Clip
+  const viewClipBtn = document.createElement("button");
+  viewClipBtn.className = "reader-dropdown-item";
+  viewClipBtn.innerHTML = `${clipIcon} View Clip`;
+  viewClipBtn.addEventListener("click", () => {
+    dropdownMenu.classList.remove("visible");
+    openInClipViewer();
+  });
+
+  // Copy Content
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "reader-dropdown-item";
+  copyBtn.innerHTML = `${copyIcon} Copy Content`;
+  copyBtn.addEventListener("click", async () => {
+    dropdownMenu.classList.remove("visible");
+    const textContent = contentWrapper?.textContent || "";
+    try {
+      await navigator.clipboard.writeText(textContent);
+      copyBtn.innerHTML = `${copyIcon} Copied!`;
+      setTimeout(() => {
+        copyBtn.innerHTML = `${copyIcon} Copy Content`;
+      }, 1500);
+    } catch (err) {
+      console.error("Failed to copy content:", err);
+    }
+  });
+
+  // Assemble dropdown menu
+  dropdownMenu.appendChild(tidyBtn);
+  dropdownMenu.appendChild(resetBtn);
+  dropdownMenu.appendChild(separator);
+  dropdownMenu.appendChild(viewClipBtn);
+  dropdownMenu.appendChild(copyBtn);
+
+  dropdown.appendChild(dropdownBtn);
+  dropdown.appendChild(dropdownMenu);
+
+  // Close dropdown when clicking outside
+  wrapper.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target as Node)) {
+      dropdownMenu.classList.remove("visible");
+    }
+  });
+
   const closeBtn = createToolbarButton("×", "Exit (Esc)", deactivateReaderMode);
 
-  toolbar.appendChild(settingsBtn);
-  toolbar.appendChild(editModeBtn);
-  toolbar.appendChild(tidyBtn);
-  toolbar.appendChild(resetBtn);
-  toolbar.appendChild(exportBtn);
-  toolbar.appendChild(shareBtn);
+  toolbar.appendChild(dropdown);
   toolbar.appendChild(closeBtn);
-
-  // Create settings panel
-  settingsPanel = createSettingsPanel(settings);
 
   // Create main container
   const container = document.createElement("div");
@@ -1201,7 +914,6 @@ async function createReaderModeUI(
   container.appendChild(header);
   container.appendChild(contentWrapper);
   wrapper.appendChild(toolbar);
-  wrapper.appendChild(settingsPanel);
   wrapper.appendChild(container);
   wrapper.appendChild(noteEditor);
   wrapper.appendChild(progressBar);
@@ -1240,11 +952,6 @@ function setupSelectionListener(): void {
 
   // Listen on the shadowRoot for mouseup events
   shadowRoot.addEventListener("mouseup", async (e) => {
-    // Skip highlighting in edit mode - allow normal text editing
-    if (isEditMode()) {
-      return;
-    }
-
     // Skip highlighting when shift is held - allow normal text selection for copying
     if ((e as MouseEvent).shiftKey) {
       return;
@@ -1320,7 +1027,7 @@ async function createHighlightFromSelection(selection: Selection): Promise<void>
       currentHighlights.push(response.highlight);
       applyHighlightToDOM(selection, response.highlight.id);
       selection.removeAllRanges();
-      updateExportButtonVisibility();
+      // updateExportButtonVisibility();
     }
   } catch (error) {
     console.error("[Reader Mode] Failed to create highlight:", error);
@@ -1472,7 +1179,7 @@ async function deleteCurrentHighlight(): Promise<void> {
       markElement.remove();
     }
 
-    updateExportButtonVisibility();
+    // updateExportButtonVisibility();
     hideNoteEditor();
   } catch (error) {
     console.error("[Reader Mode] Failed to delete highlight:", error);
@@ -1605,13 +1312,24 @@ function handleReaderModeKeydown(event: KeyboardEvent): void {
       saveCurrentNote();
       return;
     }
-    // Then close settings panel if open
-    if (settingsPanel?.classList.contains("visible")) {
-      settingsPanel.classList.remove("visible");
-      return;
-    }
+    // // Then close settings panel if open
+    // if (settingsPanel?.classList.contains("visible")) {
+    //   settingsPanel.classList.remove("visible");
+    //   return;
+    // }
     event.preventDefault();
     deactivateReaderMode();
+  }
+}
+
+/**
+ * Stop TTS playback
+ */
+async function stopTTS(): Promise<void> {
+  try {
+    await chrome.runtime.sendMessage({ action: "stopTTS" });
+  } catch (error) {
+    console.error("[Reader Mode] Failed to stop TTS:", error);
   }
 }
 
@@ -1624,6 +1342,9 @@ export async function deactivateReaderMode(): Promise<void> {
   }
 
   try {
+    // Stop TTS if playing
+    await stopTTS();
+
     // Forget this URL so it won't auto-enter on refresh
     await forgetReaderModeUrl();
 
@@ -1643,16 +1364,18 @@ export async function deactivateReaderMode(): Promise<void> {
     readerModeContainer = null;
     shadowRoot = null;
     contentWrapper = null;
-    settingsPanel = null;
+    // settingsPanel = null;
     noteEditor = null;
     activeHighlightId = null;
     currentClipId = null;
     currentHighlights = [];
-    editModeActive = false;
-    editModeBtn = null;
-    tidyBtn = null;
-    resetBtn = null;
-    exportBtn = null;
+    // editModeActive = false;
+    // editModeBtn = null;
+    // tidyBtn = null;
+    // resetBtn = null;
+    // exportBtn = null;
+    // ttsBtn = null;
+    // ttsPlayerContainer = null;
   } catch (error) {
     console.error("[Reader Mode] Error deactivating reader mode:", error);
   }

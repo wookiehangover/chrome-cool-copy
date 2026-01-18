@@ -28,6 +28,15 @@ function copyAssetsPlugin() {
         }
       }
 
+      // Copy offscreen HTML
+      try {
+        const offscreenHtml = await fs.readFile('src/offscreen/tts-player.html', 'utf-8')
+        await fs.mkdir('dist/offscreen', { recursive: true })
+        await fs.writeFile('dist/offscreen/tts-player.html', offscreenHtml)
+      } catch (e) {
+        console.warn('Could not copy offscreen HTML')
+      }
+
       // Copy CSS files (clip-viewer and clipped-pages CSS removed - now using React viewer at apps/clips)
       const cssFiles = [
         'src/pages/popup/popup.css',
@@ -119,6 +128,8 @@ export default defineConfig({
         'pages/popup': resolve(__dirname, 'src/pages/popup/popup.ts'),
         // clip-viewer and clipped-pages removed - now using React viewer at apps/clips (outputs to dist/viewer)
         'pages/settings': resolve(__dirname, 'src/pages/settings/settings.ts'),
+        // Offscreen document for TTS streaming playback
+        'offscreen/tts-player': resolve(__dirname, 'src/offscreen/tts-player.ts'),
       },
       external: ['just-bash', 'just-bash/browser'],
       output: {
@@ -135,6 +146,9 @@ export default defineConfig({
         },
         // Sanitize all filenames to avoid underscore prefixes and colons
         sanitizeFileName: (name) => name.replace(/^_+/, 'x').replace(/:/g, '-'),
+        // Force @repo/shared modules to be included in each entry that uses them
+        // rather than being extracted to a shared chunk
+        manualChunks: undefined,
       },
     },
   },

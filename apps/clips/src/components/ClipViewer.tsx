@@ -6,6 +6,7 @@ import type { LocalClip, ElementClip, Clip, Highlight } from "@repo/shared";
 import { ViewerToolbar } from "./ViewerToolbar";
 import { SettingsPanel } from "./SettingsPanel";
 import { HighlightPopover, type HighlightPopoverHandle } from "./HighlightPopover";
+import { cn } from "@/lib/utils";
 
 export function ClipViewer() {
   const { clipId } = useParams<{ clipId: string }>();
@@ -434,8 +435,8 @@ export function ClipViewer() {
 
   if (isLoading) {
     return (
-      <div className="viewer-wrapper">
-        <div className="viewer-container flex items-center justify-center">
+      <div className="min-h-screen w-full bg-muted overflow-y-auto overflow-x-hidden">
+        <div className="max-w-[680px] mx-auto py-12 px-6 bg-background min-h-screen flex items-center justify-center">
           <p className="text-muted-foreground text-sm">Loading clip...</p>
         </div>
       </div>
@@ -444,8 +445,8 @@ export function ClipViewer() {
 
   if (error || !clip) {
     return (
-      <div className="viewer-wrapper">
-        <div className="viewer-container flex flex-col items-center justify-center">
+      <div className="min-h-screen w-full bg-muted overflow-y-auto overflow-x-hidden">
+        <div className="max-w-[680px] mx-auto py-12 px-6 bg-background min-h-screen flex flex-col items-center justify-center">
           <p className="text-destructive text-sm">{error || "Clip not found"}</p>
         </div>
       </div>
@@ -457,7 +458,10 @@ export function ClipViewer() {
   const elementClip = isElementClip ? (clip as ElementClip) : null;
 
   return (
-    <div className="viewer-wrapper" ref={wrapperRef}>
+    <div
+      className="min-h-screen w-full bg-muted overflow-y-auto overflow-x-hidden relative"
+      ref={wrapperRef}
+    >
       {!isElementClip && (
         <>
           <ViewerToolbar
@@ -476,25 +480,35 @@ export function ClipViewer() {
             }}
             isSaving={isSaving}
           />
-          <div className="viewer-progress-bar" ref={progressBarRef} />
+          {/* Progress bar */}
+          <div
+            ref={progressBarRef}
+            className="fixed top-14 left-0 right-0 h-0.5 bg-transparent z-[99] pointer-events-none before:content-[''] before:absolute before:top-0 before:left-0 before:h-full before:bg-muted-foreground/40 before:transition-[width] before:duration-100 before:ease-linear"
+            style={{ "--scroll-progress": "0%" } as React.CSSProperties}
+          />
         </>
       )}
 
       {showSettings && <SettingsPanel />}
 
-      <div className="viewer-container">
+      <div className="max-w-[680px] mx-auto px-6 pt-12 pb-20 bg-background min-h-screen relative md:px-5 md:pt-8 md:pb-16 sm:px-4 sm:pt-6 sm:pb-12">
         {/* Header */}
-        <header className="viewer-header">
-          <h1 className="viewer-title">
+        <header className="mb-8 pb-6 border-b border-[var(--border-light)]">
+          <h1 className="font-semibold text-[28px] leading-tight text-foreground m-0 tracking-tight md:text-2xl sm:text-[22px]">
             {isElementClip && elementClip
               ? elementClip.aiTitle || `${elementClip.elementMeta.tagName} Element`
               : (clip as LocalClip).title}
           </h1>
-          <div className="viewer-meta">
-            <a href={clip.url} target="_blank" rel="noopener noreferrer" className="viewer-url">
+          <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+            <a
+              href={clip.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground no-underline break-all border-none transition-colors duration-150 hover:text-foreground hover:underline"
+            >
               {new URL(clip.url).hostname}
             </a>
-            <span className="viewer-meta-separator">•</span>
+            <span className="text-muted-foreground">•</span>
             <time>
               {new Date(
                 isElementClip && elementClip
@@ -507,18 +521,22 @@ export function ClipViewer() {
 
         {/* Element Clip Rendering */}
         {isElementClip && elementClip && (
-          <div className="element-clip-container">
+          <div className="flex flex-col gap-6">
             {/* Screenshot Image */}
             {screenshotUrl && (
-              <div className="element-screenshot">
-                <img src={screenshotUrl} alt="Element screenshot" />
+              <div className="mb-3">
+                <img
+                  src={screenshotUrl}
+                  alt="Element screenshot"
+                  className="max-w-full h-auto rounded-md block"
+                />
               </div>
             )}
 
             {/* AI Summary */}
-            <div className="element-section">
-              <h2>Summary</h2>
-              <p className="element-summary">
+            <div className="flex flex-col gap-3">
+              <h2 className="text-base font-semibold text-foreground m-0">Summary</h2>
+              <p className="m-0 text-[var(--text-secondary)] leading-relaxed">
                 {elementClip.aiSummaryStatus === "pending"
                   ? "Generating summary..."
                   : elementClip.aiSummary || "No summary"}
@@ -526,132 +544,148 @@ export function ClipViewer() {
             </div>
 
             {/* Element Metadata */}
-            <div className="element-section">
-              <h2>Element Info</h2>
-              <table className="element-metadata-table">
+            <div className="flex flex-col gap-3">
+              <h2 className="text-base font-semibold text-foreground m-0">Element Info</h2>
+              <table className="w-full border-collapse text-sm">
                 <tbody>
                   <tr>
-                    <th>Tag</th>
-                    <td>
-                      <code>&lt;{elementClip.elementMeta.tagName}&gt;</code>
+                    <th className="text-left py-2.5 px-3 w-[120px] text-muted-foreground font-medium border-b border-border">
+                      Tag
+                    </th>
+                    <td className="py-2.5 px-3 text-foreground border-b border-border break-words">
+                      <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs">
+                        &lt;{elementClip.elementMeta.tagName}&gt;
+                      </code>
                     </td>
                   </tr>
                   <tr>
-                    <th>Selector</th>
-                    <td>
-                      <code>{elementClip.selector}</code>
+                    <th className="text-left py-2.5 px-3 w-[120px] text-muted-foreground font-medium border-b border-border">
+                      Selector
+                    </th>
+                    <td className="py-2.5 px-3 text-foreground border-b border-border break-words">
+                      <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs">
+                        {elementClip.selector}
+                      </code>
                     </td>
                   </tr>
                   {elementClip.elementMeta.role && (
                     <tr>
-                      <th>Role</th>
-                      <td>
-                        <code>{elementClip.elementMeta.role}</code>
+                      <th className="text-left py-2.5 px-3 w-[120px] text-muted-foreground font-medium border-b border-border">
+                        Role
+                      </th>
+                      <td className="py-2.5 px-3 text-foreground border-b border-border break-words">
+                        <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs">
+                          {elementClip.elementMeta.role}
+                        </code>
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <th>Dimensions</th>
-                    <td>
+                    <th className="text-left py-2.5 px-3 w-[120px] text-muted-foreground font-medium border-b border-border">
+                      Dimensions
+                    </th>
+                    <td className="py-2.5 px-3 text-foreground border-b border-border break-words">
                       {Math.round(elementClip.elementMeta.boundingBox.width)}×
                       {Math.round(elementClip.elementMeta.boundingBox.height)}px
                     </td>
                   </tr>
                   {elementClip.elementMeta.classNames.length > 0 && (
                     <tr>
-                      <th>Classes</th>
-                      <td>
-                        <code>{elementClip.elementMeta.classNames.join(" ")}</code>
+                      <th className="text-left py-2.5 px-3 w-[120px] text-muted-foreground font-medium border-b border-border">
+                        Classes
+                      </th>
+                      <td className="py-2.5 px-3 text-foreground border-b border-border break-words">
+                        <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs">
+                          {elementClip.elementMeta.classNames.join(" ")}
+                        </code>
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <th>URL</th>
-                    <td>
-                      <a href={elementClip.url} target="_blank" rel="noopener noreferrer">
+                    <th className="text-left py-2.5 px-3 w-[120px] text-muted-foreground font-medium border-b border-border">
+                      URL
+                    </th>
+                    <td className="py-2.5 px-3 text-foreground border-b border-border break-words">
+                      <a
+                        href={elementClip.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground no-underline border-b border-muted-foreground transition-colors hover:border-foreground"
+                      >
                         {elementClip.url}
                       </a>
                     </td>
                   </tr>
                   <tr>
-                    <th>Saved</th>
-                    <td>{new Date(elementClip.createdAt).toLocaleString()}</td>
+                    <th className="text-left py-2.5 px-3 w-[120px] text-muted-foreground font-medium border-b border-border">
+                      Saved
+                    </th>
+                    <td className="py-2.5 px-3 text-foreground border-b border-border break-words">
+                      {new Date(elementClip.createdAt).toLocaleString()}
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
             {/* Tabs for content */}
-            <div className="element-section">
-              <div className="element-tabs">
-                <button
-                  className={`element-tab-btn ${activeTab === "text" ? "active" : ""}`}
-                  onClick={() => setActiveTab("text")}
-                >
-                  Text Content
-                </button>
-                <button
-                  className={`element-tab-btn ${activeTab === "markdown" ? "active" : ""}`}
-                  onClick={() => setActiveTab("markdown")}
-                >
-                  Markdown
-                </button>
-                <button
-                  className={`element-tab-btn ${activeTab === "html" ? "active" : ""}`}
-                  onClick={() => setActiveTab("html")}
-                >
-                  HTML
-                </button>
-                <button
-                  className={`element-tab-btn ${activeTab === "css" ? "active" : ""}`}
-                  onClick={() => setActiveTab("css")}
-                >
-                  CSS
-                </button>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-2 border-b border-border mb-3">
+                {(["text", "markdown", "html", "css"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    className={cn(
+                      "py-2 px-3 bg-transparent border-none text-muted-foreground text-[13px] font-medium cursor-pointer border-b-2 border-transparent transition-all hover:text-foreground",
+                      activeTab === tab && "text-foreground border-b-foreground",
+                    )}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {tab === "text"
+                      ? "Text Content"
+                      : tab === "markdown"
+                        ? "Markdown"
+                        : tab.toUpperCase()}
+                  </button>
+                ))}
               </div>
 
-              <div className="element-tab-content">
-                {activeTab === "text" && (
-                  <pre className="element-code">{elementClip.textContent || "(empty)"}</pre>
-                )}
-                {activeTab === "markdown" && (
-                  <pre className="element-code">{elementClip.markdownContent || "(empty)"}</pre>
-                )}
-                {activeTab === "html" && (
-                  <pre className="element-code">{elementClip.domStructure}</pre>
-                )}
-                {activeTab === "css" && (
-                  <pre className="element-code">{elementClip.scopedStyles}</pre>
-                )}
+              <div className="bg-muted rounded p-3 overflow-x-auto">
+                <pre className="m-0 font-mono text-xs leading-normal text-[var(--text-secondary)] whitespace-pre-wrap break-words">
+                  {activeTab === "text" && (elementClip.textContent || "(empty)")}
+                  {activeTab === "markdown" && (elementClip.markdownContent || "(empty)")}
+                  {activeTab === "html" && elementClip.domStructure}
+                  {activeTab === "css" && elementClip.scopedStyles}
+                </pre>
               </div>
             </div>
-
-            {/* Live Preview Section */}
-            {/* <div className="element-preview-section">
-              <h2>Live Preview</h2>
-              <iframe
-                title="Element preview"
-                sandbox="allow-same-origin"
-                srcDoc={`
-                  <!DOCTYPE html>
-                  <html>
-                    <head>
-                      <style>${elementClip.scopedStyles}</style>
-                    </head>
-                    <body>${elementClip.domStructure}</body>
-                  </html>
-                `}
-                className="element-preview-iframe"
-              />
-            </div> */}
           </div>
         )}
 
-        {/* Local Clip Rendering */}
+        {/* Local Clip Rendering - prose styles applied inline */}
         {!isElementClip && (
           <div
             ref={contentRef}
-            className={`viewer-content ${isEditMode ? "outline-dashed outline-2 outline-border outline-offset-4" : ""}`}
+            className={cn(
+              "text-base leading-relaxed text-[var(--text-secondary)] break-words",
+              "[&_h1]:font-semibold [&_h1]:leading-tight [&_h1]:text-foreground [&_h1]:mt-8 [&_h1]:mb-2 [&_h1]:text-2xl",
+              "[&_h2]:font-semibold [&_h2]:leading-tight [&_h2]:text-foreground [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:text-xl",
+              "[&_h3]:font-semibold [&_h3]:leading-tight [&_h3]:text-foreground [&_h3]:mt-8 [&_h3]:mb-2 [&_h3]:text-lg",
+              "[&_h4]:font-semibold [&_h4]:leading-tight [&_h4]:text-foreground [&_h4]:mt-8 [&_h4]:mb-2 [&_h4]:text-base",
+              "[&_p]:mb-5",
+              "[&_a]:text-foreground [&_a]:no-underline [&_a]:border-b [&_a]:border-muted-foreground [&_a]:transition-colors hover:[&_a]:border-foreground",
+              "[&_ul]:mb-5 [&_ul]:pl-6 [&_ol]:mb-5 [&_ol]:pl-6 [&_li]:mb-1",
+              "[&_blockquote]:my-6 [&_blockquote]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:text-muted-foreground",
+              "[&_code]:font-mono [&_code]:text-[0.9em] [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5",
+              "[&_pre]:bg-muted [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre]:my-5 [&_pre]:text-sm [&_pre]:leading-normal",
+              "[&_pre_code]:bg-transparent [&_pre_code]:p-0",
+              "[&_img]:max-w-full [&_img]:h-auto [&_img]:block [&_img]:my-6",
+              "[&_table]:w-full [&_table]:border-collapse [&_table]:my-5 [&_table]:text-[0.9em]",
+              "[&_th]:py-2 [&_th]:px-3 [&_th]:text-left [&_th]:border-b [&_th]:border-border [&_th]:font-semibold [&_th]:text-foreground",
+              "[&_td]:py-2 [&_td]:px-3 [&_td]:border-b [&_td]:border-border",
+              "[&_hr]:border-none [&_hr]:border-t [&_hr]:border-[var(--border-light)] [&_hr]:my-8",
+              "[&_figure]:my-6 [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_figcaption]:mt-2",
+              isEditMode && "outline-dashed outline-2 outline-border outline-offset-4",
+            )}
             contentEditable={isEditMode}
             suppressContentEditableWarning
             onInput={(e) => setEditContent(e.currentTarget.innerHTML)}

@@ -178,6 +178,11 @@ chrome.runtime.onMessage.addListener(
           console.error("[Console Capture] Error reading console:", error);
           sendResponse({ success: false, error: errorMessage });
         }
+      } else if (message.action === "ttsPlaybackEnded" || message.action === "ttsPlaybackError") {
+        // TTS playback events forwarded from offscreen document
+        // Dispatch custom event for reader-mode.ts to handle
+        window.dispatchEvent(new CustomEvent("ttsPlaybackEvent", { detail: message }));
+        sendResponse({ success: true });
       } else {
         console.warn("[Clean Link Copy] Unknown message action:", message.action);
         sendResponse({ success: false, error: "Unknown action" });

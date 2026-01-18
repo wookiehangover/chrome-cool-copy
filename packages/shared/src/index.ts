@@ -6,4 +6,5 @@
 export * from "./types/index.js";
 export * from "./utils/index.js";
 export * from "./constants/index.js";
+export * from "./tts/index.js";
 export { boostSystemPrompt } from "./boost-system-prompt.js";
