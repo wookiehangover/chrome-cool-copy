@@ -786,14 +786,15 @@ async function createReaderModeUI(
         action: "tidyContent",
         domContent: contentWrapper?.innerHTML || "",
       });
-      if (response?.data && contentWrapper) {
-        contentWrapper.innerHTML = response.data;
+      const tidyContent = response?.data || response?.content;
+      if (tidyContent && contentWrapper) {
+        contentWrapper.innerHTML = tidyContent;
         // Update the clip in storage
         if (currentClipId) {
           await chrome.runtime.sendMessage({
             action: "updateClip",
             clipId: currentClipId,
-            updates: { dom_content: response.data },
+            updates: { dom_content: tidyContent },
           });
         }
       }

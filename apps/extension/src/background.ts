@@ -1202,7 +1202,7 @@ Return ONLY valid HTML, no explanations or markdown.`;
 
           sendResponse({
             success: true,
-            content: result.text,
+            data: result.text,
           });
         } catch (error) {
           console.error("[Clean Link Copy] Error in tidyContent handler:", error);

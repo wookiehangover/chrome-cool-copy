@@ -86,9 +86,10 @@ export function ViewerToolbar({
         action: "tidyContent",
         domContent: clip.dom_content,
       });
-      if (response?.data) {
-        onEditContentChange(response.data);
-        await updateClip(clip.id, { dom_content: response.data });
+      const tidyContent = response?.data || response?.content;
+      if (tidyContent) {
+        onEditContentChange(tidyContent);
+        await updateClip(clip.id, { dom_content: tidyContent });
       }
     } catch (err) {
       console.error("Failed to tidy content:", err);
