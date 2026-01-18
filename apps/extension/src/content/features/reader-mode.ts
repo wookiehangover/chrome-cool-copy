@@ -12,9 +12,10 @@ import { showToast } from "../toast.js";
 import { copyToClipboard } from "../clipboard.js";
 import {
   wrapContentInChunks,
-  markAllChunksLoading,
-  markChunkComplete,
-  clearAllLoadingStates,
+  setChunkLoading,
+  setChunkComplete,
+  removeChunkUI,
+  getCleanedContent,
 } from "./tidy-chunks.js";
 
 // =============================================================================
@@ -36,6 +37,10 @@ let currentHighlights: Highlight[] = [];
 let contentWrapper: HTMLElement | null = null;
 let noteEditor: HTMLElement | null = null;
 let activeHighlightId: string | null = null;
+
+// Tidy mode state
+let tidyModeActive = false;
+let tidyButton: HTMLButtonElement | null = null;
 
 // Settings defaults
 interface ReaderSettings {
@@ -779,20 +784,64 @@ async function createReaderModeUI(
   const dropdownMenu = document.createElement("div");
   dropdownMenu.className = "reader-dropdown-menu";
 
-  // Tidy Content - Progressive chunked processing
+  // Tidy Content - Manual chunk-by-chunk processing
   const tidyBtn = document.createElement("button");
   tidyBtn.className = "reader-dropdown-item";
   tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
-  tidyBtn.addEventListener("click", async () => {
-    dropdownMenu.classList.remove("visible");
-    tidyBtn.disabled = true;
-    tidyBtn.innerHTML = `${tidyIcon} Tidying...`;
+  tidyButton = tidyBtn; // Store reference for toggling
 
-    if (!contentWrapper || !shadowRoot) {
-      tidyBtn.disabled = false;
-      tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
+  /**
+   * Handle individual chunk tidy click
+   */
+  const handleChunkTidy = async (chunkId: string): Promise<void> => {
+    if (!shadowRoot || !contentWrapper) return;
+
+    // Find the chunk element and get its content
+    const chunkEl = shadowRoot.querySelector(`[data-tidy-chunk="${chunkId}"]`);
+    if (!chunkEl) {
+      console.warn(`[Tidy Content] Chunk not found: ${chunkId}`);
       return;
     }
+
+    const contentEl = chunkEl.querySelector(".tidy-chunk-content");
+    if (!contentEl) {
+      console.warn(`[Tidy Content] Chunk content not found: ${chunkId}`);
+      return;
+    }
+
+    const chunkHtml = contentEl.innerHTML;
+
+    // Set loading state
+    setChunkLoading(shadowRoot, chunkId);
+
+    try {
+      // Send single chunk to background for tidying (reuse existing tidyContent handler)
+      const response = await chrome.runtime.sendMessage({
+        action: "tidyContent",
+        domContent: chunkHtml,
+      });
+
+      if (response?.success && response?.data) {
+        // Update chunk with tidied content
+        setChunkComplete(shadowRoot!, chunkId, response.data);
+      } else {
+        // On error, restore chunk to non-loading state
+        setChunkComplete(shadowRoot!, chunkId, chunkHtml);
+        showToast("Tidy failed for this section");
+        console.error(`[Tidy Content] Failed to tidy chunk ${chunkId}:`, response?.error);
+      }
+    } catch (err) {
+      console.error(`[Tidy Content] Error tidying chunk ${chunkId}:`, err);
+      setChunkComplete(shadowRoot!, chunkId, chunkHtml);
+      showToast("Tidy failed for this section");
+    }
+  };
+
+  /**
+   * Enter tidy mode - show chunks with action buttons
+   */
+  const enterTidyMode = async (): Promise<void> => {
+    if (!contentWrapper || !shadowRoot || tidyModeActive) return;
 
     try {
       const originalHtml = contentWrapper.innerHTML;
@@ -803,93 +852,68 @@ async function createReaderModeUI(
 
       if (chunks.length === 0) {
         console.warn("[Tidy Content] No chunks generated from content");
-        tidyBtn.disabled = false;
-        tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
+        showToast("Content too short to chunk");
         return;
       }
 
-      // Wrap DOM with chunk divs BEFORE sending to background
+      // Wrap DOM with chunk divs, passing the tidy click handler
       const tidyChunks = chunks.map((c) => ({ id: c.id, content: c.html }));
-      wrapContentInChunks(contentWrapper, tidyChunks);
-      markAllChunksLoading(shadowRoot);
+      wrapContentInChunks(contentWrapper, tidyChunks, handleChunkTidy);
 
-      // Send pre-split chunks to background for processing
-      const response = await chrome.runtime.sendMessage({
-        action: "tidyContentChunked",
-        chunks: chunks.map((c) => ({ id: c.id, html: c.html })),
-        concurrency: 4,
-      });
+      // Update state and UI
+      tidyModeActive = true;
+      tidyBtn.innerHTML = `${tidyIcon} Done Tidying`;
+      wrapper.classList.add("tidy-mode");
 
-      if (!response?.success) {
-        clearAllLoadingStates(shadowRoot);
-        throw new Error(response?.error || "Failed to start chunked tidy");
+      console.log(`[Tidy Content] Entered tidy mode with ${chunks.length} chunks`);
+    } catch (err) {
+      console.error("[Tidy Content] Failed to enter tidy mode:", err);
+      showToast("Failed to enter tidy mode");
+    }
+  };
+
+  /**
+   * Exit tidy mode - save content and remove chunk UI
+   */
+  const exitTidyMode = async (): Promise<void> => {
+    if (!contentWrapper || !tidyModeActive) return;
+
+    try {
+      // Get final cleaned content (without chunk wrappers)
+      const finalHtml = getCleanedContent(contentWrapper);
+
+      // Remove chunk UI from DOM
+      removeChunkUI(contentWrapper);
+
+      // Update storage with final content
+      if (currentClipId) {
+        await chrome.runtime.sendMessage({
+          action: "updateClip",
+          clipId: currentClipId,
+          updates: { dom_content: finalHtml },
+        });
       }
 
-      // Track completed chunks
-      const expectedChunkIds = new Set(chunks.map((c) => c.id));
-      const completedChunkIds = new Set<string>();
-
-      // Setup listener for chunk completion events
-      const handleChunkComplete = (event: Event) => {
-        const detail = (event as CustomEvent).detail;
-        const { chunkId, html, success, error } = detail;
-        console.log(
-          `[Tidy Content] Handling chunk event:`,
-          chunkId,
-          success,
-          `(expected: ${[...expectedChunkIds].join(", ")})`,
-        );
-
-        if (!expectedChunkIds.has(chunkId) && chunkId !== "error") {
-          console.log(`[Tidy Content] Ignoring unknown chunk: ${chunkId}`);
-          return; // Not our chunk
-        }
-
-        if (chunkId === "error" || !success) {
-          console.error(`[Tidy Content] Chunk ${chunkId} failed:`, error);
-          // On error, clear loading states and restore button
-          clearAllLoadingStates(shadowRoot!);
-          tidyBtn.disabled = false;
-          tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
-          showToast("Tidy failed. Try again.");
-          window.removeEventListener("tidyChunkComplete", handleChunkComplete);
-          return;
-        }
-
-        // Update the chunk with new content
-        markChunkComplete(shadowRoot!, chunkId, html);
-        completedChunkIds.add(chunkId);
-
-        // Check if all chunks are complete
-        if (completedChunkIds.size === expectedChunkIds.size) {
-          window.removeEventListener("tidyChunkComplete", handleChunkComplete);
-
-          // All chunks complete - collect final HTML and update storage
-          const finalHtml = contentWrapper!.innerHTML;
-
-          if (currentClipId) {
-            chrome.runtime.sendMessage({
-              action: "updateClip",
-              clipId: currentClipId,
-              updates: { dom_content: finalHtml },
-            });
-          }
-
-          tidyBtn.disabled = false;
-          tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
-          showToast("Content tidied!");
-        }
-      };
-
-      window.addEventListener("tidyChunkComplete", handleChunkComplete);
-
-      console.log(`[Tidy Content] Started processing ${response.totalChunks} chunks`);
-    } catch (err) {
-      console.error("Failed to tidy content:", err);
-      clearAllLoadingStates(shadowRoot!);
-      tidyBtn.disabled = false;
+      // Update state and UI
+      tidyModeActive = false;
       tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
-      showToast("Tidy failed. Try again.");
+      wrapper.classList.remove("tidy-mode");
+
+      showToast("Content saved");
+      console.log("[Tidy Content] Exited tidy mode, content saved");
+    } catch (err) {
+      console.error("[Tidy Content] Failed to exit tidy mode:", err);
+      showToast("Failed to save content");
+    }
+  };
+
+  tidyBtn.addEventListener("click", async () => {
+    dropdownMenu.classList.remove("visible");
+
+    if (tidyModeActive) {
+      await exitTidyMode();
+    } else {
+      await enterTidyMode();
     }
   });
 
@@ -1470,18 +1494,12 @@ export async function deactivateReaderMode(): Promise<void> {
     readerModeContainer = null;
     shadowRoot = null;
     contentWrapper = null;
-    // settingsPanel = null;
     noteEditor = null;
     activeHighlightId = null;
     currentClipId = null;
     currentHighlights = [];
-    // editModeActive = false;
-    // editModeBtn = null;
-    // tidyBtn = null;
-    // resetBtn = null;
-    // exportBtn = null;
-    // ttsBtn = null;
-    // ttsPlayerContainer = null;
+    tidyModeActive = false;
+    tidyButton = null;
   } catch (error) {
     console.error("[Reader Mode] Error deactivating reader mode:", error);
   }

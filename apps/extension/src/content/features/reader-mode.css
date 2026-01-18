@@ -883,6 +883,16 @@
   pointer-events: none;
 }
 
+/* Tidy mode indicator on wrapper */
+.tidy-mode .reader-mode-content {
+  /* Subtle visual indicator that tidy mode is active */
+}
+
+/* In tidy mode, always show chunk borders for better visibility */
+.tidy-mode .tidy-chunk {
+  border-left-color: var(--border-color);
+}
+
 /* Print styles */
 @media print {
   .reader-mode-toolbar,
