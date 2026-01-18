@@ -1189,7 +1189,7 @@ Preserve:
 Return ONLY valid HTML, no explanations or markdown.`;
 
           const result = await generateText({
-            model: gateway("google/gemini-3-flash"),
+            model: gateway("google/gemini-2.5-flash"),
             messages: [
               {
                 role: "user",
@@ -1308,7 +1308,7 @@ IMPORTANT: Return ONLY raw HTML. Do NOT wrap in markdown code fences like \`\`\`
           const processChunk = async (chunk: { id: string; html: string }) => {
             try {
               const result = await generateText({
-                model: gateway("google/gemini-3-flash"),
+                model: gateway("google/gemini-2.5-flash"),
                 messages: [
                   {
                     role: "user",
