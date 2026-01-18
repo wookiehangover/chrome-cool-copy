@@ -19,6 +19,7 @@ const BACKGROUND_HANDLED_ACTIONS = [
   "savePageToDatabase",
   "clipElement",
   "generateText",
+  "readAloud",
 ] as const;
 
 // Known message actions handled by content script (index.ts)

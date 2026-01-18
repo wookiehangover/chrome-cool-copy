@@ -275,6 +275,34 @@ export const commandRegistry: Command[] = [
       );
     },
   },
+  {
+    id: "read-aloud",
+    name: "Read Aloud",
+    description: "Read this page aloud using text-to-speech",
+    shortcut: "",
+    action: async () => {
+      const text = document.body?.innerText || "";
+      const title = document.title;
+      const url = window.location.href;
+
+      // Send to background worker
+      chrome.runtime.sendMessage(
+        {
+          action: "readAloud",
+          text,
+          title,
+          url,
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            showToast("Failed to start Read Aloud");
+          } else {
+            showToast("Starting Read Aloud...");
+          }
+        },
+      );
+    },
+  },
 ];
 
 /**

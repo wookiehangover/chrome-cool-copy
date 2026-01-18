@@ -60,6 +60,10 @@ There are many like it, but this one is mine.
 - Opens an AI-powered chat assistant in the side panel
 - Interact with AI while browsing any webpage
 
+### Read Aloud
+- **Read Aloud**: Access via Command Palette
+- Read the current page content aloud using text-to-speech
+
 ### Cool Grokipedia Integration
 - **Toggle Grokipedia Banner**: Enable/disable Grokipedia banner on Wikipedia pages
 - Automatically detects Wikipedia article pages
