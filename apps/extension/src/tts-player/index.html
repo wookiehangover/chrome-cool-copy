@@ -3,67 +3,93 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TTS Player - Cool Copy</title>
+    <title>TTS Player</title>
     <link rel="stylesheet" href="./tts-player.css" />
   </head>
   <body>
     <div id="root">
-      <div class="tts-player">
-        <header class="tts-header">
-          <h1 id="page-title">Loading...</h1>
-        </header>
+      <!-- Error dialog (hidden by default) -->
+      <div id="error-dialog" class="error-dialog hidden">
+        <div class="error-content">
+          <h2>TTS Server Unavailable</h2>
+          <p>Start the pocket-tts server to use this feature.</p>
+          <code class="command-hint">pocket-tts serve</code>
+          <button id="error-close-btn" class="btn-close" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
 
-        <main class="tts-main">
-          <!-- Error dialog (hidden by default) -->
-          <div id="error-dialog" class="error-dialog hidden">
-            <h2>TTS Server Unavailable</h2>
-            <p>
-              The text-to-speech server is not running. Please start the pocket-tts server to use
-              this feature.
-            </p>
-            <code class="command-hint">pocket-tts serve</code>
-            <button id="error-close-btn" class="btn btn-primary">Got it</button>
-          </div>
+      <!-- Main player widget -->
+      <div class="tts-widget">
+        <!-- Title bar -->
+        <div class="title-bar">
+          <span id="page-title" class="title">Loading...</span>
+          <button id="stop-btn" class="icon-btn" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
 
-          <!-- Progress/streaming indicator -->
-          <div id="status-container" class="status-container">
-            <span id="status-text" class="status-text">Initializing...</span>
-          </div>
+        <!-- Player area with audio element and streaming overlay -->
+        <div class="player-area">
+          <audio id="audio-player" controls></audio>
 
-          <!-- Audio player (shown after streaming completes) -->
-          <div id="audio-container" class="audio-container hidden">
-            <audio id="audio-player" controls></audio>
+          <!-- Streaming overlay -->
+          <div id="streaming-overlay" class="streaming-overlay">
+            <svg
+              id="volume-icon"
+              class="volume-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"></polygon>
+              <path d="M15.54,8.46a5,5,0,0,1,0,7.07"></path>
+              <path d="M19.07,4.93a10,10,0,0,1,0,14.14"></path>
+            </svg>
+            <span id="status-text" class="status-text">Loading...</span>
           </div>
+        </div>
 
-          <!-- Controls -->
-          <div class="controls">
-            <button id="play-pause-btn" class="btn btn-icon" disabled>
-              <svg
-                id="play-icon"
-                class="icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <polygon points="5,3 19,12 5,21"></polygon>
-              </svg>
-              <svg
-                id="pause-icon"
-                class="icon hidden"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <rect x="6" y="4" width="4" height="16"></rect>
-                <rect x="14" y="4" width="4" height="16"></rect>
-              </svg>
-            </button>
-            <button id="stop-btn" class="btn btn-secondary">Stop</button>
-            <button id="save-btn" class="btn btn-secondary" disabled>Save Audio</button>
-          </div>
-        </main>
+        <!-- Controls row -->
+        <div class="controls">
+          <button id="play-pause-btn" class="icon-btn" disabled title="Pause">
+            <svg
+              id="play-icon"
+              class="hidden"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polygon points="5,3 19,12 5,21"></polygon>
+            </svg>
+            <svg
+              id="pause-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </button>
+          <button id="save-btn" class="icon-btn" disabled title="Save Audio">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21,15v4a2,2,0,0,1-2,2H5a2,2,0,0,1-2-2V15"></path>
+              <polyline points="7,10 12,15 17,10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
     <script type="module" src="./index.js"></script>

@@ -15,12 +15,12 @@ import {
 } from "@repo/shared/tts";
 
 // DOM elements
-const pageTitleEl = document.getElementById("page-title") as HTMLHeadingElement;
+const pageTitleEl = document.getElementById("page-title") as HTMLSpanElement;
 const errorDialog = document.getElementById("error-dialog") as HTMLDivElement;
 const errorCloseBtn = document.getElementById("error-close-btn") as HTMLButtonElement;
-const statusContainer = document.getElementById("status-container") as HTMLDivElement;
+const streamingOverlay = document.getElementById("streaming-overlay") as HTMLDivElement;
 const statusText = document.getElementById("status-text") as HTMLSpanElement;
-const audioContainer = document.getElementById("audio-container") as HTMLDivElement;
+const volumeIcon = document.getElementById("volume-icon") as unknown as SVGElement;
 const audioPlayer = document.getElementById("audio-player") as HTMLAudioElement;
 const playPauseBtn = document.getElementById("play-pause-btn") as HTMLButtonElement;
 const playIcon = document.getElementById("play-icon") as unknown as SVGElement;
@@ -43,7 +43,6 @@ const DEFAULT_TTS_URL = "http://localhost:8000";
  */
 function showError(): void {
   errorDialog.classList.remove("hidden");
-  statusContainer.classList.add("hidden");
 }
 
 /**
@@ -54,11 +53,23 @@ function hideError(): void {
 }
 
 /**
- * Update the status text
+ * Update the status text and show/hide overlay
  */
-function setStatus(text: string): void {
+function setStatus(text: string, pulsing = false): void {
   statusText.textContent = text;
-  statusContainer.classList.remove("hidden");
+  streamingOverlay.classList.remove("hidden");
+  if (pulsing) {
+    volumeIcon.classList.add("pulsing");
+  } else {
+    volumeIcon.classList.remove("pulsing");
+  }
+}
+
+/**
+ * Hide the streaming overlay (show audio player)
+ */
+function hideOverlay(): void {
+  streamingOverlay.classList.add("hidden");
 }
 
 /**
@@ -85,11 +96,11 @@ function handlePlayPause(): void {
     if (isPaused) {
       resumeStreamingTTS();
       isPaused = false;
-      setStatus("Streaming...");
+      setStatus("Streaming...", true);
     } else {
       pauseStreamingTTS();
       isPaused = true;
-      setStatus("Paused");
+      setStatus("Paused", false);
     }
     updatePlayPauseButton();
   } else if (audioPlayer.src) {
@@ -155,7 +166,7 @@ async function startTTS(text: string, ttsUrl: string): Promise<void> {
     return;
   }
 
-  setStatus("Streaming...");
+  setStatus("Streaming...", true);
   playPauseBtn.disabled = false;
   isStreaming = true;
   updatePlayPauseButton();
@@ -167,7 +178,7 @@ async function startTTS(text: string, ttsUrl: string): Promise<void> {
     // onFirstAudio - first audio chunk playing
     () => {
       console.log("[TTS Player] First audio chunk playing");
-      setStatus("Streaming...");
+      setStatus("Streaming...", true);
     },
     // onComplete - streaming finished
     (result: StreamingTTSResult) => {
@@ -176,9 +187,8 @@ async function startTTS(text: string, ttsUrl: string): Promise<void> {
       audioBlob = result.blob;
       audioBlobUrl = result.blobUrl;
 
-      // Show the audio player
-      audioContainer.classList.remove("hidden");
-      statusContainer.classList.add("hidden");
+      // Hide overlay and show audio player
+      hideOverlay();
       audioPlayer.src = result.blobUrl;
 
       // Seek to the handoff position and play
