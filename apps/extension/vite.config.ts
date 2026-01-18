@@ -28,6 +28,15 @@ function copyAssetsPlugin() {
         }
       }
 
+      // Copy TTS player HTML
+      try {
+        const ttsHtml = await fs.readFile('src/tts-player/index.html', 'utf-8')
+        await fs.mkdir('dist/tts-player', { recursive: true })
+        await fs.writeFile('dist/tts-player/index.html', ttsHtml)
+      } catch (e) {
+        console.warn('Could not copy tts-player/index.html')
+      }
+
       // Copy CSS files (clip-viewer and clipped-pages CSS removed - now using React viewer at apps/clips)
       const cssFiles = [
         'src/pages/popup/popup.css',
@@ -119,6 +128,7 @@ export default defineConfig({
         'pages/popup': resolve(__dirname, 'src/pages/popup/popup.ts'),
         // clip-viewer and clipped-pages removed - now using React viewer at apps/clips (outputs to dist/viewer)
         'pages/settings': resolve(__dirname, 'src/pages/settings/settings.ts'),
+        'tts-player/index': resolve(__dirname, 'src/tts-player/main.ts'),
       },
       external: ['just-bash', 'just-bash/browser'],
       output: {
