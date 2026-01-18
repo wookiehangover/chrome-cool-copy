@@ -790,6 +790,42 @@
   opacity: 0.6;
 }
 
+/* Progressive tidy chunk styles */
+[data-tidy-chunk] {
+  transition:
+    border-color 0.3s ease,
+    background-color 0.3s ease,
+    opacity 0.3s ease;
+}
+
+/* Pulse animation for loading chunks */
+@keyframes tidy-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.tidy-loading {
+  border-left: 3px solid var(--text-muted);
+  padding-left: 12px;
+  margin-left: -15px;
+  background-color: var(--control-bg);
+  opacity: 0.7;
+  animation: tidy-pulse 1.5s ease-in-out infinite;
+}
+
+/* Remove animation and restore full opacity when complete */
+[data-tidy-chunk]:not(.tidy-loading) {
+  animation: none;
+  opacity: 1;
+  border-left-color: transparent;
+  background-color: transparent;
+}
+
 /* Print styles */
 @media print {
   .reader-mode-toolbar,
