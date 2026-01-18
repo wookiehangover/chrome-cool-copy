@@ -316,8 +316,9 @@ async function checkTTSServerAvailable(serverUrl: string): Promise<boolean> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
+    // Use GET instead of HEAD - pocket-tts doesn't support HEAD requests
     const response = await fetch(serverUrl, {
-      method: "HEAD",
+      method: "GET",
       signal: controller.signal,
     });
 
