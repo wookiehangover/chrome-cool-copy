@@ -356,6 +356,7 @@ export function ViewerToolbar({
   const [isTTSStreaming, setIsTTSStreaming] = useState(false);
   const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
   const [audioHandoffTime, setAudioHandoffTime] = useState<number | null>(null);
+  const [showTTSServerDialog, setShowTTSServerDialog] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleTidy = async () => {
