@@ -10,6 +10,13 @@ import styles from "./reader-mode.css?raw";
 import type { Highlight } from "@repo/shared";
 import { showToast } from "../toast.js";
 import { copyToClipboard } from "../clipboard.js";
+import { getHtmlChunks } from "../../services/html-chunk-splitter.js";
+import {
+  wrapContentInChunks,
+  markAllChunksLoading,
+  markChunkComplete,
+  clearAllLoadingStates,
+} from "./tidy-chunks.js";
 
 // =============================================================================
 // Reader Mode
@@ -773,7 +780,7 @@ async function createReaderModeUI(
   const dropdownMenu = document.createElement("div");
   dropdownMenu.className = "reader-dropdown-menu";
 
-  // Tidy Content
+  // Tidy Content - Progressive chunked processing
   const tidyBtn = document.createElement("button");
   tidyBtn.className = "reader-dropdown-item";
   tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
@@ -781,28 +788,103 @@ async function createReaderModeUI(
     dropdownMenu.classList.remove("visible");
     tidyBtn.disabled = true;
     tidyBtn.innerHTML = `${tidyIcon} Tidying...`;
-    try {
-      const response = await chrome.runtime.sendMessage({
-        action: "tidyContent",
-        domContent: contentWrapper?.innerHTML || "",
-      });
-      const tidyContent = response?.data || response?.content;
-      if (tidyContent && contentWrapper) {
-        contentWrapper.innerHTML = tidyContent;
-        // Update the clip in storage
-        if (currentClipId) {
-          await chrome.runtime.sendMessage({
-            action: "updateClip",
-            clipId: currentClipId,
-            updates: { dom_content: tidyContent },
-          });
-        }
-      }
-    } catch (err) {
-      console.error("Failed to tidy content:", err);
-    } finally {
+
+    if (!contentWrapper || !shadowRoot) {
       tidyBtn.disabled = false;
       tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
+      return;
+    }
+
+    try {
+      const originalHtml = contentWrapper.innerHTML;
+
+      // Split content into chunks
+      const htmlChunks = getHtmlChunks(originalHtml);
+
+      if (htmlChunks.length === 0) {
+        console.warn("[Tidy Content] No chunks generated from content");
+        return;
+      }
+
+      // Map HtmlChunk to TidyChunk format (html -> content)
+      const tidyChunks = htmlChunks.map((c) => ({ id: c.id, content: c.html }));
+
+      // Wrap content with chunk divs and mark as loading
+      wrapContentInChunks(contentWrapper, tidyChunks);
+      markAllChunksLoading(shadowRoot);
+
+      // Track completed chunks
+      const expectedChunkIds = new Set(htmlChunks.map((c) => c.id));
+      const completedChunkIds = new Set<string>();
+      let hasError = false;
+
+      // Setup listener for chunk completion events
+      const handleChunkComplete = (event: Event) => {
+        const detail = (event as CustomEvent).detail;
+        const { chunkId, html, success, error } = detail;
+
+        if (!expectedChunkIds.has(chunkId) && chunkId !== "error") {
+          return; // Not our chunk
+        }
+
+        if (chunkId === "error" || !success) {
+          console.error(`[Tidy Content] Chunk ${chunkId} failed:`, error);
+          hasError = true;
+          // On error, clear loading states and restore button
+          clearAllLoadingStates(shadowRoot!);
+          tidyBtn.disabled = false;
+          tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
+          showToast("Tidy failed. Try again.");
+          window.removeEventListener("tidyChunkComplete", handleChunkComplete);
+          return;
+        }
+
+        // Update the chunk with new content
+        markChunkComplete(shadowRoot!, chunkId, html);
+        completedChunkIds.add(chunkId);
+
+        // Check if all chunks are complete
+        if (completedChunkIds.size === expectedChunkIds.size) {
+          window.removeEventListener("tidyChunkComplete", handleChunkComplete);
+
+          // All chunks complete - collect final HTML and update storage
+          const finalHtml = contentWrapper!.innerHTML;
+
+          if (currentClipId) {
+            chrome.runtime.sendMessage({
+              action: "updateClip",
+              clipId: currentClipId,
+              updates: { dom_content: finalHtml },
+            });
+          }
+
+          tidyBtn.disabled = false;
+          tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
+          showToast("Content tidied!");
+        }
+      };
+
+      window.addEventListener("tidyChunkComplete", handleChunkComplete);
+
+      // Send chunked tidy request to background
+      const response = await chrome.runtime.sendMessage({
+        action: "tidyContentChunked",
+        domContent: originalHtml,
+        concurrency: 4,
+      });
+
+      if (!response?.success) {
+        throw new Error(response?.error || "Failed to start chunked tidy");
+      }
+
+      // Response contains totalChunks and chunkIds for verification
+      console.log(`[Tidy Content] Started processing ${response.totalChunks} chunks`);
+    } catch (err) {
+      console.error("Failed to tidy content:", err);
+      clearAllLoadingStates(shadowRoot!);
+      tidyBtn.disabled = false;
+      tidyBtn.innerHTML = `${tidyIcon} Tidy Content`;
+      showToast("Tidy failed. Try again.");
     }
   });
 

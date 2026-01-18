@@ -183,6 +183,11 @@ chrome.runtime.onMessage.addListener(
         // Dispatch custom event for reader-mode.ts to handle
         window.dispatchEvent(new CustomEvent("ttsPlaybackEvent", { detail: message }));
         sendResponse({ success: true });
+      } else if (message.action === "tidyChunkComplete") {
+        // Progressive tidy chunk update from background
+        // Dispatch custom event for reader-mode.ts to handle
+        window.dispatchEvent(new CustomEvent("tidyChunkComplete", { detail: message }));
+        sendResponse({ success: true });
       } else {
         console.warn("[Clean Link Copy] Unknown message action:", message.action);
         sendResponse({ success: false, error: "Unknown action" });
