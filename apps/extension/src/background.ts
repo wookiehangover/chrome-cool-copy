@@ -1406,6 +1406,34 @@ Return ONLY valid HTML, no explanations or markdown.`;
         }
       })();
       return true;
+    } else if (message.action === "readAloud") {
+      (async () => {
+        try {
+          // Store text for TTS player to read
+          await chrome.storage.local.set({
+            tts_pending_text: {
+              text: message.text,
+              title: message.title,
+              url: message.url,
+              timestamp: Date.now(),
+            },
+          });
+
+          // Open TTS player popup window
+          await chrome.windows.create({
+            url: chrome.runtime.getURL("tts-player/index.html"),
+            type: "popup",
+            width: 450,
+            height: 350,
+          });
+
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error("[Read Aloud] Error:", error);
+          sendResponse({ success: false, error: String(error) });
+        }
+      })();
+      return true; // Will send response asynchronously
     }
   } catch (error: unknown) {
     console.error("[Clean Link Copy] Error in message listener:", error);
