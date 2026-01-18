@@ -4,9 +4,51 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TTS Player - Cool Copy</title>
+    <link rel="stylesheet" href="./tts-player.css" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="tts-player">
+        <header class="tts-header">
+          <h1 id="page-title">Loading...</h1>
+        </header>
+
+        <main class="tts-main">
+          <!-- Error dialog (hidden by default) -->
+          <div id="error-dialog" class="error-dialog hidden">
+            <h2>TTS Server Unavailable</h2>
+            <p>The text-to-speech server is not running. Please start the pocket-tts server to use this feature.</p>
+            <code class="command-hint">pocket-tts serve</code>
+            <button id="error-close-btn" class="btn btn-primary">Got it</button>
+          </div>
+
+          <!-- Progress/streaming indicator -->
+          <div id="status-container" class="status-container">
+            <span id="status-text" class="status-text">Initializing...</span>
+          </div>
+
+          <!-- Audio player (shown after streaming completes) -->
+          <div id="audio-container" class="audio-container hidden">
+            <audio id="audio-player" controls></audio>
+          </div>
+
+          <!-- Controls -->
+          <div class="controls">
+            <button id="play-pause-btn" class="btn btn-icon" disabled>
+              <svg id="play-icon" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5,3 19,12 5,21"></polygon>
+              </svg>
+              <svg id="pause-icon" class="icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            </button>
+            <button id="stop-btn" class="btn btn-secondary">Stop</button>
+            <button id="save-btn" class="btn btn-secondary" disabled>Save Audio</button>
+          </div>
+        </main>
+      </div>
+    </div>
     <script type="module" src="./index.js"></script>
   </body>
 </html>

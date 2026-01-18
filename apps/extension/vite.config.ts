@@ -28,13 +28,15 @@ function copyAssetsPlugin() {
         }
       }
 
-      // Copy TTS player HTML
+      // Copy TTS player HTML and CSS
       try {
-        const ttsHtml = await fs.readFile('src/tts-player/index.html', 'utf-8')
         await fs.mkdir('dist/tts-player', { recursive: true })
+        const ttsHtml = await fs.readFile('src/tts-player/index.html', 'utf-8')
         await fs.writeFile('dist/tts-player/index.html', ttsHtml)
+        const ttsCss = await fs.readFile('src/tts-player/tts-player.css', 'utf-8')
+        await fs.writeFile('dist/tts-player/tts-player.css', ttsCss)
       } catch (e) {
-        console.warn('Could not copy tts-player/index.html')
+        console.warn('Could not copy tts-player files:', e)
       }
 
       // Copy CSS files (clip-viewer and clipped-pages CSS removed - now using React viewer at apps/clips)
