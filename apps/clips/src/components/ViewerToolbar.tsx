@@ -332,6 +332,8 @@ async function checkTTSServerAvailable(serverUrl: string): Promise<boolean> {
 interface ViewerToolbarProps {
   clip: LocalClip;
   isEditMode: boolean;
+  editContent: string;
+  onEditContentChange: (content: string) => void;
   onEditModeChange: (enabled: boolean) => void;
   onSettingsClick: () => void;
   onSave: (content: string) => Promise<void>;
@@ -341,6 +343,8 @@ interface ViewerToolbarProps {
 export function ViewerToolbar({
   clip,
   isEditMode,
+  editContent,
+  onEditContentChange,
   onEditModeChange,
   onSettingsClick,
   onSave,
@@ -351,7 +355,6 @@ export function ViewerToolbar({
   const { copyShareUrl } = useShareUrl();
   const { ttsUrl } = useTtsUrl();
   const [isTidying, setIsTidying] = useState(false);
-  const [editContent, setEditContent] = useState(clip.dom_content);
   const [isSharing, setIsSharing] = useState(false);
   const [isTTSLoading, setIsTTSLoading] = useState(false);
   const [isTTSStreaming, setIsTTSStreaming] = useState(false);
@@ -368,7 +371,7 @@ export function ViewerToolbar({
         domContent: clip.dom_content,
       });
       if (response?.data) {
-        setEditContent(response.data);
+        onEditContentChange(response.data);
         await updateClip(clip.id, { dom_content: response.data });
       }
     } catch (err) {

@@ -467,6 +467,8 @@ export function ClipViewer() {
           <ViewerToolbar
             clip={clip as LocalClip}
             isEditMode={isEditMode}
+            editContent={editContent}
+            onEditContentChange={setEditContent}
             onEditModeChange={setIsEditMode}
             onSettingsClick={() => setShowSettings(!showSettings)}
             onSave={async (newContent) => {
