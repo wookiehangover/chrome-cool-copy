@@ -39,6 +39,7 @@ import {
 import { generateElementSummary } from "./services/element-ai-summary";
 import { generateElementTitleAndDescription } from "./services/element-ai-service";
 import { initAssetStore, saveAsset, getAssetAsDataUrl } from "./services/asset-store";
+import { getHtmlChunks } from "./services/html-chunk-splitter";
 import type {
   GenerateTextRequest,
   StreamTextRequest,
@@ -1207,6 +1208,162 @@ Return ONLY valid HTML, no explanations or markdown.`;
         } catch (error) {
           console.error("[Clean Link Copy] Error in tidyContent handler:", error);
           sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+
+      return true;
+    } else if (message.action === "tidyContentChunked") {
+      // Handle chunked HTML content cleaning request
+      const { domContent, concurrency = 4 } = message;
+      const tabId = sender.tab?.id;
+
+      if (!domContent || typeof domContent !== "string") {
+        sendResponse({
+          success: false,
+          error: "domContent is required and must be a string",
+        });
+        return false;
+      }
+
+      if (!tabId) {
+        sendResponse({
+          success: false,
+          error: "Could not determine sender tab",
+        });
+        return false;
+      }
+
+      (async () => {
+        try {
+          const storageData = await new Promise<{
+            aiGatewayConfig?: VercelAIGatewayConfig;
+          }>((resolve) => {
+            chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
+              resolve(result);
+            });
+          });
+
+          const config = storageData.aiGatewayConfig;
+          if (!config || !config.apiKey || !config.model) {
+            throw new Error(
+              "Vercel AI Gateway configuration not found. Please configure settings.",
+            );
+          }
+
+          const gateway = createGateway({
+            apiKey: config.apiKey,
+          });
+
+          const systemPrompt = `You are an HTML content cleaner. Given HTML content from a web page, return ONLY the cleaned HTML.
+
+Remove these types of elements:
+- Advertisements and promotional content
+- Navigation menus and sidebars
+- Social sharing buttons
+- Comment sections
+- Related articles sections
+- Newsletter signup forms
+- Cookie banners
+- Floating elements and popups
+- Empty or decorative containers
+
+Preserve:
+- Main article text and paragraphs
+- Headings and subheadings
+- Images with their alt text and captions
+- Code blocks and pre-formatted text
+- Block quotes
+- Lists (ordered and unordered)
+- Tables with data
+- Links within the content
+
+Return ONLY valid HTML, no explanations or markdown.`;
+
+          // Split content into chunks
+          const chunks = getHtmlChunks(domContent);
+          const totalChunks = chunks.length;
+
+          // Send initial response with chunk count
+          sendResponse({
+            success: true,
+            totalChunks,
+            chunkIds: chunks.map((c) => c.id),
+          });
+
+          // Process chunks with concurrency limit
+          const processChunk = async (chunk: { id: string; html: string }) => {
+            try {
+              const result = await generateText({
+                model: gateway("google/gemini-3-flash"),
+                messages: [
+                  {
+                    role: "user",
+                    content: chunk.html,
+                  },
+                ],
+                system: systemPrompt,
+                maxOutputTokens: 20_000,
+              });
+
+              // Send result back to the tab
+              chrome.tabs.sendMessage(tabId, {
+                action: "tidyChunkComplete",
+                chunkId: chunk.id,
+                html: result.text,
+                success: true,
+              });
+            } catch (error) {
+              console.error(
+                `[Clean Link Copy] Error processing chunk ${chunk.id}:`,
+                error,
+              );
+              chrome.tabs.sendMessage(tabId, {
+                action: "tidyChunkComplete",
+                chunkId: chunk.id,
+                html: "",
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+          };
+
+          // Process chunks with concurrency limit using a simple pool
+          const pool: Promise<void>[] = [];
+          for (const chunk of chunks) {
+            const task = processChunk(chunk);
+            pool.push(task);
+
+            if (pool.length >= concurrency) {
+              await Promise.race(pool);
+              // Remove completed promises
+              for (let i = pool.length - 1; i >= 0; i--) {
+                // Create a flag to check if promise is settled
+                const isSettled = await Promise.race([
+                  pool[i].then(() => true),
+                  Promise.resolve(false),
+                ]);
+                if (isSettled) {
+                  pool.splice(i, 1);
+                }
+              }
+            }
+          }
+
+          // Wait for remaining tasks
+          await Promise.all(pool);
+        } catch (error) {
+          console.error(
+            "[Clean Link Copy] Error in tidyContentChunked handler:",
+            error,
+          );
+          // Send error as a chunk complete message so caller knows processing failed
+          chrome.tabs.sendMessage(tabId, {
+            action: "tidyChunkComplete",
+            chunkId: "error",
+            html: "",
             success: false,
             error: error instanceof Error ? error.message : String(error),
           });

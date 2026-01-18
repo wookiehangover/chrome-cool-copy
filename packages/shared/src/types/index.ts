@@ -162,6 +162,45 @@ export type StreamMessageType =
   | { type: "error"; error: string };
 
 /**
+ * Request for chunked HTML content tidying
+ */
+export interface TidyContentChunkedRequest {
+  action: "tidyContentChunked";
+  /** HTML content to be cleaned */
+  domContent: string;
+  /** Maximum concurrent chunk processing (default: 4) */
+  concurrency?: number;
+}
+
+/**
+ * Initial response from tidyContentChunked request
+ */
+export interface TidyContentChunkedResponse {
+  success: boolean;
+  /** Total number of chunks being processed */
+  totalChunks?: number;
+  /** IDs of all chunks in order */
+  chunkIds?: string[];
+  /** Error message if success is false */
+  error?: string;
+}
+
+/**
+ * Message sent for each completed chunk during chunked processing
+ */
+export interface TidyChunkCompleteMessage {
+  action: "tidyChunkComplete";
+  /** ID of the completed chunk */
+  chunkId: string;
+  /** Cleaned HTML content for this chunk */
+  html: string;
+  /** Whether the chunk was processed successfully */
+  success: boolean;
+  /** Error message if success is false */
+  error?: string;
+}
+
+/**
  * A text highlight within a clipped page
  */
 export interface Highlight {
