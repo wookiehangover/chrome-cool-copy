@@ -888,7 +888,7 @@ async function createReaderModeUI(
       // Update storage with final content
       if (currentClipId) {
         await chrome.runtime.sendMessage({
-          action: "updateClip",
+          action: "updateLocalClip",
           clipId: currentClipId,
           updates: { dom_content: finalHtml },
         });
