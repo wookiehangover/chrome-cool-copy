@@ -1423,8 +1423,8 @@ Return ONLY valid HTML, no explanations or markdown.`;
           await chrome.windows.create({
             url: chrome.runtime.getURL("tts-player/index.html"),
             type: "popup",
-            width: 450,
-            height: 350,
+            width: 350,
+            height: 175,
           });
 
           sendResponse({ success: true });
