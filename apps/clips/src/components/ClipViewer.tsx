@@ -305,7 +305,10 @@ export function ClipViewer() {
     return offset;
   };
 
-  const handleContentMouseUp = async () => {
+  const handleContentMouseUp = async (e: React.MouseEvent) => {
+    // Skip highlighting when shift is held - allow normal text selection for copying
+    if (e.shiftKey) return;
+
     if (isEditMode || !clip) return;
 
     const selection = window.getSelection();

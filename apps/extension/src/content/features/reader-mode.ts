@@ -1239,9 +1239,14 @@ function setupSelectionListener(): void {
   if (!shadowRoot || !contentWrapper) return;
 
   // Listen on the shadowRoot for mouseup events
-  shadowRoot.addEventListener("mouseup", async (_e) => {
+  shadowRoot.addEventListener("mouseup", async (e) => {
     // Skip highlighting in edit mode - allow normal text editing
     if (isEditMode()) {
+      return;
+    }
+
+    // Skip highlighting when shift is held - allow normal text selection for copying
+    if ((e as MouseEvent).shiftKey) {
       return;
     }
 
