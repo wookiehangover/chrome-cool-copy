@@ -198,7 +198,7 @@ async function startTTS(text: string, ttsUrl: string): Promise<void> {
       isStreaming = false;
       setStatus(`Error: ${error.message}`);
       playPauseBtn.disabled = true;
-    }
+    },
   );
 }
 
@@ -233,7 +233,11 @@ async function init(): Promise<void> {
   setStatus("Loading...");
 
   try {
-    const result = await chrome.storage.local.get(["tts_pending_text", "tts_page_title", "tts_url"]);
+    const result = await chrome.storage.local.get([
+      "tts_pending_text",
+      "tts_page_title",
+      "tts_url",
+    ]);
 
     const text = result.tts_pending_text as string | undefined;
     pageTitle = (result.tts_page_title as string) || "TTS Player";
@@ -265,4 +269,3 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
-

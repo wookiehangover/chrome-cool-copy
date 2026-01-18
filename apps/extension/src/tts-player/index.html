@@ -17,7 +17,10 @@
           <!-- Error dialog (hidden by default) -->
           <div id="error-dialog" class="error-dialog hidden">
             <h2>TTS Server Unavailable</h2>
-            <p>The text-to-speech server is not running. Please start the pocket-tts server to use this feature.</p>
+            <p>
+              The text-to-speech server is not running. Please start the pocket-tts server to use
+              this feature.
+            </p>
             <code class="command-hint">pocket-tts serve</code>
             <button id="error-close-btn" class="btn btn-primary">Got it</button>
           </div>
@@ -35,10 +38,24 @@
           <!-- Controls -->
           <div class="controls">
             <button id="play-pause-btn" class="btn btn-icon" disabled>
-              <svg id="play-icon" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                id="play-icon"
+                class="icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <polygon points="5,3 19,12 5,21"></polygon>
               </svg>
-              <svg id="pause-icon" class="icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                id="pause-icon"
+                class="icon hidden"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <rect x="6" y="4" width="4" height="16"></rect>
                 <rect x="14" y="4" width="4" height="16"></rect>
               </svg>
@@ -52,4 +69,3 @@
     <script type="module" src="./index.js"></script>
   </body>
 </html>
-
