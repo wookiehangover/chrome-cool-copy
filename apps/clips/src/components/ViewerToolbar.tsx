@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useClips } from "@/hooks/useClips";
 import { useShareUrl } from "@/hooks/useShareUrl";
+import { useTtsUrl } from "@/hooks/useTtsUrl";
 import { getCachedAudio, cacheAudio } from "@/hooks/useTTSCache";
 import type { LocalClip } from "@repo/shared";
 import {
@@ -24,8 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const TTS_SERVER_URL = "http://localhost:8000";
 
 /**
  * Hybrid Streaming WAV Player using Web Audio API
@@ -228,6 +227,7 @@ interface StreamingTTSResult {
  */
 async function startStreamingTTS(
   text: string,
+  serverUrl: string,
   voice: string = "alba",
   onFirstAudio?: () => void,
   onComplete?: (result: StreamingTTSResult) => void,
@@ -243,10 +243,10 @@ async function startStreamingTTS(
   formData.append("text", text);
   formData.append("voice_url", voice);
 
-  console.log("[TTS] Starting streaming fetch to", TTS_SERVER_URL);
+  console.log("[TTS] Starting streaming fetch to", serverUrl);
 
   try {
-    const response = await fetch(`${TTS_SERVER_URL}/tts`, {
+    const response = await fetch(`${serverUrl}/tts`, {
       method: "POST",
       body: formData,
     });
@@ -319,6 +319,7 @@ export function ViewerToolbar({
   const navigate = useNavigate();
   const { updateClip } = useClips();
   const { copyShareUrl } = useShareUrl();
+  const { ttsUrl } = useTtsUrl();
   const [isTidying, setIsTidying] = useState(false);
   const [editContent, setEditContent] = useState(clip.dom_content);
   const [isSharing, setIsSharing] = useState(false);
@@ -441,6 +442,7 @@ export function ViewerToolbar({
 
     startStreamingTTS(
       textContent,
+      ttsUrl,
       "alba",
       // onFirstAudio - audio started playing
       () => {
@@ -465,7 +467,7 @@ export function ViewerToolbar({
         setIsTTSStreaming(false);
       },
     );
-  }, [clip.id, clip.text_content, isTTSStreaming, audioBlobUrl]);
+  }, [clip.id, clip.text_content, isTTSStreaming, audioBlobUrl, ttsUrl]);
 
   const handleStopTTS = useCallback(() => {
     stopStreamingTTS();
