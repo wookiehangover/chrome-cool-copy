@@ -186,6 +186,7 @@ chrome.runtime.onMessage.addListener(
       } else if (message.action === "tidyChunkComplete") {
         // Progressive tidy chunk update from background
         // Dispatch custom event for reader-mode.ts to handle
+        console.log("[Tidy Chunk] Received chunk complete:", message.chunkId, message.success);
         window.dispatchEvent(new CustomEvent("tidyChunkComplete", { detail: message }));
         sendResponse({ success: true });
       } else {

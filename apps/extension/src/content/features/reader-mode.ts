@@ -797,19 +797,9 @@ async function createReaderModeUI(
     try {
       const originalHtml = contentWrapper.innerHTML;
 
-      // Send chunked tidy request to background - it will split and return chunk info
-      const response = await chrome.runtime.sendMessage({
-        action: "tidyContentChunked",
-        domContent: originalHtml,
-        concurrency: 4,
-      });
-
-      if (!response?.success) {
-        throw new Error(response?.error || "Failed to start chunked tidy");
-      }
-
-      // Response contains chunks array with {id, html} from background
-      const chunks: Array<{ id: string; html: string }> = response.chunks || [];
+      // Split content into chunks locally (content script has DOM access)
+      const { getHtmlChunks } = await import("../../services/html-chunk-splitter.js");
+      const chunks = getHtmlChunks(originalHtml);
 
       if (chunks.length === 0) {
         console.warn("[Tidy Content] No chunks generated from content");
@@ -818,10 +808,22 @@ async function createReaderModeUI(
         return;
       }
 
-      // Map to TidyChunk format and wrap content with chunk divs
+      // Wrap DOM with chunk divs BEFORE sending to background
       const tidyChunks = chunks.map((c) => ({ id: c.id, content: c.html }));
       wrapContentInChunks(contentWrapper, tidyChunks);
       markAllChunksLoading(shadowRoot);
+
+      // Send pre-split chunks to background for processing
+      const response = await chrome.runtime.sendMessage({
+        action: "tidyContentChunked",
+        chunks: chunks.map((c) => ({ id: c.id, html: c.html })),
+        concurrency: 4,
+      });
+
+      if (!response?.success) {
+        clearAllLoadingStates(shadowRoot);
+        throw new Error(response?.error || "Failed to start chunked tidy");
+      }
 
       // Track completed chunks
       const expectedChunkIds = new Set(chunks.map((c) => c.id));
@@ -831,8 +833,10 @@ async function createReaderModeUI(
       const handleChunkComplete = (event: Event) => {
         const detail = (event as CustomEvent).detail;
         const { chunkId, html, success, error } = detail;
+        console.log(`[Tidy Content] Handling chunk event:`, chunkId, success, `(expected: ${[...expectedChunkIds].join(", ")})`);
 
         if (!expectedChunkIds.has(chunkId) && chunkId !== "error") {
+          console.log(`[Tidy Content] Ignoring unknown chunk: ${chunkId}`);
           return; // Not our chunk
         }
 

@@ -39,7 +39,6 @@ import {
 import { generateElementSummary } from "./services/element-ai-summary";
 import { generateElementTitleAndDescription } from "./services/element-ai-service";
 import { initAssetStore, saveAsset, getAssetAsDataUrl } from "./services/asset-store";
-import { getHtmlChunks } from "./services/html-chunk-splitter";
 import type {
   GenerateTextRequest,
   StreamTextRequest,
@@ -1217,13 +1216,14 @@ Return ONLY valid HTML, no explanations or markdown.`;
       return true;
     } else if (message.action === "tidyContentChunked") {
       // Handle chunked HTML content cleaning request
-      const { domContent, concurrency = 4 } = message;
+      // Content script splits the HTML into chunks (has DOM access) and sends pre-split chunks here
+      const { chunks, concurrency = 4 } = message;
       const tabId = sender.tab?.id;
 
-      if (!domContent || typeof domContent !== "string") {
+      if (!chunks || !Array.isArray(chunks) || chunks.length === 0) {
         sendResponse({
           success: false,
-          error: "domContent is required and must be a string",
+          error: "chunks array is required",
         });
         return false;
       }
@@ -1235,6 +1235,12 @@ Return ONLY valid HTML, no explanations or markdown.`;
         });
         return false;
       }
+
+      // Send success response immediately - processing happens async
+      sendResponse({
+        success: true,
+        totalChunks: chunks.length,
+      });
 
       (async () => {
         try {
@@ -1281,18 +1287,6 @@ Preserve:
 - Links within the content
 
 Return ONLY valid HTML, no explanations or markdown.`;
-
-          // Split content into chunks
-          const chunks = getHtmlChunks(domContent);
-          const totalChunks = chunks.length;
-
-          // Send initial response with chunk count and chunk data
-          // Content script needs full chunk data to wrap DOM before processing starts
-          sendResponse({
-            success: true,
-            totalChunks,
-            chunks: chunks.map((c) => ({ id: c.id, html: c.html })),
-          });
 
           // Process chunks with concurrency limit
           const processChunk = async (chunk: { id: string; html: string }) => {
