@@ -233,14 +233,14 @@ async function init(): Promise<void> {
   setStatus("Loading...");
 
   try {
-    const result = await chrome.storage.local.get([
-      "tts_pending_text",
-      "tts_page_title",
-      "tts_url",
-    ]);
+    const result = await chrome.storage.local.get(["tts_pending_text", "tts_url"]);
 
-    const text = result.tts_pending_text as string | undefined;
-    pageTitle = (result.tts_page_title as string) || "TTS Player";
+    // tts_pending_text is an object: { text, title, url, timestamp }
+    const pendingData = result.tts_pending_text as
+      | { text: string; title: string; url: string; timestamp: number }
+      | undefined;
+    const text = pendingData?.text;
+    pageTitle = pendingData?.title || "TTS Player";
     const ttsUrl = (result.tts_url as string) || DEFAULT_TTS_URL;
 
     // Update page title
@@ -248,7 +248,7 @@ async function init(): Promise<void> {
     document.title = `${pageTitle} - TTS Player`;
 
     // Clear the pending text from storage
-    await chrome.storage.local.remove(["tts_pending_text", "tts_page_title"]);
+    await chrome.storage.local.remove(["tts_pending_text"]);
 
     if (!text || text.trim().length === 0) {
       setStatus("No text to read");
