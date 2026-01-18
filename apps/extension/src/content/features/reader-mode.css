@@ -790,40 +790,97 @@
   opacity: 0.6;
 }
 
-/* Progressive tidy chunk styles */
-[data-tidy-chunk] {
-  transition:
-    border-color 0.3s ease,
-    background-color 0.3s ease,
-    opacity 0.3s ease;
+/* Manual Tidy Chunk UI Styles */
+
+/* Base chunk wrapper */
+.tidy-chunk {
+  position: relative;
+  border-left: 2px solid transparent;
+  padding-left: 12px;
+  margin-left: -14px;
+  transition: border-color 0.2s ease;
+}
+
+.tidy-chunk:hover {
+  border-left-color: var(--text-muted);
+}
+
+/* Content wrapper inside chunk */
+.tidy-chunk-content {
+  /* Inherits content styles from parent */
+}
+
+/* Action buttons container - show on hover */
+.tidy-chunk-controls {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+}
+
+.tidy-chunk:hover .tidy-chunk-controls {
+  opacity: 1;
+}
+
+/* Individual action buttons */
+.tidy-chunk-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--text-color, var(--text-secondary));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  padding: 0;
+}
+
+.tidy-chunk-btn:hover {
+  opacity: 1;
+  background: var(--control-hover);
+}
+
+.tidy-chunk-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.tidy-chunk-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Pulse animation for loading chunks */
 @keyframes tidy-pulse {
   0%,
   100% {
-    opacity: 0.7;
+    opacity: 1;
   }
   50% {
     opacity: 0.5;
   }
 }
 
-.tidy-loading {
-  border-left: 3px solid var(--text-muted);
-  padding-left: 12px;
-  margin-left: -15px;
-  background-color: var(--control-bg);
-  opacity: 0.7;
+/* Loading state */
+.tidy-chunk.loading {
+  border-left-color: var(--accent-color, #3b82f6);
   animation: tidy-pulse 1.5s ease-in-out infinite;
 }
 
-/* Remove animation and restore full opacity when complete */
-[data-tidy-chunk]:not(.tidy-loading) {
-  animation: none;
-  opacity: 1;
-  border-left-color: transparent;
-  background-color: transparent;
+.tidy-chunk.loading .tidy-chunk-controls {
+  opacity: 0.5;
+}
+
+.tidy-chunk.loading .tidy-chunk-btn {
+  pointer-events: none;
 }
 
 /* Print styles */
