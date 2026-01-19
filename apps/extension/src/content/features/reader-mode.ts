@@ -42,6 +42,11 @@ let activeHighlightId: string | null = null;
 let tidyModeActive = false;
 let tidyButton: HTMLButtonElement | null = null;
 
+// Edit mode state
+let editModeActive = false;
+let originalContent: string = "";
+let editToolbarContainer: HTMLElement | null = null;
+
 // Settings defaults
 interface ReaderSettings {
   fontFamily: "sans" | "serif" | "mono";
@@ -740,6 +745,103 @@ function openInClipViewer(): void {
 }
 
 /**
+ * Enter edit mode - make content editable and show save/cancel buttons
+ */
+function enterEditMode(wrapper: HTMLElement, toolbar: HTMLElement): void {
+  if (!contentWrapper || editModeActive) return;
+
+  // Store original content for cancel
+  originalContent = contentWrapper.innerHTML;
+  editModeActive = true;
+
+  // Make content editable
+  contentWrapper.contentEditable = "true";
+  wrapper.classList.add("edit-mode");
+
+  // Create edit toolbar with Save/Cancel buttons
+  editToolbarContainer = document.createElement("div");
+  editToolbarContainer.className = "edit-toolbar";
+
+  const saveIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+  const cancelIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
+
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "reader-mode-btn edit-save-btn";
+  saveBtn.innerHTML = saveIcon;
+  saveBtn.title = "Save changes";
+  saveBtn.addEventListener("click", () => exitEditMode(wrapper));
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "reader-mode-btn edit-cancel-btn";
+  cancelBtn.innerHTML = cancelIcon;
+  cancelBtn.title = "Cancel editing";
+  cancelBtn.addEventListener("click", () => cancelEditMode(wrapper));
+
+  editToolbarContainer.appendChild(saveBtn);
+  editToolbarContainer.appendChild(cancelBtn);
+
+  // Insert edit toolbar before close button
+  toolbar.insertBefore(editToolbarContainer, toolbar.lastElementChild);
+}
+
+/**
+ * Exit edit mode and save changes
+ */
+async function exitEditMode(wrapper: HTMLElement): Promise<void> {
+  if (!contentWrapper || !editModeActive) return;
+
+  const newContent = contentWrapper.innerHTML;
+
+  // Save to storage
+  if (currentClipId) {
+    try {
+      await chrome.runtime.sendMessage({
+        action: "updateClipContent",
+        clipId: currentClipId,
+        domContent: newContent,
+        textContent: contentWrapper.textContent || "",
+      });
+      showToast("Content saved");
+    } catch (err) {
+      console.error("Failed to save content:", err);
+      showToast("Failed to save content");
+    }
+  }
+
+  // Exit edit mode
+  contentWrapper.contentEditable = "false";
+  wrapper.classList.remove("edit-mode");
+  editModeActive = false;
+
+  // Remove edit toolbar
+  if (editToolbarContainer) {
+    editToolbarContainer.remove();
+    editToolbarContainer = null;
+  }
+}
+
+/**
+ * Cancel edit mode and restore original content
+ */
+function cancelEditMode(wrapper: HTMLElement): void {
+  if (!contentWrapper || !editModeActive) return;
+
+  // Restore original content
+  contentWrapper.innerHTML = originalContent;
+
+  // Exit edit mode
+  contentWrapper.contentEditable = "false";
+  wrapper.classList.remove("edit-mode");
+  editModeActive = false;
+
+  // Remove edit toolbar
+  if (editToolbarContainer) {
+    editToolbarContainer.remove();
+    editToolbarContainer = null;
+  }
+}
+
+/**
  * Create the reader mode UI with Shadow DOM
  */
 async function createReaderModeUI(
@@ -974,8 +1076,19 @@ async function createReaderModeUI(
     });
   });
 
+  // Edit Content
+  const pencilIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`;
+  const editBtn = document.createElement("button");
+  editBtn.className = "reader-dropdown-item";
+  editBtn.innerHTML = `${pencilIcon} Edit Content`;
+  editBtn.addEventListener("click", () => {
+    dropdownMenu.classList.remove("visible");
+    enterEditMode(wrapper, toolbar);
+  });
+
   // Assemble dropdown menu
   dropdownMenu.appendChild(tidyBtn);
+  dropdownMenu.appendChild(editBtn);
   dropdownMenu.appendChild(resetBtn);
   dropdownMenu.appendChild(separator);
   dropdownMenu.appendChild(viewClipBtn);

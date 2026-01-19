@@ -234,6 +234,36 @@
   margin: 4px 0;
 }
 
+/* Edit Mode */
+.edit-mode .reader-mode-content {
+  outline: 2px dashed var(--border-color);
+  outline-offset: 8px;
+  cursor: text;
+}
+
+.edit-toolbar {
+  display: flex;
+  gap: 4px;
+}
+
+.edit-save-btn {
+  color: var(--success-color, #22c55e);
+}
+
+.edit-save-btn:hover {
+  background: var(--control-hover);
+  color: var(--success-color, #22c55e);
+}
+
+.edit-cancel-btn {
+  color: var(--text-muted);
+}
+
+.edit-cancel-btn:hover {
+  background: var(--control-hover);
+  color: var(--danger-color, #ef4444);
+}
+
 /* Settings Panel */
 .reader-settings-panel {
   position: fixed;
@@ -839,7 +869,9 @@
   align-items: center;
   justify-content: center;
   opacity: 0.7;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
   padding: 0;
 }
 
