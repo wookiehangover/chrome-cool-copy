@@ -3,10 +3,12 @@ import { useParams } from "react-router-dom";
 import { useClips } from "@/hooks/useClips";
 import { useHighlights, useHighlightSync } from "@/hooks/useHighlights";
 import type { LocalClip, ElementClip, Clip, Highlight } from "@repo/shared";
+import { getHtmlChunks } from "@repo/shared/utils";
 import { ViewerToolbar } from "./ViewerToolbar";
 import { SettingsPanel } from "./SettingsPanel";
 import { HighlightPopover, type HighlightPopoverHandle } from "./HighlightPopover";
 import { cn } from "@/lib/utils";
+import { showToast } from "@/lib/toast";
 
 export function ClipViewer() {
   const { clipId } = useParams<{ clipId: string }>();
@@ -22,6 +24,7 @@ export function ClipViewer() {
   const [isSaving, setIsSaving] = useState(false);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [tidyModeActive, setTidyModeActive] = useState(false);
   const activeHighlightIdRef = useRef<string | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -29,6 +32,7 @@ export function ClipViewer() {
   const popoverRef = useRef<HighlightPopoverHandle>(null);
   const lastHighlightIdsRef = useRef<string>("");
   const lastContentRef = useRef<string>("");
+  const originalContentRef = useRef<string>("");
 
   // Subscribe to highlight changes from other views (reader mode, etc.)
   const handleHighlightsChange = useCallback((newHighlights: Highlight[]) => {
@@ -433,6 +437,212 @@ export function ClipViewer() {
     return highlights.find((h) => h.id === highlightId)?.text || "";
   };
 
+  // =========================================================================
+  // Manual Tidy Mode
+  // =========================================================================
+
+  /**
+   * Handle individual chunk tidy click
+   */
+  const handleChunkTidy = useCallback(async (chunkId: string): Promise<void> => {
+    const container = contentRef.current;
+    if (!container) return;
+
+    const chunkEl = container.querySelector(`[data-tidy-chunk="${chunkId}"]`);
+    if (!chunkEl) {
+      console.warn(`[Tidy Content] Chunk not found: ${chunkId}`);
+      return;
+    }
+
+    const contentEl = chunkEl.querySelector(".tidy-chunk-content");
+    if (!contentEl) {
+      console.warn(`[Tidy Content] Chunk content not found: ${chunkId}`);
+      return;
+    }
+
+    const chunkHtml = contentEl.innerHTML;
+
+    // Set loading state
+    chunkEl.classList.add("loading");
+    const buttons = chunkEl.querySelectorAll(".tidy-chunk-btn") as NodeListOf<HTMLButtonElement>;
+    buttons.forEach((btn) => (btn.disabled = true));
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: "tidyContent",
+        domContent: chunkHtml,
+      });
+
+      if (response?.success && response?.data) {
+        contentEl.innerHTML = response.data;
+      } else {
+        showToast("Tidy failed for this section");
+        console.error(`[Tidy Content] Failed to tidy chunk ${chunkId}:`, response?.error);
+      }
+    } catch (err) {
+      console.error(`[Tidy Content] Error tidying chunk ${chunkId}:`, err);
+      showToast("Tidy failed for this section");
+    } finally {
+      chunkEl.classList.remove("loading");
+      buttons.forEach((btn) => (btn.disabled = false));
+    }
+  }, []);
+
+  /**
+   * Handle remove chunk click
+   */
+  const handleRemoveChunk = useCallback((chunkId: string): void => {
+    const container = contentRef.current;
+    if (!container) return;
+
+    const chunk = container.querySelector(`[data-tidy-chunk="${chunkId}"]`);
+    if (chunk) {
+      chunk.remove();
+    }
+  }, []);
+
+  /**
+   * Enter tidy mode - split content into chunks with action buttons
+   */
+  const enterTidyMode = useCallback(async (): Promise<void> => {
+    const container = contentRef.current;
+    if (!container || tidyModeActive) return;
+
+    try {
+      // Store original content for potential reset
+      originalContentRef.current = editContent;
+
+      // Split content into chunks
+      const chunks = getHtmlChunks(editContent);
+
+      if (chunks.length === 0) {
+        showToast("Content too short to chunk");
+        return;
+      }
+
+      // Clear container and add chunk wrappers
+      container.innerHTML = "";
+
+      for (const chunk of chunks) {
+        const chunkDiv = document.createElement("div");
+        chunkDiv.className = "tidy-chunk";
+        chunkDiv.setAttribute("data-tidy-chunk", chunk.id);
+
+        // Content wrapper
+        const contentWrapper = document.createElement("div");
+        contentWrapper.className = "tidy-chunk-content";
+        contentWrapper.innerHTML = chunk.html;
+
+        // Controls
+        const controls = document.createElement("div");
+        controls.className = "tidy-chunk-controls";
+        controls.setAttribute("data-chunk-controls", chunk.id);
+
+        // Tidy button
+        const tidyBtn = document.createElement("button");
+        tidyBtn.className = "tidy-chunk-btn";
+        tidyBtn.setAttribute("data-action", "tidy");
+        tidyBtn.setAttribute("title", "Tidy this section");
+        tidyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M3.5 12.5l1.4-1.4M11.1 4.9l1.4-1.4"/></svg>`;
+        tidyBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          handleChunkTidy(chunk.id);
+        });
+
+        // Remove button
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "tidy-chunk-btn";
+        removeBtn.setAttribute("data-action", "remove");
+        removeBtn.setAttribute("title", "Remove this section");
+        removeBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg>`;
+        removeBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          handleRemoveChunk(chunk.id);
+        });
+
+        controls.appendChild(tidyBtn);
+        controls.appendChild(removeBtn);
+        chunkDiv.appendChild(controls);
+        chunkDiv.appendChild(contentWrapper);
+        container.appendChild(chunkDiv);
+      }
+
+      setTidyModeActive(true);
+      console.log(`[Tidy Content] Entered tidy mode with ${chunks.length} chunks`);
+    } catch (err) {
+      console.error("[Tidy Content] Failed to enter tidy mode:", err);
+      showToast("Failed to enter tidy mode");
+    }
+  }, [tidyModeActive, editContent, handleChunkTidy, handleRemoveChunk]);
+
+  /**
+   * Exit tidy mode - save content and remove chunk UI
+   */
+  const exitTidyMode = useCallback(async (): Promise<void> => {
+    const container = contentRef.current;
+    if (!container || !tidyModeActive) return;
+
+    try {
+      // Get cleaned content (without chunk wrappers)
+      const clone = container.cloneNode(true) as HTMLElement;
+
+      // Remove all chunk controls
+      clone.querySelectorAll(".tidy-chunk-controls").forEach((ctrl) => ctrl.remove());
+
+      // Unwrap chunk divs
+      clone.querySelectorAll(".tidy-chunk").forEach((chunk) => {
+        const content = chunk.querySelector(".tidy-chunk-content");
+        if (content) {
+          chunk.replaceWith(...Array.from(content.childNodes));
+        }
+      });
+
+      // Unwrap any remaining content wrappers
+      clone.querySelectorAll(".tidy-chunk-content").forEach((wrapper) => {
+        const fragment = document.createDocumentFragment();
+        while (wrapper.firstChild) {
+          fragment.appendChild(wrapper.firstChild);
+        }
+        wrapper.replaceWith(fragment);
+      });
+
+      const finalHtml = clone.innerHTML;
+
+      // Update the clip with new content
+      if (clip) {
+        await chrome.runtime.sendMessage({
+          action: "updateLocalClip",
+          clipId: clip.id,
+          updates: { dom_content: finalHtml },
+        });
+      }
+
+      // Update local state
+      setEditContent(finalHtml);
+      setTidyModeActive(false);
+
+      // Re-render with cleaned content
+      container.innerHTML = finalHtml;
+
+      showToast("Content saved");
+      console.log("[Tidy Content] Exited tidy mode, content saved");
+    } catch (err) {
+      console.error("[Tidy Content] Failed to exit tidy mode:", err);
+      showToast("Failed to save content");
+    }
+  }, [tidyModeActive, clip]);
+
+  /**
+   * Toggle tidy mode
+   */
+  const toggleTidyMode = useCallback(async (): Promise<void> => {
+    if (tidyModeActive) {
+      await exitTidyMode();
+    } else {
+      await enterTidyMode();
+    }
+  }, [tidyModeActive, enterTidyMode, exitTidyMode]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen w-full bg-muted overflow-y-auto overflow-x-hidden">
@@ -481,6 +691,8 @@ export function ClipViewer() {
               }
             }}
             isSaving={isSaving}
+            tidyModeActive={tidyModeActive}
+            onToggleTidyMode={toggleTidyMode}
           />
           {/* Progress bar */}
           <div
@@ -493,7 +705,7 @@ export function ClipViewer() {
 
       {showSettings && <SettingsPanel />}
 
-      <div className="max-w-[680px] mx-auto px-6 pt-12 pb-20 bg-background min-h-screen relative md:px-5 md:pt-8 md:pb-16 sm:px-4 sm:pt-6 sm:pb-12">
+      <div className={cn("max-w-[680px] mx-auto px-6 pt-12 pb-20 bg-background min-h-screen relative md:px-5 md:pt-8 md:pb-16 sm:px-4 sm:pt-6 sm:pb-12", tidyModeActive && "tidy-mode")}>
         {/* Header */}
         <header className="mb-8 pb-6 border-b border-[var(--border-light)]">
           <h1 className="font-semibold text-[28px] leading-tight text-foreground m-0 tracking-tight md:text-2xl sm:text-[22px]">

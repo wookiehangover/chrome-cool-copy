@@ -53,6 +53,8 @@ interface ViewerToolbarProps {
   onSettingsClick: () => void;
   onSave: (content: string) => Promise<void>;
   isSaving: boolean;
+  tidyModeActive: boolean;
+  onToggleTidyMode: () => Promise<void>;
 }
 
 export function ViewerToolbar({
@@ -64,12 +66,13 @@ export function ViewerToolbar({
   onSettingsClick,
   onSave,
   isSaving,
+  tidyModeActive,
+  onToggleTidyMode,
 }: ViewerToolbarProps) {
   const navigate = useNavigate();
   const { updateClip } = useClips();
   const { copyShareUrl } = useShareUrl();
   const { ttsUrl } = useTtsUrl();
-  const [isTidying, setIsTidying] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isTTSLoading, setIsTTSLoading] = useState(false);
   const [isTTSStreaming, setIsTTSStreaming] = useState(false);
@@ -78,25 +81,6 @@ export function ViewerToolbar({
   const [audioHandoffTime, setAudioHandoffTime] = useState<number | null>(null);
   const [showTTSServerDialog, setShowTTSServerDialog] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-
-  const handleTidy = async () => {
-    setIsTidying(true);
-    try {
-      const response = await chrome.runtime.sendMessage({
-        action: "tidyContent",
-        domContent: clip.dom_content,
-      });
-      const tidyContent = response?.data || response?.content;
-      if (tidyContent) {
-        onEditContentChange(tidyContent);
-        await updateClip(clip.id, { dom_content: tidyContent });
-      }
-    } catch (err) {
-      console.error("Failed to tidy content:", err);
-    } finally {
-      setIsTidying(false);
-    }
-  };
 
   const handleSave = async () => {
     try {
@@ -305,11 +289,11 @@ export function ViewerToolbar({
                 Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleTidy} disabled={isTidying}>
+              <DropdownMenuItem onClick={onToggleTidyMode}>
                 <ScrollText className="h-4 w-4" />
-                {isTidying ? "Tidying..." : "Tidy Content"}
+                {tidyModeActive ? "Done Tidying" : "Tidy Content"}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleReset}>
+              <DropdownMenuItem onClick={handleReset} disabled={tidyModeActive}>
                 <RotateCcw className="h-4 w-4" />
                 Reset Content
               </DropdownMenuItem>

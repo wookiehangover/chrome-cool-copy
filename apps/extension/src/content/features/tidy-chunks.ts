@@ -128,10 +128,7 @@ export function findChunk(
  * @param chunkId - The ID of the chunk to remove
  * @returns true if the chunk was found and removed, false otherwise
  */
-export function removeChunk(
-  root: HTMLElement | ShadowRoot | Document,
-  chunkId: string,
-): boolean {
+export function removeChunk(root: HTMLElement | ShadowRoot | Document, chunkId: string): boolean {
   const chunk = findChunk(root, chunkId);
   if (!chunk) {
     console.warn(`[Tidy Chunks] Chunk not found for removal: ${chunkId}`);
