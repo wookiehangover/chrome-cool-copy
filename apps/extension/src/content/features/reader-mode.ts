@@ -874,6 +874,7 @@ async function createReaderModeUI(
   const resetIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`;
   const clipIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></svg>`;
   const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+  const shareIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>`;
 
   // Create dropdown container
   const dropdown = document.createElement("div");
@@ -1059,6 +1060,60 @@ async function createReaderModeUI(
     }
   });
 
+  // Share Clip
+  const shareBtn = document.createElement("button");
+  shareBtn.className = "reader-dropdown-item";
+  shareBtn.innerHTML = `${shareIcon} Share`;
+  shareBtn.addEventListener("click", async () => {
+    dropdownMenu.classList.remove("visible");
+
+    if (!currentClipId) {
+      showToast("No clip to share");
+      return;
+    }
+
+    // Show loading state
+    const originalContent = shareBtn.innerHTML;
+    shareBtn.innerHTML = `${shareIcon} Sharing...`;
+    shareBtn.disabled = true;
+
+    try {
+      // Sync clip to AgentDB to ensure share_id exists
+      const response = await chrome.runtime.sendMessage({
+        action: "syncSingleClip",
+        clipId: currentClipId,
+      });
+
+      if (!response?.success || !response?.data?.share_id) {
+        throw new Error(response?.error || "Failed to sync clip");
+      }
+
+      const shareId = response.data.share_id;
+
+      // Get share server hostname from settings
+      const { shareServerHostname } = (await chrome.storage.sync.get({
+        shareServerHostname: "localhost:5173",
+      })) as { shareServerHostname: string };
+
+      // Build share URL (ensure protocol)
+      const host = shareServerHostname.startsWith("http")
+        ? shareServerHostname
+        : `https://${shareServerHostname}`;
+      const shareUrl = `${host}/share/${shareId}`;
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      showToast("Share link copied");
+    } catch (error) {
+      console.error("[Reader Mode] Share failed:", error);
+      showToast(error instanceof Error ? error.message : "Failed to share");
+    } finally {
+      // Restore button state
+      shareBtn.innerHTML = originalContent;
+      shareBtn.disabled = false;
+    }
+  });
+
   // Read Aloud
   const speakerIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`;
   const readAloudBtn = document.createElement("button");
@@ -1093,6 +1148,7 @@ async function createReaderModeUI(
   dropdownMenu.appendChild(separator);
   dropdownMenu.appendChild(viewClipBtn);
   dropdownMenu.appendChild(copyBtn);
+  dropdownMenu.appendChild(shareBtn);
   dropdownMenu.appendChild(readAloudBtn);
 
   dropdown.appendChild(dropdownBtn);
