@@ -1489,11 +1489,11 @@ IMPORTANT: Return ONLY raw HTML. Do NOT wrap in markdown code fences like \`\`\`
       })();
       return true;
     } else if (message.action === "syncSingleClip") {
-      // Handle sync single clip request - syncs a clip to AgentDB and returns the updated clip with share_id
-      // Always syncs to ensure highlights and other data are up to date
+      // Handle sync single clip request - syncs a clip to AgentDB
+      // Set generateShare=true to also generate a share_id for sharing purposes
       (async () => {
         try {
-          const { clipId } = message;
+          const { clipId, generateShare = false } = message;
           if (!clipId) {
             throw new Error("Clip ID is required");
           }
@@ -1501,9 +1501,9 @@ IMPORTANT: Return ONLY raw HTML. Do NOT wrap in markdown code fences like \`\`\`
           if (!clip) {
             throw new Error("Clip not found");
           }
-          // Always sync to AgentDB to update highlights and other data
-          await syncClipToAgentDB(clip);
-          // Get updated clip with share_id
+          // Sync to AgentDB, optionally generating share_id
+          await syncClipToAgentDB(clip, generateShare);
+          // Get updated clip (may include share_id if generateShare was true)
           const updatedClip = await getLocalClip(clipId);
           sendResponse({ success: true, data: updatedClip });
         } catch (error) {

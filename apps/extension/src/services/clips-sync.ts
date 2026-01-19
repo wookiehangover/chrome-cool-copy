@@ -58,8 +58,13 @@ export async function getAgentDBConfig(): Promise<AgentDBConfig | null> {
 
 /**
  * Sync a single clip to AgentDB
+ * @param clip - The clip to sync
+ * @param generateShare - If true, generate a share_id for new clips (default: false)
  */
-export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
+export async function syncClipToAgentDB(
+  clip: LocalClip,
+  generateShare: boolean = false,
+): Promise<void> {
   const config = await getAgentDBConfig();
   if (!config) {
     // Mark as local-only if no config
@@ -71,14 +76,14 @@ export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
     await initializeDatabase(config);
 
     // Check if clip already has a share_id and if a record exists
-    let shareId = clip.share_id!;
+    let shareId = clip.share_id;
     let existingWebpage = null;
 
     if (shareId) {
       existingWebpage = await getWebpageByShareId(shareId);
     }
 
-    if (existingWebpage) {
+    if (existingWebpage && shareId) {
       // Update existing record with latest highlights and content
       await updateWebpageByShareId(shareId, {
         url: clip.url,
@@ -96,8 +101,9 @@ export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
         shareId,
       );
     } else {
-      // Generate a unique share_id for this clip if it doesn't have one
-      if (!shareId) {
+      // Only generate share_id if explicitly requested (for sharing purposes)
+      // Regular sync for backup doesn't need a share_id
+      if (generateShare && !shareId) {
         shareId = nanoid(10);
       }
 
@@ -108,24 +114,30 @@ export async function syncClipToAgentDB(clip: LocalClip): Promise<void> {
         text_content: clip.text_content,
         metadata: clip.metadata,
         highlights: clip.highlights,
-        share_id: shareId,
+        ...(shareId && { share_id: shareId }),
       };
 
       await saveWebpage(webpage);
 
-      // Update the local clip with the share_id
-      const clips = await getLocalClips();
-      const clipIndex = clips.findIndex((c) => c.id === clip.id);
-      if (clipIndex !== -1) {
-        clips[clipIndex] = {
-          ...clips[clipIndex],
-          share_id: shareId,
-          updated_at: new Date().toISOString(),
-        };
-        await chrome.storage.local.set({ local_clips: clips });
+      // Update the local clip with the share_id if we generated one
+      if (shareId && shareId !== clip.share_id) {
+        const clips = await getLocalClips();
+        const clipIndex = clips.findIndex((c) => c.id === clip.id);
+        if (clipIndex !== -1) {
+          clips[clipIndex] = {
+            ...clips[clipIndex],
+            share_id: shareId,
+            updated_at: new Date().toISOString(),
+          };
+          await chrome.storage.local.set({ local_clips: clips });
+        }
       }
 
-      console.log("[Clips Sync] Synced clip to AgentDB:", clip.id, "with share_id:", shareId);
+      console.log(
+        "[Clips Sync] Synced clip to AgentDB:",
+        clip.id,
+        shareId ? "with share_id: " + shareId : "(no share_id)",
+      );
     }
 
     // Update sync status
