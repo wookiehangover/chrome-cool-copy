@@ -1078,10 +1078,11 @@ async function createReaderModeUI(
     shareBtn.disabled = true;
 
     try {
-      // Sync clip to AgentDB to ensure share_id exists
+      // Sync clip to AgentDB with generateShare=true to ensure share_id exists
       const response = await chrome.runtime.sendMessage({
         action: "syncSingleClip",
         clipId: currentClipId,
+        generateShare: true,
       });
 
       if (!response?.success || !response?.data?.share_id) {
