@@ -41,6 +41,49 @@ export function ClipViewer() {
 
   useHighlightSync(clipId, handleHighlightsChange);
 
+  const handleCopyHighlights = useCallback(async () => {
+    if (!clip || highlights.length === 0) {
+      showToast("No highlights to copy");
+      return;
+    }
+
+    const title = "title" in clip ? clip.title : clip.pageTitle;
+    const url = clip.url;
+
+    const lines: string[] = [];
+    lines.push(`[${title}](${url})`);
+    lines.push("");
+
+    const sortedHighlights = [...highlights].sort((a, b) => a.startOffset - b.startOffset);
+
+    for (const highlight of sortedHighlights) {
+      const text = highlight.text?.trim();
+      if (!text) continue;
+
+      lines.push(`> ${text}`);
+      lines.push("");
+
+      if (highlight.note && highlight.note.trim()) {
+        lines.push(highlight.note.trim());
+        lines.push("");
+      }
+    }
+
+    const markdown = lines.join("\n").trim();
+    if (!markdown) {
+      showToast("No highlights to copy");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(markdown);
+      showToast("Highlights copied");
+    } catch (error) {
+      console.error("Failed to copy highlights:", error);
+      showToast("Failed to copy highlights");
+    }
+  }, [clip, highlights]);
+
   // Setup reading progress indicator
   useEffect(() => {
     const progressBar = progressBarRef.current;
@@ -693,6 +736,8 @@ export function ClipViewer() {
             isSaving={isSaving}
             tidyModeActive={tidyModeActive}
             onToggleTidyMode={toggleTidyMode}
+            onCopyHighlights={handleCopyHighlights}
+            hasHighlights={highlights.length > 0}
           />
           {/* Progress bar */}
           <div
@@ -705,7 +750,12 @@ export function ClipViewer() {
 
       {showSettings && <SettingsPanel />}
 
-      <div className={cn("max-w-[680px] mx-auto px-6 pt-12 pb-20 bg-background min-h-screen relative md:px-5 md:pt-8 md:pb-16 sm:px-4 sm:pt-6 sm:pb-12", tidyModeActive && "tidy-mode")}>
+      <div
+        className={cn(
+          "max-w-[680px] mx-auto px-6 pt-12 pb-20 bg-background min-h-screen relative md:px-5 md:pt-8 md:pb-16 sm:px-4 sm:pt-6 sm:pb-12",
+          tidyModeActive && "tidy-mode",
+        )}
+      >
         {/* Header */}
         <header className="mb-8 pb-6 border-b border-[var(--border-light)]">
           <h1 className="font-semibold text-[28px] leading-tight text-foreground m-0 tracking-tight md:text-2xl sm:text-[22px]">

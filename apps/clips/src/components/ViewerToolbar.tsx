@@ -19,6 +19,7 @@ import {
   Pause,
   Pencil,
   Play,
+  Copy,
   RotateCcw,
   ScrollText,
   Settings,
@@ -55,6 +56,8 @@ interface ViewerToolbarProps {
   isSaving: boolean;
   tidyModeActive: boolean;
   onToggleTidyMode: () => Promise<void>;
+  onCopyHighlights: () => void;
+  hasHighlights: boolean;
 }
 
 export function ViewerToolbar({
@@ -68,6 +71,8 @@ export function ViewerToolbar({
   isSaving,
   tidyModeActive,
   onToggleTidyMode,
+  onCopyHighlights,
+  hasHighlights,
 }: ViewerToolbarProps) {
   const navigate = useNavigate();
   const { updateClip } = useClips();
@@ -301,6 +306,10 @@ export function ViewerToolbar({
               <DropdownMenuItem onClick={handleShare} disabled={isSharing}>
                 <Share2 className="h-4 w-4" />
                 {isSharing ? "Sharing..." : clip.share_id ? "Copy Share URL" : "Share"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onCopyHighlights} disabled={!hasHighlights}>
+                <Copy className="h-4 w-4" />
+                Copy highlights
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleTTS} disabled={isTTSLoading || isTTSStreaming}>
                 <Volume2 className="h-4 w-4" />

@@ -37,6 +37,7 @@ let currentHighlights: Highlight[] = [];
 let contentWrapper: HTMLElement | null = null;
 let noteEditor: HTMLElement | null = null;
 let activeHighlightId: string | null = null;
+let copyHighlightsButton: HTMLButtonElement | null = null;
 
 // Tidy mode state
 let tidyModeActive = false;
@@ -144,6 +145,7 @@ function setupHighlightSyncListener(): void {
 
     // Update local state
     currentHighlights = newHighlights;
+    updateCopyHighlightsButtonState();
   };
 
   chrome.storage.local.onChanged.addListener(storageChangeListener);
@@ -416,6 +418,7 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
     if (checkResponse?.clip) {
       currentClipId = checkResponse.clip.id;
       currentHighlights = checkResponse.clip.highlights || [];
+      updateCopyHighlightsButtonState();
 
       // Restore saved highlights to the DOM
       restoreHighlights();
@@ -438,6 +441,7 @@ async function autoClipPage(title: string, content: Element): Promise<void> {
     if (saveResponse?.success && saveResponse?.clipId) {
       currentClipId = saveResponse.clipId;
       currentHighlights = [];
+      updateCopyHighlightsButtonState();
     } else {
       console.warn("[Reader Mode] Failed to save clip:", saveResponse?.error);
     }
@@ -1060,6 +1064,17 @@ async function createReaderModeUI(
     }
   });
 
+  // Copy Highlights
+  const copyHighlightsBtn = document.createElement("button");
+  copyHighlightsBtn.className = "reader-dropdown-item";
+  copyHighlightsBtn.innerHTML = `${copyIcon} Copy highlights`;
+  copyHighlightsButton = copyHighlightsBtn;
+  updateCopyHighlightsButtonState();
+  copyHighlightsBtn.addEventListener("click", async () => {
+    dropdownMenu.classList.remove("visible");
+    await copyAllHighlights();
+  });
+
   // Share Clip
   const shareBtn = document.createElement("button");
   shareBtn.className = "reader-dropdown-item";
@@ -1149,6 +1164,7 @@ async function createReaderModeUI(
   dropdownMenu.appendChild(separator);
   dropdownMenu.appendChild(viewClipBtn);
   dropdownMenu.appendChild(copyBtn);
+  dropdownMenu.appendChild(copyHighlightsBtn);
   dropdownMenu.appendChild(shareBtn);
   dropdownMenu.appendChild(readAloudBtn);
 
@@ -1325,6 +1341,7 @@ async function createHighlightFromSelection(selection: Selection): Promise<void>
 
     if (response?.success && response?.highlight) {
       currentHighlights.push(response.highlight);
+      updateCopyHighlightsButtonState();
       applyHighlightToDOM(selection, response.highlight.id);
       selection.removeAllRanges();
       // updateExportButtonVisibility();
@@ -1468,6 +1485,7 @@ async function deleteCurrentHighlight(): Promise<void> {
 
     // Remove from local state
     currentHighlights = currentHighlights.filter((h) => h.id !== activeHighlightId);
+    updateCopyHighlightsButtonState();
 
     // Unwrap the mark element
     const markElement = shadowRoot.querySelector(`[data-highlight-id="${activeHighlightId}"]`);
@@ -1521,6 +1539,60 @@ async function copyCurrentHighlight(): Promise<void> {
   const success = await copyToClipboard(markdown);
   if (success) {
     showToast("Highlight copied");
+  } else {
+    showToast("Failed to copy");
+  }
+}
+
+function updateCopyHighlightsButtonState(): void {
+  if (!copyHighlightsButton) return;
+  copyHighlightsButton.disabled = currentHighlights.length === 0;
+}
+
+/**
+ * Copy all highlights to clipboard as markdown
+ */
+async function copyAllHighlights(): Promise<void> {
+  if (!currentHighlights.length) {
+    showToast("No highlights to copy");
+    return;
+  }
+
+  // Get the title from the reader mode header
+  const titleElement = shadowRoot?.querySelector(".reader-mode-title");
+  const title = titleElement?.textContent || document.title;
+  const url = window.location.href;
+
+  const lines: string[] = [];
+  lines.push(`[${title}](${url})`);
+  lines.push("");
+
+  const sortedHighlights = [...currentHighlights].sort((a, b) => a.startOffset - b.startOffset);
+
+  for (const highlight of sortedHighlights) {
+    const text = highlight.text?.trim();
+    if (!text) {
+      continue;
+    }
+
+    lines.push(`> ${text}`);
+    lines.push("");
+
+    if (highlight.note && highlight.note.trim()) {
+      lines.push(highlight.note.trim());
+      lines.push("");
+    }
+  }
+
+  const markdown = lines.join("\n").trim();
+  if (!markdown) {
+    showToast("No highlights to copy");
+    return;
+  }
+
+  const success = await copyToClipboard(markdown);
+  if (success) {
+    showToast("Highlights copied");
   } else {
     showToast("Failed to copy");
   }
@@ -1670,6 +1742,7 @@ export async function deactivateReaderMode(): Promise<void> {
     currentHighlights = [];
     tidyModeActive = false;
     tidyButton = null;
+    copyHighlightsButton = null;
   } catch (error) {
     console.error("[Reader Mode] Error deactivating reader mode:", error);
   }
