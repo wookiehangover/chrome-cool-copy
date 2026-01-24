@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { ClipsList } from "@/components/ClipsList";
 import { ClipViewer } from "@/components/ClipViewer";
+import { MediaClipViewer } from "@/components/MediaClipViewer";
 
 // Handle legacy ?id=<clipId> URLs from before React Router
 function LegacyRedirect() {
@@ -27,6 +28,7 @@ function App() {
           }
         />
         <Route path="/viewer/:clipId" element={<ClipViewer />} />
+        <Route path="/media/:mediaId" element={<MediaClipViewer />} />
       </Routes>
     </HashRouter>
   );

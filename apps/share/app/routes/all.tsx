@@ -1,6 +1,6 @@
 import { data, Form, useNavigation } from "react-router";
 import type { Route } from "./+types/all";
-import { getAllClips } from "~/lib/agentdb.server";
+import { getAllClips, getMediaClips } from "~/lib/agentdb.server";
 import { ClipsList } from "~/components/ClipsList";
 import { useMemo } from "react";
 import { cn } from "~/lib/utils";
@@ -47,11 +47,16 @@ export async function action({ request }: Route.ActionArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     if (!isAuthenticated(request)) {
-      return { authenticated: false, clips: null };
+      return { authenticated: false, clips: null, mediaClips: null };
     }
 
-    const clips = await getAllClips();
-    return { authenticated: true, clips };
+    // Fetch both page clips and media clips in parallel
+    const [clips, mediaResponse] = await Promise.all([
+      getAllClips(),
+      getMediaClips({ limit: 50, offset: 0 }),
+    ]);
+
+    return { authenticated: true, clips, mediaClips: mediaResponse.clips };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load clips";
     console.error("[All Clips Route] Error:", message);
@@ -73,7 +78,7 @@ export function meta(): Route.MetaDescriptors {
  * All clips page component
  */
 export default function AllClipsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { authenticated, clips } = loaderData;
+  const { authenticated, clips, mediaClips } = loaderData;
   const { state } = useNavigation();
   const isSubmitting = useMemo(() => state === "submitting", [state]);
 
@@ -113,7 +118,7 @@ export default function AllClipsPage({ loaderData, actionData }: Route.Component
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">
-      <ClipsList clips={clips || []} />
+      <ClipsList clips={clips || []} mediaClips={mediaClips || []} />
     </div>
   );
 }

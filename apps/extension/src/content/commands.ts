@@ -6,6 +6,7 @@
 import { handleCopyCleanUrl } from "./features/url-cleaner.js";
 import { handleCopyMarkdownLink } from "./features/markdown.js";
 import { startElementPicker } from "./features/element-picker.js";
+import { startMediaPicker } from "./features/media-picker.js";
 import {
   setDarkModePreference,
   getCurrentPreference,
@@ -71,6 +72,13 @@ export const commandRegistry: Command[] = [
     description: "Capture element with DOM, styles, and screenshot",
     shortcut: "",
     action: () => startElementPicker("clip"),
+  },
+  {
+    id: "clip-media",
+    name: "Clip media",
+    description: "Click on an image to clip it to the server",
+    shortcut: "",
+    action: startMediaPicker,
   },
   {
     id: "reader-mode",

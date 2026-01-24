@@ -215,3 +215,187 @@ export async function shareClip(identifier: number): Promise<string | null> {
     throw new Error(`Failed to share clip: ${message}`);
   }
 }
+
+/**
+ * Media clip input for saving to database
+ */
+export interface MediaClipInput {
+  id: string;
+  blob_url: string;
+  original_filename?: string;
+  mimetype: string;
+  file_size?: number;
+  width?: number;
+  height?: number;
+  alt_text?: string;
+  page_url: string;
+  page_title?: string;
+}
+
+/**
+ * Save a media clip to the media_clips table
+ * @param clip - The media clip data to save
+ * @returns Promise that resolves when the clip is saved
+ */
+export async function saveMediaClip(clip: MediaClipInput): Promise<void> {
+  try {
+    await initializeConnection();
+
+    if (!dbConnection) {
+      throw new Error("Database connection not initialized");
+    }
+
+    const now = new Date().toISOString();
+
+    await dbConnection.execute({
+      sql: `INSERT INTO media_clips (
+        id, blob_url, original_filename, mimetype, file_size,
+        width, height, alt_text, page_url, page_title,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      params: [
+        clip.id,
+        clip.blob_url,
+        clip.original_filename ?? null,
+        clip.mimetype,
+        clip.file_size ?? null,
+        clip.width ?? null,
+        clip.height ?? null,
+        clip.alt_text ?? null,
+        clip.page_url,
+        clip.page_title ?? null,
+        now,
+        now,
+      ],
+    });
+
+    console.log("[AgentDB] Media clip saved:", clip.id);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to save media clip: ${message}`);
+  }
+}
+
+/**
+ * Media clip interface matching the media_clips table schema
+ */
+export interface MediaClip {
+  id: string;
+  blob_url: string;
+  original_filename: string | null;
+  mimetype: string;
+  file_size: number | null;
+  width: number | null;
+  height: number | null;
+  alt_text: string | null;
+  page_url: string;
+  page_title: string | null;
+  ai_description: string | null;
+  ai_description_status: string;
+  created_at: string;
+}
+
+/**
+ * Fetch paginated media clips from the media_clips table
+ * @param options - Pagination options with limit and offset
+ * @returns Object containing clips array and total count
+ */
+export async function getMediaClips(options: {
+  limit: number;
+  offset: number;
+}): Promise<{ clips: MediaClip[]; total: number }> {
+  await initializeConnection();
+
+  if (!dbConnection) {
+    throw new Error("Database connection not initialized");
+  }
+
+  // Get total count
+  const countResult = await dbConnection.execute({
+    sql: "SELECT COUNT(*) as count FROM media_clips",
+    params: [],
+  });
+  const total = (countResult.results[0]?.rows[0] as { count: number })?.count || 0;
+
+  // Get paginated clips
+  const result = await dbConnection.execute({
+    sql: `SELECT id, blob_url, original_filename, mimetype, file_size, width, height,
+          alt_text, page_url, page_title, ai_description, ai_description_status, created_at
+          FROM media_clips ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    params: [options.limit, options.offset],
+  });
+
+  return {
+    clips: (result.results[0]?.rows || []) as MediaClip[],
+    total,
+  };
+}
+
+/**
+ * Fetch a single media clip by ID
+ * @param id - The media clip ID
+ * @returns The media clip or null if not found
+ */
+export async function getMediaClipById(id: string): Promise<MediaClip | null> {
+  try {
+    await initializeConnection();
+
+    if (!dbConnection) {
+      throw new Error("Database connection not initialized");
+    }
+
+    const result = await dbConnection.execute({
+      sql: `SELECT id, blob_url, original_filename, mimetype, file_size, width, height,
+            alt_text, page_url, page_title, ai_description, ai_description_status, created_at
+            FROM media_clips WHERE id = ? LIMIT 1`,
+      params: [id],
+    });
+
+    const rows = result.results[0]?.rows || [];
+
+    if (rows.length === 0) {
+      console.log("[AgentDB] Media clip not found for id:", id);
+      return null;
+    }
+
+    console.log("[AgentDB] Media clip retrieved for id:", id);
+    return rows[0] as MediaClip;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to fetch media clip by id: ${message}`);
+  }
+}
+
+/**
+ * Update AI description for a media clip
+ * @param id - The media clip ID
+ * @param description - The AI-generated description (null if error)
+ * @param status - The new status: 'processing', 'complete', or 'error'
+ */
+export async function updateMediaClipAIDescription(
+  id: string,
+  description: string | null,
+  status: "pending" | "processing" | "complete" | "error",
+): Promise<void> {
+  try {
+    await initializeConnection();
+
+    if (!dbConnection) {
+      throw new Error("Database connection not initialized");
+    }
+
+    const now = new Date().toISOString();
+
+    await dbConnection.execute({
+      sql: `UPDATE media_clips
+            SET ai_description = ?, ai_description_status = ?, updated_at = ?
+            WHERE id = ?`,
+      params: [description, status, now, id],
+    });
+
+    console.log("[AgentDB] Media clip AI description updated:", id, status);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to update media clip AI description: ${message}`);
+  }
+}

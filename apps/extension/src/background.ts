@@ -712,6 +712,178 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       // Return true to indicate we'll send response asynchronously
       return true;
+    } else if (message.action === "fetchImage") {
+      // Fetch image from URL in background (bypasses CORS restrictions)
+      (async () => {
+        try {
+          const { url } = message;
+
+          console.log("[Background] Fetching image:", url);
+          const response = await fetch(url);
+
+          if (!response.ok) {
+            throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+          }
+
+          const blob = await response.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+
+          sendResponse({
+            success: true,
+            imageData: Array.from(new Uint8Array(arrayBuffer)),
+            mimetype: blob.type,
+            size: blob.size,
+          });
+        } catch (error) {
+          console.error("[Background] Error fetching image:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+
+      // Return true to indicate we'll send response asynchronously
+      return true;
+    } else if (message.action === "uploadMedia") {
+      // Handle media upload to clips server
+      (async () => {
+        try {
+          const { imageData, metadata } = message;
+
+          // Get clips server config
+          const result = await chrome.storage.sync.get(["clipsServerConfig"]);
+          const clipsConfig = result.clipsServerConfig as
+            | { baseUrl: string; apiToken: string }
+            | undefined;
+
+          if (!clipsConfig?.baseUrl) {
+            sendResponse({
+              success: false,
+              error: "Clips server not configured. Go to Settings to configure it.",
+            });
+            return;
+          }
+
+          // Convert array back to Blob
+          const uint8Array = new Uint8Array(imageData);
+          const blob = new Blob([uint8Array], { type: metadata.mimetype || "image/png" });
+
+          // Create FormData for upload
+          const formData = new FormData();
+          formData.append("image", blob, metadata.originalFilename);
+          formData.append(
+            "metadata",
+            JSON.stringify({
+              width: metadata.width,
+              height: metadata.height,
+              altText: metadata.altText,
+              pageUrl: metadata.pageUrl,
+              pageTitle: metadata.pageTitle,
+            }),
+          );
+
+          // Upload to clips server
+          const uploadUrl = `${clipsConfig.baseUrl}/api/media/upload`;
+          const headers: Record<string, string> = {};
+          if (clipsConfig.apiToken) {
+            headers["Authorization"] = `Bearer ${clipsConfig.apiToken}`;
+          }
+
+          const response = await fetch(uploadUrl, {
+            method: "POST",
+            headers,
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: "Upload failed" }));
+            throw new Error(errorData.error || `Server returned ${response.status}`);
+          }
+
+          const responseData = await response.json();
+          console.log("[Background] Media uploaded successfully:", responseData);
+
+          sendResponse({
+            success: true,
+            id: responseData.id,
+            blobUrl: responseData.blobUrl,
+          });
+        } catch (error) {
+          console.error("[Background] Error uploading media:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+
+      // Return true to indicate we'll send response asynchronously
+      return true;
+    } else if (message.action === "uploadMediaUrl") {
+      // Handle media upload via URL (server-side download fallback)
+      (async () => {
+        try {
+          const { url, pageUrl, pageTitle, altText } = message;
+
+          // Get clips server config
+          const result = await chrome.storage.sync.get(["clipsServerConfig"]);
+          const clipsConfig = result.clipsServerConfig as
+            | { baseUrl: string; apiToken: string }
+            | undefined;
+
+          if (!clipsConfig?.baseUrl) {
+            sendResponse({
+              success: false,
+              error: "Clips server not configured. Go to Settings to configure it.",
+            });
+            return;
+          }
+
+          // Call the upload-url endpoint
+          const uploadUrl = `${clipsConfig.baseUrl}/api/media/upload-url`;
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
+          if (clipsConfig.apiToken) {
+            headers["Authorization"] = `Bearer ${clipsConfig.apiToken}`;
+          }
+
+          const response = await fetch(uploadUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              url,
+              pageUrl,
+              pageTitle,
+              altText,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: "Upload failed" }));
+            throw new Error(errorData.error || `Server returned ${response.status}`);
+          }
+
+          const responseData = await response.json();
+          console.log("[Background] Media uploaded via URL successfully:", responseData);
+
+          sendResponse({
+            success: true,
+            id: responseData.id,
+            blobUrl: responseData.blobUrl,
+          });
+        } catch (error) {
+          console.error("[Background] Error uploading media via URL:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+
+      // Return true to indicate we'll send response asynchronously
+      return true;
     } else if (message.action === "checkExistingClip") {
       // Check if URL is already clipped
       (async () => {

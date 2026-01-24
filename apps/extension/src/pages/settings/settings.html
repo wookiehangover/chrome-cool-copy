@@ -116,6 +116,33 @@
             </div>
           </div>
 
+          <!-- Clips Server Configuration Section -->
+          <div class="settings-section">
+            <h2 class="section-title">Clips Server</h2>
+
+            <div class="form-group">
+              <label for="clipsServerUrl">Server URL</label>
+              <input
+                type="text"
+                id="clipsServerUrl"
+                name="clipsServerUrl"
+                placeholder="https://clips.example.com"
+              />
+              <p class="form-hint">Clips server base URL (must start with http:// or https://)</p>
+            </div>
+
+            <div class="form-group">
+              <label for="clipsServerApiToken">API Token</label>
+              <input
+                type="password"
+                id="clipsServerApiToken"
+                name="clipsServerApiToken"
+                placeholder="Your API token"
+              />
+              <p class="form-hint">Authentication token for the clips server</p>
+            </div>
+          </div>
+
           <div class="button-group">
             <button type="submit" class="button button-primary">Save Settings</button>
             <button type="button" id="testConnectionBtn" class="button button-secondary">

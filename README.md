@@ -22,6 +22,10 @@ There are many like it, but this one is mine.
 - **Clip element**: Access via Command Palette
   - Capture any element with DOM structure, styles, and metadata
   - Saves element clips locally for later reference
+- **Clip media**: Access via Command Palette
+  - Click on any image to clip it to the server
+  - Extracts image metadata (dimensions, alt text, source URL)
+  - Uploads to configured clips server
 
 ### Cool Reader Mode
 - **Toggle Reader Mode**: Access via Command Palette

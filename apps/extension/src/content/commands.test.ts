@@ -18,6 +18,7 @@ const BACKGROUND_HANDLED_ACTIONS = [
   "captureFullPage",
   "savePageToDatabase",
   "clipElement",
+  "uploadMedia",
   "generateText",
   "readAloud",
 ] as const;

@@ -21,6 +21,11 @@ interface VercelAIGatewayConfig {
   model: string;
 }
 
+interface ClipsServerConfig {
+  baseUrl: string;
+  apiToken: string;
+}
+
 const AGENTDB_BASE_URL = "https://api.agentdb.dev";
 const DEFAULT_MODEL = SUPPORTED_MODELS[0].id; // Use first model as default
 const DEFAULT_TTS_SERVER_URL = "http://localhost:8000";
@@ -42,6 +47,10 @@ const shareServerHostnameInput = document.getElementById("shareServerHostname") 
 
 // TTS form elements
 const ttsServerUrlInput = document.getElementById("ttsServerUrl") as HTMLInputElement;
+
+// Clips Server form elements
+const clipsServerUrlInput = document.getElementById("clipsServerUrl") as HTMLInputElement;
+const clipsServerApiTokenInput = document.getElementById("clipsServerApiToken") as HTMLInputElement;
 
 // Common elements
 const testConnectionBtn = document.getElementById("testConnectionBtn") as HTMLButtonElement;
@@ -102,6 +111,7 @@ async function loadSettings(): Promise<void> {
       "aiGatewayConfig",
       "shareServerHostname",
       "tts_url",
+      "clipsServerConfig",
     ]);
 
     // Load AgentDB config
@@ -139,6 +149,13 @@ async function loadSettings(): Promise<void> {
     } else {
       ttsServerUrlInput.value = DEFAULT_TTS_SERVER_URL;
     }
+
+    // Load Clips Server config
+    const clipsServerConfig = result.clipsServerConfig as ClipsServerConfig | undefined;
+    if (clipsServerConfig) {
+      clipsServerUrlInput.value = clipsServerConfig.baseUrl || "";
+      clipsServerApiTokenInput.value = clipsServerConfig.apiToken || "";
+    }
   } catch (error) {
     console.error("[Settings] Error loading settings:", error);
     showStatus("Failed to load settings", "error");
@@ -167,6 +184,13 @@ function normalizeTtsServerUrl(url: string): string {
   let normalized = url.trim();
   normalized = normalized.replace(/\/+$/, "");
   return normalized;
+}
+
+/**
+ * Validate that a URL starts with http:// or https://
+ */
+function isValidHttpUrl(url: string): boolean {
+  return /^https?:\/\/.+/.test(url);
 }
 
 /**
@@ -201,9 +225,19 @@ async function saveSettings(e: Event): Promise<void> {
   const shareServerHostname = normalizeShareServerHostname(shareServerHostnameInput.value);
   const ttsServerUrl = normalizeTtsServerUrl(ttsServerUrlInput.value);
 
+  // Get Clips Server config
+  const clipsServerUrl = clipsServerUrlInput.value.trim();
+  const clipsServerApiToken = clipsServerApiTokenInput.value.trim();
+
   // Only validate AI Gateway - AgentDB is optional
   if (!aiGatewayConfig.apiKey || !aiGatewayConfig.model) {
     showStatus("Please fill in all Vercel AI Gateway required fields", "error");
+    return;
+  }
+
+  // Validate Clips Server URL if provided
+  if (clipsServerUrl && !isValidHttpUrl(clipsServerUrl)) {
+    showStatus("Clips Server URL must start with http:// or https://", "error");
     return;
   }
 
@@ -231,6 +265,17 @@ async function saveSettings(e: Event): Promise<void> {
       storageData.tts_url = ttsServerUrl;
     } else {
       await chrome.storage.sync.remove(["tts_url"]);
+    }
+
+    // Save Clips Server config if URL is provided
+    if (clipsServerUrl) {
+      const clipsServerConfig: ClipsServerConfig = {
+        baseUrl: clipsServerUrl.replace(/\/+$/, ""), // Remove trailing slashes
+        apiToken: clipsServerApiToken,
+      };
+      storageData.clipsServerConfig = clipsServerConfig;
+    } else {
+      await chrome.storage.sync.remove(["clipsServerConfig"]);
     }
 
     await chrome.storage.sync.set(storageData);
