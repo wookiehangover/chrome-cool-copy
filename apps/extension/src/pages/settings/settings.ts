@@ -23,6 +23,7 @@ interface VercelAIGatewayConfig {
 
 const AGENTDB_BASE_URL = "https://api.agentdb.dev";
 const DEFAULT_MODEL = SUPPORTED_MODELS[0].id; // Use first model as default
+const DEFAULT_TTS_SERVER_URL = "http://localhost:8000";
 
 const form = document.getElementById("settingsForm") as HTMLFormElement;
 
@@ -38,6 +39,9 @@ const aiGatewayModelInput = document.getElementById("aiGatewayModel") as HTMLSel
 
 // Share Server form elements
 const shareServerHostnameInput = document.getElementById("shareServerHostname") as HTMLInputElement;
+
+// TTS form elements
+const ttsServerUrlInput = document.getElementById("ttsServerUrl") as HTMLInputElement;
 
 // Common elements
 const testConnectionBtn = document.getElementById("testConnectionBtn") as HTMLButtonElement;
@@ -97,6 +101,7 @@ async function loadSettings(): Promise<void> {
       "agentdbConfig",
       "aiGatewayConfig",
       "shareServerHostname",
+      "tts_url",
     ]);
 
     // Load AgentDB config
@@ -126,6 +131,14 @@ async function loadSettings(): Promise<void> {
       // Set default if no config exists
       shareServerHostnameInput.value = "localhost:5173";
     }
+
+    // Load TTS Server URL
+    const ttsServerUrl = result.tts_url as string | undefined;
+    if (ttsServerUrl) {
+      ttsServerUrlInput.value = ttsServerUrl;
+    } else {
+      ttsServerUrlInput.value = DEFAULT_TTS_SERVER_URL;
+    }
   } catch (error) {
     console.error("[Settings] Error loading settings:", error);
     showStatus("Failed to load settings", "error");
@@ -144,6 +157,15 @@ function normalizeShareServerHostname(hostname: string): string {
   // Strip trailing slashes
   normalized = normalized.replace(/\/$/, "");
 
+  return normalized;
+}
+
+/**
+ * Normalize TTS server URL by trimming and stripping trailing slashes
+ */
+function normalizeTtsServerUrl(url: string): string {
+  let normalized = url.trim();
+  normalized = normalized.replace(/\/+$/, "");
   return normalized;
 }
 
@@ -177,6 +199,7 @@ async function saveSettings(e: Event): Promise<void> {
 
   // Get Share Server hostname
   const shareServerHostname = normalizeShareServerHostname(shareServerHostnameInput.value);
+  const ttsServerUrl = normalizeTtsServerUrl(ttsServerUrlInput.value);
 
   // Only validate AI Gateway - AgentDB is optional
   if (!aiGatewayConfig.apiKey || !aiGatewayConfig.model) {
@@ -201,6 +224,13 @@ async function saveSettings(e: Event): Promise<void> {
     } else {
       // Remove shareServerHostname if cleared
       await chrome.storage.sync.remove(["shareServerHostname"]);
+    }
+
+    // Save TTS server URL if provided
+    if (ttsServerUrl) {
+      storageData.tts_url = ttsServerUrl;
+    } else {
+      await chrome.storage.sync.remove(["tts_url"]);
     }
 
     await chrome.storage.sync.set(storageData);

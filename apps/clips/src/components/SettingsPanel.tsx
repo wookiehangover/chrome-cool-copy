@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useTtsUrl, DEFAULT_TTS_URL } from "@/hooks/useTtsUrl";
 
 interface ViewerSettings {
   fontFamily: "sans" | "serif" | "mono";
@@ -15,7 +14,6 @@ const DEFAULT_SETTINGS: ViewerSettings = {
 
 export function SettingsPanel() {
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
-  const { ttsUrl, setTtsUrl } = useTtsUrl();
 
   // Load settings on mount
   useEffect(() => {
@@ -109,20 +107,6 @@ export function SettingsPanel() {
             +
           </button>
         </div>
-      </div>
-
-      {/* TTS Server URL */}
-      <div>
-        <label className="block text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
-          TTS Server
-        </label>
-        <input
-          type="text"
-          value={ttsUrl}
-          onChange={(e) => setTtsUrl(e.target.value)}
-          placeholder={DEFAULT_TTS_URL}
-          className="w-full px-2 py-1.5 bg-black/5 dark:bg-white/5 border border-border rounded text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-        />
       </div>
     </div>
   );

@@ -243,15 +243,22 @@ async function init(): Promise<void> {
   setStatus("Loading...");
 
   try {
-    const result = await chrome.storage.local.get(["tts_pending_text", "tts_url"]);
+    const [syncResult, localResult] = await Promise.all([
+      chrome.storage.sync.get(["tts_url"]),
+      chrome.storage.local.get(["tts_pending_text", "tts_url", "clips-tts-url"]),
+    ]);
 
     // tts_pending_text is an object: { text, title, url, timestamp }
-    const pendingData = result.tts_pending_text as
+    const pendingData = localResult.tts_pending_text as
       | { text: string; title: string; url: string; timestamp: number }
       | undefined;
     const text = pendingData?.text;
     pageTitle = pendingData?.title || "TTS Player";
-    const ttsUrl = (result.tts_url as string) || DEFAULT_TTS_URL;
+    const ttsUrl =
+      (syncResult.tts_url as string) ||
+      (localResult.tts_url as string) ||
+      (localResult["clips-tts-url"] as string) ||
+      DEFAULT_TTS_URL;
 
     // Update page title
     pageTitleEl.textContent = pageTitle;

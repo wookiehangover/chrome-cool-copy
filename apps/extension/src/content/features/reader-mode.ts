@@ -1268,6 +1268,10 @@ function setupSelectionListener(): void {
 
   // Listen on the shadowRoot for mouseup events
   shadowRoot.addEventListener("mouseup", async (e) => {
+    if (editModeActive || tidyModeActive) {
+      return;
+    }
+
     // Skip highlighting when shift is held - allow normal text selection for copying
     if ((e as MouseEvent).shiftKey) {
       return;
@@ -1316,6 +1320,10 @@ function getTextOffset(container: Node, targetNode: Node, offset: number): numbe
  * Create highlight from current selection
  */
 async function createHighlightFromSelection(selection: Selection): Promise<void> {
+  if (editModeActive || tidyModeActive) {
+    return;
+  }
+
   const text = selection.toString().trim();
 
   if (!text || !currentClipId || !contentWrapper) {
