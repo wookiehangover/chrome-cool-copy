@@ -1,7 +1,7 @@
 # Chrome Cool Copy - Build System
 # All build outputs go to apps/extension/dist (the loadable extension directory)
 
-.PHONY: build clean lint format dev watch-extension watch-chat watch-clips help extension chat clips typecheck checks
+.PHONY: build clean lint format dev watch-extension watch-chat watch-clips help extension chat clips safari typecheck checks
 
 # Default target
 all: build
@@ -39,7 +39,7 @@ endef
 #------------------------------------------------------------------------------
 
 # Full production build: extension + chat sidepanel + clips viewer
-build: clean checks format extension chat clips
+build: clean checks format extension chat clips safari
 	@echo ""
 	@echo "\033[32m✓\033[0m Build complete: apps/extension/dist/"
 
@@ -54,6 +54,9 @@ chat:
 # Build clips viewer (outputs to apps/extension/dist/viewer)
 clips:
 	$(call spinner,Building clips viewer...,pnpm -F @repo/clips build)
+
+safari:
+	$(call spinner,Building safari extension...,pnpm -F cool-copy-safari build)
 
 #------------------------------------------------------------------------------
 # Development
@@ -168,6 +171,7 @@ help:
 	@echo "  make extension       - Build extension scripts only"
 	@echo "  make chat            - Build chat sidepanel only"
 	@echo "  make clips           - Build clips viewer only"
+	@echo "  make safari          - Build safari extension only"
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev             - Build extension + watch chat (recommended)"
