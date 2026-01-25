@@ -1,0 +1,11 @@
+{
+  "name": "cool-copy-safari",
+  "version": "1.0.0",
+  "description": "Safari extension build for Cool Copy",
+  "type": "module",
+  "scripts": {
+    "build": "node build-safari.js",
+    "convert": "xcrun safari-web-extension-converter dist --project-location . --bundle-identifier dev.sambreed.cool-copy-extension --force"
+  }
+}
+

@@ -69,6 +69,12 @@ build/
 *.pem
 *.zip
 
+# Safari extension build
+apps/safari/dist/
+apps/safari/Cool Copy/
+apps/safari/build/
+*.xcarchive
+
 # Temporary files
 *.tmp
 *.temp
