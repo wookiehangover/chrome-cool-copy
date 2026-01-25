@@ -51,9 +51,7 @@ export function ClipsList() {
     const filteredLocalClips = search.trim()
       ? clips.filter((clip) => {
           const title =
-            "type" in clip && clip.type === "element"
-              ? clip.pageTitle
-              : (clip as LocalClip).title;
+            "type" in clip && clip.type === "element" ? clip.pageTitle : (clip as LocalClip).title;
           return fuzzyMatch(search, title) || fuzzyMatch(search, clip.url);
         })
       : clips;

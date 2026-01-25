@@ -55,9 +55,7 @@ export function MediaClipCard({ clip }: MediaClipCardProps) {
         >
           <div className="space-y-2">
             {/* Alt text */}
-            {clip.alt_text && (
-              <p className="text-xs text-white/90 line-clamp-2">{clip.alt_text}</p>
-            )}
+            {clip.alt_text && <p className="text-xs text-white/90 line-clamp-2">{clip.alt_text}</p>}
 
             {/* AI description */}
             {clip.ai_description && (
@@ -67,9 +65,7 @@ export function MediaClipCard({ clip }: MediaClipCardProps) {
             {/* Page info */}
             <div className="flex items-center gap-1 text-xs text-white/60">
               <ExternalLink className="w-3 h-3" />
-              <span className="truncate">
-                {clip.page_title || new URL(clip.page_url).hostname}
-              </span>
+              <span className="truncate">{clip.page_title || new URL(clip.page_url).hostname}</span>
             </div>
 
             {/* Date */}
@@ -82,4 +78,3 @@ export function MediaClipCard({ clip }: MediaClipCardProps) {
     </div>
   );
 }
-

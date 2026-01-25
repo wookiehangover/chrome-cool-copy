@@ -19,9 +19,7 @@ function fuzzyMatch(query: string, text: string): boolean {
 }
 
 // Union type for mixed feed items
-type FeedItem =
-  | { type: "page"; item: LightweightClip }
-  | { type: "media"; item: MediaClip };
+type FeedItem = { type: "page"; item: LightweightClip } | { type: "media"; item: MediaClip };
 
 export function ClipsList({ clips, mediaClips }: ClipsListProps) {
   const [search, setSearch] = useState("");
@@ -29,9 +27,7 @@ export function ClipsList({ clips, mediaClips }: ClipsListProps) {
   // Filter and merge clips by fuzzy matching
   const feedItems = useMemo(() => {
     const filteredPageClips = search.trim()
-      ? clips.filter(
-          (clip) => fuzzyMatch(search, clip.title) || fuzzyMatch(search, clip.url),
-        )
+      ? clips.filter((clip) => fuzzyMatch(search, clip.title) || fuzzyMatch(search, clip.url))
       : clips;
 
     const filteredMediaClips = search.trim()
@@ -148,8 +144,7 @@ function MediaClipCard({ clip }: { clip: MediaClip }) {
   const [imageError, setImageError] = useState(false);
 
   // Compute aspect ratio for natural sizing
-  const aspectRatio =
-    clip.width && clip.height ? clip.height / clip.width : 1;
+  const aspectRatio = clip.width && clip.height ? clip.height / clip.width : 1;
 
   return (
     <div className="break-inside-avoid mb-4">
@@ -187,23 +182,17 @@ function MediaClipCard({ clip }: { clip: MediaClip }) {
         >
           <div className="space-y-2">
             {/* Alt text */}
-            {clip.alt_text && (
-              <p className="text-xs text-white/90 line-clamp-2">{clip.alt_text}</p>
-            )}
+            {clip.alt_text && <p className="text-xs text-white/90 line-clamp-2">{clip.alt_text}</p>}
 
             {/* AI description */}
             {clip.ai_description && (
-              <p className="text-xs text-white/70 line-clamp-3 italic">
-                {clip.ai_description}
-              </p>
+              <p className="text-xs text-white/70 line-clamp-3 italic">{clip.ai_description}</p>
             )}
 
             {/* Page info */}
             <div className="flex items-center gap-1 text-xs text-white/60">
               <ExternalLink className="w-3 h-3" />
-              <span className="truncate">
-                {clip.page_title || new URL(clip.page_url).hostname}
-              </span>
+              <span className="truncate">{clip.page_title || new URL(clip.page_url).hostname}</span>
             </div>
 
             {/* Date */}

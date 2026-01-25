@@ -41,10 +41,9 @@ export function MediaClipViewer() {
           headers["Authorization"] = `Bearer ${clipsServerConfig.apiToken}`;
         }
 
-        const response = await fetch(
-          `${clipsServerConfig.baseUrl}/api/media/${mediaId}`,
-          { headers }
-        );
+        const response = await fetch(`${clipsServerConfig.baseUrl}/api/media/${mediaId}`, {
+          headers,
+        });
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -201,9 +200,7 @@ function MetadataTable({ clip, formatFileSize }: MetadataTableProps) {
             <th className="text-left py-2.5 px-3 w-[120px] text-muted-foreground font-medium border-b border-border">
               Type
             </th>
-            <td className="py-2.5 px-3 text-foreground border-b border-border">
-              {clip.mimetype}
-            </td>
+            <td className="py-2.5 px-3 text-foreground border-b border-border">{clip.mimetype}</td>
           </tr>
           {clip.alt_text && (
             <tr>
@@ -247,4 +244,3 @@ function AIDescriptionSection({ clip }: AIDescriptionSectionProps) {
     </div>
   );
 }
-

@@ -1,15 +1,15 @@
-import { put, del } from '@vercel/blob';
-import { nanoid } from 'nanoid';
+import { put, del } from "@vercel/blob";
+import { nanoid } from "nanoid";
 
 export async function uploadImageToBlob(
   file: File | Blob,
-  originalFilename?: string
+  originalFilename?: string,
 ): Promise<{ url: string; pathname: string }> {
-  const ext = originalFilename?.split('.').pop() || 'png';
+  const ext = originalFilename?.split(".").pop() || "png";
   const pathname = `media/${nanoid()}.${ext}`;
 
   const blob = await put(pathname, file, {
-    access: 'public',
+    access: "public",
     addRandomSuffix: false,
   });
 
@@ -19,4 +19,3 @@ export async function uploadImageToBlob(
 export async function deleteImageFromBlob(url: string): Promise<void> {
   await del(url);
 }
-

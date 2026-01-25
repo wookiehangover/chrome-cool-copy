@@ -17,4 +17,3 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   return { clip };
 }
-

@@ -378,10 +378,7 @@ function extractFilename(src: string): string {
  * Try server-side image download as fallback
  * Sends image URL to background script which calls the upload-url API
  */
-async function tryServerSideDownload(
-  src: string,
-  altText: string | undefined,
-): Promise<boolean> {
+async function tryServerSideDownload(src: string, altText: string | undefined): Promise<boolean> {
   return new Promise((resolve) => {
     console.log("[Media Picker] Trying server-side download fallback for:", src);
 
@@ -474,4 +471,3 @@ async function clipImage(imgElement: HTMLImageElement): Promise<void> {
     },
   );
 }
-

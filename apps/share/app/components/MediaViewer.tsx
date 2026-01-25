@@ -106,4 +106,3 @@ export function MediaViewer({ clip }: MediaViewerProps) {
     </div>
   );
 }
-

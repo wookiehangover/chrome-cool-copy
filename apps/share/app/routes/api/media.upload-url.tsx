@@ -93,7 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
     if (!imageResponse.ok) {
       return data(
         { error: `Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -160,4 +160,3 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: message }, { status: 500 });
   }
 }
-

@@ -21,7 +21,9 @@ export async function generateAIDescription(clipId: string, imageUrl: string): P
   const apiKey = process.env.AI_GATEWAY_API_KEY;
 
   if (!apiKey) {
-    console.warn("[AI Description] No AI_GATEWAY_API_KEY configured, skipping description generation");
+    console.warn(
+      "[AI Description] No AI_GATEWAY_API_KEY configured, skipping description generation",
+    );
     return;
   }
 
@@ -83,4 +85,3 @@ export function queueAIDescriptionGeneration(clipId: string, imageUrl: string): 
     console.error("[AI Description] Unhandled error in background generation:", error);
   });
 }
-

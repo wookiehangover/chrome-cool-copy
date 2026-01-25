@@ -76,4 +76,3 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: message }, { status: 500 });
   }
 }
-
