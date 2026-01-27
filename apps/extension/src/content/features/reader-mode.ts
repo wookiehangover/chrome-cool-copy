@@ -257,6 +257,12 @@ function findMainContent(): Element {
   const mediumContent = document.querySelector("article[data-post-id]");
   if (mediumContent) return mediumContent;
 
+  // antirez.com uses div.topnews for article content
+  if (window.location.hostname.includes("antirez.com")) {
+    const antirezContent = document.querySelector("div.topnews");
+    if (antirezContent) return antirezContent;
+  }
+
   // Try semantic elements
   const main = document.querySelector("main");
   if (main) return main;
