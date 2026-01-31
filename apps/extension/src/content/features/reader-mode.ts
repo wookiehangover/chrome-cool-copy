@@ -6,6 +6,8 @@
  * Uses Shadow DOM for complete style isolation
  */
 
+import { isXPage, extractXContent } from "./extractors/x-extractor.js";
+import { renderXContent } from "./extractors/x-renderer.js";
 import styles from "./reader-mode.css?raw";
 import type { Highlight } from "@repo/shared";
 import { showToast } from "../toast.js";
@@ -231,6 +233,21 @@ export async function initReaderMode(): Promise<void> {
  * Extract the main article content from the page
  */
 function extractArticleContent(): { title: string; content: Element; images: string[] } {
+  // X.com / Twitter: use custom extractor for better tweet presentation
+  if (isXPage()) {
+    try {
+      const xResult = extractXContent();
+      if (xResult.tweets.length > 0) {
+        const content = renderXContent(xResult);
+        const title = extractTitle();
+        const images = extractImages(content);
+        return { title, content, images };
+      }
+    } catch (error) {
+      console.warn("[Reader Mode] X.com extractor failed, falling back to generic:", error);
+    }
+  }
+
   // Try to find the main content using semantic HTML and common patterns
   const mainContent = findMainContent();
   const cleanedContent = cleanContent(mainContent);
@@ -243,7 +260,6 @@ function extractArticleContent(): { title: string; content: Element; images: str
 
   return { title, content: cleanedContent, images };
 }
-
 /**
  * Find the main content element on the page
  */

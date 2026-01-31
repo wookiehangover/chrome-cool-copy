@@ -13,7 +13,7 @@ import type { Tweet, QuoteTweet, TweetMedia, XContentResult } from "./x-extracto
  * Format ISO timestamp to human-readable string
  */
 function formatTime(isoString: string | null): string {
-  if (!isoString) return "";
+  if (\!isoString) return "";
   try {
     const date = new Date(isoString);
     return date.toLocaleDateString(undefined, {
@@ -32,7 +32,7 @@ function formatTime(isoString: string | null): string {
  * Build tweet URL from author handle and tweet ID
  */
 function buildTweetUrl(handle: string, id: string | null): string | null {
-  if (!id || !handle) return null;
+  if (\!id || \!handle) return null;
   const cleanHandle = handle.replace(/^@/, "");
   return `https://x.com/${cleanHandle}/status/${id}`;
 }
@@ -80,11 +80,11 @@ function renderMediaGallery(media: TweetMedia[]): HTMLElement {
  */
 function renderQuoteTweet(quote: QuoteTweet): HTMLElement {
   const blockquote = document.createElement("blockquote");
-  blockquote.className = "x-quote-tweet";
+  blockquote.className = "x-tweet-quote";
 
-  // Header with author info
-  const header = document.createElement("header");
-  header.className = "x-tweet-header";
+  // Author section (flat layout for quote tweets)
+  const authorSection = document.createElement("div");
+  authorSection.className = "x-tweet-author";
 
   if (quote.author.avatarUrl) {
     const avatar = document.createElement("img");
@@ -92,14 +92,14 @@ function renderQuoteTweet(quote: QuoteTweet): HTMLElement {
     avatar.src = quote.author.avatarUrl;
     avatar.alt = `${quote.author.name} avatar`;
     avatar.loading = "lazy";
-    header.appendChild(avatar);
+    authorSection.appendChild(avatar);
   }
 
   const authorInfo = document.createElement("div");
-  authorInfo.className = "x-tweet-author";
+  authorInfo.className = "x-tweet-author-info";
 
   const authorName = document.createElement("span");
-  authorName.className = "x-tweet-author-name";
+  authorName.className = "x-tweet-name";
   authorName.textContent = quote.author.name;
   if (quote.author.verified) {
     const badge = document.createElement("span");
@@ -111,12 +111,12 @@ function renderQuoteTweet(quote: QuoteTweet): HTMLElement {
   authorInfo.appendChild(authorName);
 
   const authorHandle = document.createElement("span");
-  authorHandle.className = "x-tweet-author-handle";
+  authorHandle.className = "x-tweet-handle";
   authorHandle.textContent = quote.author.handle;
   authorInfo.appendChild(authorHandle);
 
-  header.appendChild(authorInfo);
-  blockquote.appendChild(header);
+  authorSection.appendChild(authorInfo);
+  blockquote.appendChild(authorSection);
 
   // Text content
   const content = document.createElement("div");
@@ -137,7 +137,7 @@ function renderQuoteTweet(quote: QuoteTweet): HTMLElement {
  */
 function renderTweetCard(tweet: Tweet): HTMLElement {
   const article = document.createElement("article");
-  article.className = "x-tweet-card";
+  article.className = "x-tweet";
 
   // Reply context
   if (tweet.replyContext) {
@@ -147,9 +147,9 @@ function renderTweetCard(tweet: Tweet): HTMLElement {
     article.appendChild(replyContext);
   }
 
-  // Header with author info
-  const header = document.createElement("header");
-  header.className = "x-tweet-header";
+  // Author section
+  const authorSection = document.createElement("div");
+  authorSection.className = "x-tweet-author";
 
   if (tweet.author.avatarUrl) {
     const avatar = document.createElement("img");
@@ -157,14 +157,14 @@ function renderTweetCard(tweet: Tweet): HTMLElement {
     avatar.src = tweet.author.avatarUrl;
     avatar.alt = `${tweet.author.name} avatar`;
     avatar.loading = "lazy";
-    header.appendChild(avatar);
+    authorSection.appendChild(avatar);
   }
 
   const authorInfo = document.createElement("div");
-  authorInfo.className = "x-tweet-author";
+  authorInfo.className = "x-tweet-author-info";
 
   const authorName = document.createElement("span");
-  authorName.className = "x-tweet-author-name";
+  authorName.className = "x-tweet-name";
   authorName.textContent = tweet.author.name;
   if (tweet.author.verified) {
     const badge = document.createElement("span");
@@ -176,12 +176,12 @@ function renderTweetCard(tweet: Tweet): HTMLElement {
   authorInfo.appendChild(authorName);
 
   const authorHandle = document.createElement("span");
-  authorHandle.className = "x-tweet-author-handle";
+  authorHandle.className = "x-tweet-handle";
   authorHandle.textContent = tweet.author.handle;
   authorInfo.appendChild(authorHandle);
 
-  header.appendChild(authorInfo);
-  article.appendChild(header);
+  authorSection.appendChild(authorInfo);
+  article.appendChild(authorSection);
 
   // Tweet text content
   const content = document.createElement("div");
@@ -199,12 +199,11 @@ function renderTweetCard(tweet: Tweet): HTMLElement {
     article.appendChild(renderQuoteTweet(tweet.quoteTweet));
   }
 
-  // Footer with timestamp
-  const footer = document.createElement("footer");
-  footer.className = "x-tweet-footer";
+  // Timestamp
+  const timestamp = document.createElement("div");
+  timestamp.className = "x-tweet-timestamp";
 
   const time = document.createElement("time");
-  time.className = "x-tweet-time";
   if (tweet.isoTimestamp) {
     time.dateTime = tweet.isoTimestamp;
   }
@@ -217,12 +216,12 @@ function renderTweetCard(tweet: Tweet): HTMLElement {
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.appendChild(time);
-    footer.appendChild(link);
+    timestamp.appendChild(link);
   } else {
-    footer.appendChild(time);
+    timestamp.appendChild(time);
   }
 
-  article.appendChild(footer);
+  article.appendChild(timestamp);
 
   return article;
 }
@@ -238,18 +237,14 @@ function renderTweetCard(tweet: Tweet): HTMLElement {
  */
 export function renderXContent(result: XContentResult): Element {
   const container = document.createElement("div");
-  container.className = "x-thread-container";
-
-  if (result.pageType === "thread") {
-    container.classList.add("x-thread");
-  }
+  container.className = "x-thread";
 
   result.tweets.forEach((tweet, index) => {
     const card = renderTweetCard(tweet);
 
     // Add thread line styling for thread replies
     if (tweet.isThread && index > 0) {
-      card.classList.add("x-tweet-thread-reply");
+      card.classList.add("x-thread-item");
     }
 
     container.appendChild(card);
@@ -257,4 +252,3 @@ export function renderXContent(result: XContentResult): Element {
 
   return container;
 }
-

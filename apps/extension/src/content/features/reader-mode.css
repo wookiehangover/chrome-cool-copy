@@ -970,6 +970,49 @@
 }
 
 /* Responsive design */
+
+/* Video/GIF thumbnail */
+.x-tweet-video-thumb {
+  position: relative;
+  display: inline-block;
+}
+
+.x-tweet-video-thumb img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.x-tweet-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Verified badge */
+.x-verified-badge {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--link-color);
+  font-size: 14px;
+}
+
+/* Reply context */
+.x-tweet-reply-context {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
 @media (max-width: 768px) {
   .reader-mode-container {
     padding: 32px 20px 60px;
