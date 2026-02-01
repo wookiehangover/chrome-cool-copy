@@ -6,7 +6,7 @@
  * Uses Shadow DOM for complete style isolation
  */
 
-import { isXPage, extractXContent } from "./extractors/x-extractor.js";
+import { isXPage, extractXContent, type XContentResult } from "./extractors/x-extractor.js";
 import { renderXContent } from "./extractors/x-renderer.js";
 import styles from "./reader-mode.css?raw";
 import type { Highlight } from "@repo/shared";
@@ -239,7 +239,7 @@ function extractArticleContent(): { title: string; content: Element; images: str
       const xResult = extractXContent();
       if (xResult.tweets.length > 0) {
         const content = renderXContent(xResult);
-        const title = extractTitle();
+        const title = generateXTitle(xResult);
         const images = extractImages(content);
         return { title, content, images };
       }
@@ -318,6 +318,39 @@ function extractTitle(): string {
 
   // Fall back to document title
   return document.title;
+}
+
+/**
+ * Generate a descriptive title for x.com content
+ * Format: "@handle: First ~50 chars of tweet..." or "Thread by @handle"
+ */
+function generateXTitle(xResult: XContentResult): string {
+  if (xResult.tweets.length === 0) {
+    return document.title;
+  }
+
+  const firstTweet = xResult.tweets[0];
+  const handle = firstTweet.author.handle || firstTweet.author.name;
+
+  // For threads, use "Thread by @handle"
+  if (xResult.pageType === "thread" && xResult.tweets.length > 1) {
+    return `Thread by @${handle}`;
+  }
+
+  // For single tweets, use "@handle: preview..."
+  const text = firstTweet.text.trim();
+  if (!text) {
+    return `@${handle}`;
+  }
+
+  // Truncate to ~60 chars at word boundary
+  const maxLen = 60;
+  if (text.length <= maxLen) {
+    return `@${handle}: ${text}`;
+  }
+
+  const truncated = text.slice(0, maxLen).replace(/\s+\S*$/, "");
+  return `@${handle}: ${truncated}...`;
 }
 
 /**
