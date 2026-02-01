@@ -13,7 +13,7 @@ import type { Tweet, QuoteTweet, TweetMedia, XContentResult } from "./x-extracto
  * Format ISO timestamp to human-readable string
  */
 function formatTime(isoString: string | null): string {
-  if (\!isoString) return "";
+  if (!isoString) return "";
   try {
     const date = new Date(isoString);
     return date.toLocaleDateString(undefined, {
@@ -32,7 +32,7 @@ function formatTime(isoString: string | null): string {
  * Build tweet URL from author handle and tweet ID
  */
 function buildTweetUrl(handle: string, id: string | null): string | null {
-  if (\!id || \!handle) return null;
+  if (!id || !handle) return null;
   const cleanHandle = handle.replace(/^@/, "");
   return `https://x.com/${cleanHandle}/status/${id}`;
 }
