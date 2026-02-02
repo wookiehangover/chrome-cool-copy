@@ -6,6 +6,8 @@
  * Uses Shadow DOM for complete style isolation
  */
 
+import { isXPage, extractXContent, type XContentResult } from "./extractors/x-extractor.js";
+import { renderXContent } from "./extractors/x-renderer.js";
 import styles from "./reader-mode.css?raw";
 import type { Highlight } from "@repo/shared";
 import { showToast } from "../toast.js";
@@ -230,7 +232,26 @@ export async function initReaderMode(): Promise<void> {
 /**
  * Extract the main article content from the page
  */
-function extractArticleContent(): { title: string; content: Element; images: string[] } {
+function extractArticleContent(): {
+  title: string;
+  content: Element;
+  images: string[];
+} {
+  // X.com / Twitter: use custom extractor for better tweet presentation
+  if (isXPage()) {
+    try {
+      const xResult = extractXContent();
+      if (xResult.tweets.length > 0) {
+        const content = renderXContent(xResult);
+        const title = generateXTitle(xResult);
+        const images = extractImages(content);
+        return { title, content, images };
+      }
+    } catch (error) {
+      console.warn("[Reader Mode] X.com extractor failed, falling back to generic:", error);
+    }
+  }
+
   // Try to find the main content using semantic HTML and common patterns
   const mainContent = findMainContent();
   const cleanedContent = cleanContent(mainContent);
@@ -243,7 +264,6 @@ function extractArticleContent(): { title: string; content: Element; images: str
 
   return { title, content: cleanedContent, images };
 }
-
 /**
  * Find the main content element on the page
  */
@@ -302,6 +322,39 @@ function extractTitle(): string {
 
   // Fall back to document title
   return document.title;
+}
+
+/**
+ * Generate a descriptive title for x.com content
+ * Format: "@handle: First ~50 chars of tweet..." or "Thread by @handle"
+ */
+function generateXTitle(xResult: XContentResult): string {
+  if (xResult.tweets.length === 0) {
+    return document.title;
+  }
+
+  const firstTweet = xResult.tweets[0];
+  const handle = firstTweet.author.handle || firstTweet.author.name;
+
+  // For threads, use "Thread by @handle"
+  if (xResult.pageType === "thread" && xResult.tweets.length > 1) {
+    return `Thread by ${handle}`;
+  }
+
+  // For single tweets, use "@handle: preview..."
+  const text = firstTweet.text.trim();
+  if (!text) {
+    return `@${handle}`;
+  }
+
+  // Truncate to ~60 chars at word boundary
+  const maxLen = 60;
+  if (text.length <= maxLen) {
+    return `@${handle}: ${text}`;
+  }
+
+  const truncated = text.slice(0, maxLen).replace(/\s+\S*$/, "");
+  return `@${handle}: ${truncated}...`;
 }
 
 /**
@@ -1163,6 +1216,34 @@ async function createReaderModeUI(
     enterEditMode(wrapper, toolbar);
   });
 
+  // Delete Clip
+  const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "reader-dropdown-item reader-dropdown-item-danger";
+  deleteBtn.innerHTML = `${trashIcon} Delete`;
+  deleteBtn.addEventListener("click", async () => {
+    dropdownMenu.classList.remove("visible");
+    if (!currentClipId) {
+      showToast("No clip to delete");
+      return;
+    }
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: "deleteClipWithSync",
+        clipId: currentClipId,
+      });
+      if (response.success) {
+        showToast("Clip deleted");
+        deactivateReaderMode();
+      } else {
+        showToast("Failed to delete clip");
+      }
+    } catch (err) {
+      console.error("[Reader Mode] Failed to delete clip:", err);
+      showToast("Failed to delete clip");
+    }
+  });
+
   // Assemble dropdown menu
   dropdownMenu.appendChild(tidyBtn);
   dropdownMenu.appendChild(editBtn);
@@ -1173,6 +1254,8 @@ async function createReaderModeUI(
   dropdownMenu.appendChild(copyHighlightsBtn);
   dropdownMenu.appendChild(shareBtn);
   dropdownMenu.appendChild(readAloudBtn);
+  dropdownMenu.appendChild(document.createElement("div")).className = "reader-dropdown-separator";
+  dropdownMenu.appendChild(deleteBtn);
 
   dropdown.appendChild(dropdownBtn);
   dropdown.appendChild(dropdownMenu);
