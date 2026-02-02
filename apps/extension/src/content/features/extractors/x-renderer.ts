@@ -3,7 +3,12 @@
  * Converts extracted tweet data into clean, readable HTML for reader mode.
  */
 
-import type { Tweet, QuoteTweet, TweetMedia, XContentResult } from "./x-extractor.js";
+import type {
+  Tweet,
+  QuoteTweet,
+  TweetMedia,
+  XContentResult,
+} from "./x-extractor.js";
 
 // =============================================================================
 // Helper Functions
@@ -151,14 +156,14 @@ function renderTweetCard(tweet: Tweet): HTMLElement {
   const authorSection = document.createElement("div");
   authorSection.className = "x-tweet-author";
 
-  if (tweet.author.avatarUrl) {
-    const avatar = document.createElement("img");
-    avatar.className = "x-tweet-avatar";
-    avatar.src = tweet.author.avatarUrl;
-    avatar.alt = `${tweet.author.name} avatar`;
-    avatar.loading = "lazy";
-    authorSection.appendChild(avatar);
-  }
+  // if (tweet.author.avatarUrl) {
+  //   const avatar = document.createElement("img");
+  //   avatar.className = "x-tweet-avatar";
+  //   avatar.src = tweet.author.avatarUrl;
+  //   avatar.alt = `${tweet.author.name} avatar`;
+  //   avatar.loading = "lazy";
+  //   authorSection.appendChild(avatar);
+  // }
 
   const authorInfo = document.createElement("div");
   authorInfo.className = "x-tweet-author-info";
@@ -166,13 +171,13 @@ function renderTweetCard(tweet: Tweet): HTMLElement {
   const authorName = document.createElement("span");
   authorName.className = "x-tweet-name";
   authorName.textContent = tweet.author.name;
-  if (tweet.author.verified) {
-    const badge = document.createElement("span");
-    badge.className = "x-verified-badge";
-    badge.textContent = "✓";
-    badge.title = "Verified";
-    authorName.appendChild(badge);
-  }
+  // if (tweet.author.verified) {
+  //   const badge = document.createElement("span");
+  //   badge.className = "x-verified-badge";
+  //   badge.textContent = "✓";
+  //   badge.title = "Verified";
+  //   authorName.appendChild(badge);
+  // }
   authorInfo.appendChild(authorName);
 
   const authorHandle = document.createElement("span");
