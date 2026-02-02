@@ -25,7 +25,7 @@ export function generateSessionId(): string {
  * @returns A unique clip identifier
  */
 export function generateClipId(): string {
-  return `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `clip_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
@@ -34,6 +34,6 @@ export function generateClipId(): string {
  * @returns A unique identifier
  */
 export function generateId(prefix?: string): string {
-  const id = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const id = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   return prefix ? `${prefix}_${id}` : id;
 }

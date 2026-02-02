@@ -416,6 +416,18 @@ export async function registerDynamicBoostCommands(): Promise<void> {
       },
     }));
 
+    // Remove any existing boost commands before adding new ones
+    // This prevents duplicates if registerDynamicBoostCommands() is called multiple times
+    const existingBoostIndices: number[] = [];
+    for (let i = commandRegistry.length - 1; i >= 0; i--) {
+      if (commandRegistry[i].id.startsWith("run-boost-")) {
+        existingBoostIndices.push(i);
+      }
+    }
+    for (const index of existingBoostIndices) {
+      commandRegistry.splice(index, 1);
+    }
+
     // Add boost commands to the registry
     commandRegistry.push(...boostCommands);
 
