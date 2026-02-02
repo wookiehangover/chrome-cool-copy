@@ -261,3 +261,182 @@ describe("README Documentation", () => {
     expect(readmeContent).toContain("Ctrl+Shift+C");
   });
 });
+
+/**
+ * Dynamic Boost Command Registration Tests
+ * Tests for the remove-before-add pattern in registerDynamicBoostCommands()
+ */
+describe("registerDynamicBoostCommands", () => {
+  beforeEach(() => {
+    resetChromeMocks();
+    // Clear any cached module state
+    vi.resetModules();
+
+    // Mock window.location for hostname
+    Object.defineProperty(window, "location", {
+      value: new URL("https://example.com/page"),
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  it("should not create duplicate boost commands when called multiple times", async () => {
+    // Mock boosts response - must use getBoostsForDomain action and success: true
+    const mockBoosts = [
+      { id: "boost-1", name: "Test Boost 1", runMode: "manual", description: "Test boost 1" },
+      { id: "boost-2", name: "Test Boost 2", runMode: "manual", description: "Test boost 2" },
+    ];
+
+    mockRuntime.sendMessage.mockImplementation(
+      (message: { action: string }, callback?: (response: unknown) => void) => {
+        if (message.action === "getBoostsForDomain" && callback) {
+          callback({ success: true, boosts: mockBoosts });
+        }
+      },
+    );
+
+    const { commandRegistry, registerDynamicBoostCommands } = await import("./commands.js");
+
+    // Call registerDynamicBoostCommands twice
+    await registerDynamicBoostCommands();
+    await registerDynamicBoostCommands();
+
+    // Count boost commands - should only be 2, not 4
+    const boostCommands = commandRegistry.filter((cmd) => cmd.id.startsWith("run-boost-"));
+    expect(boostCommands).toHaveLength(2);
+  });
+
+  it("should remove old boost commands before adding new ones", async () => {
+    // First call: register 2 boosts
+    mockRuntime.sendMessage.mockImplementation(
+      (message: { action: string }, callback?: (response: unknown) => void) => {
+        if (message.action === "getBoostsForDomain" && callback) {
+          callback({
+            success: true,
+            boosts: [
+              { id: "old-boost-1", name: "Old Boost 1", runMode: "manual" },
+              { id: "old-boost-2", name: "Old Boost 2", runMode: "manual" },
+            ],
+          });
+        }
+      },
+    );
+
+    const { commandRegistry, registerDynamicBoostCommands } = await import("./commands.js");
+    await registerDynamicBoostCommands();
+
+    // Verify old boosts are registered
+    expect(commandRegistry.find((cmd) => cmd.id === "run-boost-old-boost-1")).toBeDefined();
+    expect(commandRegistry.find((cmd) => cmd.id === "run-boost-old-boost-2")).toBeDefined();
+
+    // Second call: register different boosts
+    mockRuntime.sendMessage.mockImplementation(
+      (message: { action: string }, callback?: (response: unknown) => void) => {
+        if (message.action === "getBoostsForDomain" && callback) {
+          callback({
+            success: true,
+            boosts: [{ id: "new-boost-1", name: "New Boost 1", runMode: "manual" }],
+          });
+        }
+      },
+    );
+    await registerDynamicBoostCommands();
+
+    // Old boosts should be removed
+    expect(commandRegistry.find((cmd) => cmd.id === "run-boost-old-boost-1")).toBeUndefined();
+    expect(commandRegistry.find((cmd) => cmd.id === "run-boost-old-boost-2")).toBeUndefined();
+
+    // New boost should be registered
+    expect(commandRegistry.find((cmd) => cmd.id === "run-boost-new-boost-1")).toBeDefined();
+
+    // Total boost commands should be 1
+    const boostCommands = commandRegistry.filter((cmd) => cmd.id.startsWith("run-boost-"));
+    expect(boostCommands).toHaveLength(1);
+  });
+
+  it("should not affect non-boost commands when re-registering boost commands", async () => {
+    // Register initial boosts
+    mockRuntime.sendMessage.mockImplementation(
+      (message: { action: string }, callback?: (response: unknown) => void) => {
+        if (message.action === "getBoostsForDomain" && callback) {
+          callback({
+            success: true,
+            boosts: [{ id: "test-boost", name: "Test Boost", runMode: "manual" }],
+          });
+        }
+      },
+    );
+
+    const { commandRegistry, registerDynamicBoostCommands } = await import("./commands.js");
+
+    // Get initial non-boost commands
+    const initialNonBoostCommands = commandRegistry.filter(
+      (cmd) => !cmd.id.startsWith("run-boost-"),
+    );
+    const initialNonBoostIds = initialNonBoostCommands.map((cmd) => cmd.id);
+
+    await registerDynamicBoostCommands();
+
+    // Call again with different boosts
+    mockRuntime.sendMessage.mockImplementation(
+      (message: { action: string }, callback?: (response: unknown) => void) => {
+        if (message.action === "getBoostsForDomain" && callback) {
+          callback({
+            success: true,
+            boosts: [{ id: "another-boost", name: "Another Boost", runMode: "manual" }],
+          });
+        }
+      },
+    );
+    await registerDynamicBoostCommands();
+
+    // Non-boost commands should be unchanged
+    const finalNonBoostCommands = commandRegistry.filter(
+      (cmd) => !cmd.id.startsWith("run-boost-"),
+    );
+    const finalNonBoostIds = finalNonBoostCommands.map((cmd) => cmd.id);
+
+    expect(finalNonBoostIds).toEqual(initialNonBoostIds);
+    expect(finalNonBoostCommands).toHaveLength(initialNonBoostCommands.length);
+
+    // Verify some known non-boost commands still exist
+    expect(commandRegistry.find((cmd) => cmd.id === "copy-clean-url")).toBeDefined();
+    expect(commandRegistry.find((cmd) => cmd.id === "copy-markdown-link")).toBeDefined();
+  });
+
+  it("should handle empty boost list without affecting existing commands", async () => {
+    // First: register a boost
+    mockRuntime.sendMessage.mockImplementation(
+      (message: { action: string }, callback?: (response: unknown) => void) => {
+        if (message.action === "getBoostsForDomain" && callback) {
+          callback({
+            success: true,
+            boosts: [{ id: "temp-boost", name: "Temp Boost", runMode: "manual" }],
+          });
+        }
+      },
+    );
+
+    const { commandRegistry, registerDynamicBoostCommands } = await import("./commands.js");
+    await registerDynamicBoostCommands();
+
+    expect(commandRegistry.find((cmd) => cmd.id === "run-boost-temp-boost")).toBeDefined();
+
+    // Second: return empty boosts list
+    mockRuntime.sendMessage.mockImplementation(
+      (message: { action: string }, callback?: (response: unknown) => void) => {
+        if (message.action === "getBoostsForDomain" && callback) {
+          callback({ success: true, boosts: [] });
+        }
+      },
+    );
+    await registerDynamicBoostCommands();
+
+    // Old boost should be removed
+    expect(commandRegistry.find((cmd) => cmd.id === "run-boost-temp-boost")).toBeUndefined();
+
+    // No boost commands should remain
+    const boostCommands = commandRegistry.filter((cmd) => cmd.id.startsWith("run-boost-"));
+    expect(boostCommands).toHaveLength(0);
+  });
+});
