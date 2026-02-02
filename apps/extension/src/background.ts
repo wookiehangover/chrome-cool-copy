@@ -562,7 +562,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
           // Create element clip with metadata
           const now = new Date().toISOString();
-          const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const clipId = `clip_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
           let screenshotAssetId = "";
 
           // Save screenshot to IndexedDB if provided
