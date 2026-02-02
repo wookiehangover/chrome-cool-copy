@@ -3,12 +3,7 @@
  * Converts extracted tweet data into clean, readable HTML for reader mode.
  */
 
-import type {
-  Tweet,
-  QuoteTweet,
-  TweetMedia,
-  XContentResult,
-} from "./x-extractor.js";
+import type { Tweet, QuoteTweet, TweetMedia, XContentResult } from "./x-extractor.js";
 
 // =============================================================================
 // Helper Functions

@@ -67,7 +67,7 @@ const SELECTORS = {
   tweetText: '[data-testid="tweetText"]',
   userName: '[data-testid="User-Name"]',
   userAvatar: '[data-testid="Tweet-User-Avatar"] img',
-  timestamp: 'time',
+  timestamp: "time",
   media: '[data-testid="tweetPhoto"], [data-testid="videoPlayer"]',
   quoteTweet: '[data-testid="quoteTweet"]',
   replyingTo: '[data-testid="reply"]',
@@ -90,10 +90,10 @@ const SELECTORS = {
 function extractAuthor(tweetElement: Element): TweetAuthor {
   const userNameContainer = tweetElement.querySelector(SELECTORS.userName);
   const avatar = tweetElement.querySelector(SELECTORS.userAvatar) as HTMLImageElement | null;
-  
+
   let name = "";
   let handle = "";
-  
+
   if (userNameContainer) {
     // Name is in the first text span, handle starts with @
     const spans = userNameContainer.querySelectorAll("span");
@@ -127,7 +127,7 @@ function extractAuthor(tweetElement: Element): TweetAuthor {
 function extractText(tweetElement: Element): string {
   const textElement = tweetElement.querySelector(SELECTORS.tweetText);
   if (!textElement) return "";
-  
+
   // Get text content, preserving line breaks
   return textElement.textContent?.trim() || "";
 }
@@ -376,4 +376,3 @@ export function extractXContent(): XContentResult {
 
   return { tweets, pageType, mainTweetId };
 }
-

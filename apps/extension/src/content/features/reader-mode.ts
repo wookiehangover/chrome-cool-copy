@@ -6,11 +6,7 @@
  * Uses Shadow DOM for complete style isolation
  */
 
-import {
-  isXPage,
-  extractXContent,
-  type XContentResult,
-} from "./extractors/x-extractor.js";
+import { isXPage, extractXContent, type XContentResult } from "./extractors/x-extractor.js";
 import { renderXContent } from "./extractors/x-renderer.js";
 import styles from "./reader-mode.css?raw";
 import type { Highlight } from "@repo/shared";
@@ -83,18 +79,14 @@ let storageChangeListener:
 function setupHighlightSyncListener(): void {
   if (storageChangeListener) return; // Already set up
 
-  storageChangeListener = (changes: {
-    [key: string]: chrome.storage.StorageChange;
-  }) => {
+  storageChangeListener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
     if (!currentClipId || !changes[LOCAL_CLIPS_STORAGE_KEY]) return;
 
     const { newValue } = changes[LOCAL_CLIPS_STORAGE_KEY];
     if (!Array.isArray(newValue)) return;
 
     // Find our clip in the updated clips
-    const updatedClip = newValue.find(
-      (c: { id: string }) => c.id === currentClipId,
-    );
+    const updatedClip = newValue.find((c: { id: string }) => c.id === currentClipId);
     if (!updatedClip) return;
 
     const newHighlights: Highlight[] = updatedClip.highlights || [];
@@ -121,9 +113,7 @@ function setupHighlightSyncListener(): void {
         if (existing) {
           existing.note = updated.note;
           // Update has-note class on DOM element
-          const markElement = shadowRoot?.querySelector(
-            `[data-highlight-id="${updated.id}"]`,
-          );
+          const markElement = shadowRoot?.querySelector(`[data-highlight-id="${updated.id}"]`);
           if (markElement) {
             if (updated.note) {
               markElement.classList.add("has-note");
@@ -138,9 +128,7 @@ function setupHighlightSyncListener(): void {
 
     // Remove deleted highlights from DOM
     for (const id of removedIds) {
-      const markElement = shadowRoot?.querySelector(
-        `[data-highlight-id="${id}"]`,
-      );
+      const markElement = shadowRoot?.querySelector(`[data-highlight-id="${id}"]`);
       if (markElement) {
         const parent = markElement.parentNode;
         while (markElement.firstChild) {
@@ -260,10 +248,7 @@ function extractArticleContent(): {
         return { title, content, images };
       }
     } catch (error) {
-      console.warn(
-        "[Reader Mode] X.com extractor failed, falling back to generic:",
-        error,
-      );
+      console.warn("[Reader Mode] X.com extractor failed, falling back to generic:", error);
     }
   }
 
@@ -332,9 +317,7 @@ function extractTitle(): string {
   if (articleH1?.textContent) return articleH1.textContent.trim();
 
   // Try meta tags
-  const ogTitle = document
-    .querySelector('meta[property="og:title"]')
-    ?.getAttribute("content");
+  const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute("content");
   if (ogTitle) return ogTitle;
 
   // Fall back to document title
@@ -534,9 +517,7 @@ function restoreHighlights(): void {
   if (!contentWrapper || currentHighlights.length === 0) return;
 
   // Sort highlights by startOffset (process from end to start to preserve offsets)
-  const sortedHighlights = [...currentHighlights].sort(
-    (a, b) => b.startOffset - a.startOffset,
-  );
+  const sortedHighlights = [...currentHighlights].sort((a, b) => b.startOffset - a.startOffset);
 
   for (const highlight of sortedHighlights) {
     try {
@@ -559,11 +540,7 @@ function findTextAndWrap(
   note?: string,
 ): boolean {
   // First, try to find in a single text node (fast path)
-  const walker = document.createTreeWalker(
-    container,
-    NodeFilter.SHOW_TEXT,
-    null,
-  );
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let node: Text | null;
 
   while ((node = walker.nextNode() as Text | null)) {
@@ -586,11 +563,7 @@ function findTextAndWrap(
 
   // Text spans multiple nodes - build a text node map
   const textNodes: { node: Text; start: number; end: number }[] = [];
-  const walker2 = document.createTreeWalker(
-    container,
-    NodeFilter.SHOW_TEXT,
-    null,
-  );
+  const walker2 = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let pos = 0;
 
   while ((node = walker2.nextNode() as Text | null)) {
@@ -610,12 +583,8 @@ function findTextAndWrap(
   const searchEnd = searchIndex + searchText.length;
 
   // Find the nodes that contain the start and end of our search text
-  const startNodeInfo = textNodes.find(
-    (n) => searchIndex >= n.start && searchIndex < n.end,
-  );
-  const endNodeInfo = textNodes.find(
-    (n) => searchEnd > n.start && searchEnd <= n.end,
-  );
+  const startNodeInfo = textNodes.find((n) => searchIndex >= n.start && searchIndex < n.end);
+  const endNodeInfo = textNodes.find((n) => searchEnd > n.start && searchEnd <= n.end);
 
   if (!startNodeInfo || !endNodeInfo) {
     return false;
@@ -647,15 +616,8 @@ function findTextAndWrap(
 /**
  * Wrap text at a specific offset position (preferred method for synced highlights)
  */
-function wrapHighlightByOffset(
-  container: Element,
-  highlight: Highlight,
-): boolean {
-  const walker = document.createTreeWalker(
-    container,
-    NodeFilter.SHOW_TEXT,
-    null,
-  );
+function wrapHighlightByOffset(container: Element, highlight: Highlight): boolean {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let currentOffset = 0;
   let node: Text | null;
 
@@ -693,12 +655,7 @@ function wrapHighlightByOffset(
   }
 
   // Fallback to text-based search if offset didn't work
-  return findTextAndWrap(
-    container,
-    highlight.text,
-    highlight.id,
-    highlight.note,
-  );
+  return findTextAndWrap(container, highlight.text, highlight.id, highlight.note);
 }
 
 /**
@@ -744,8 +701,7 @@ export async function activateReaderMode(): Promise<void> {
       await autoClipPage(title, content);
     } else {
       // Check if highlights are already in the DOM (from edited content)
-      const existingMarks =
-        contentWrapper?.querySelectorAll(".reader-highlight");
+      const existingMarks = contentWrapper?.querySelectorAll(".reader-highlight");
       if (!existingMarks || existingMarks.length === 0) {
         // Restore highlights from the saved clip
         restoreHighlights();
@@ -813,11 +769,7 @@ function restoreOriginalContent(): void {
 /**
  * Create toolbar button
  */
-function createToolbarButton(
-  icon: string,
-  title: string,
-  onClick: () => void,
-): HTMLButtonElement {
+function createToolbarButton(icon: string, title: string, onClick: () => void): HTMLButtonElement {
   const btn = document.createElement("button");
   btn.className = "reader-mode-btn";
   btn.innerHTML = icon;
@@ -1042,10 +994,7 @@ async function createReaderModeUI(
         // On error, restore chunk to non-loading state
         setChunkComplete(shadowRoot!, chunkId, chunkHtml);
         showToast("Tidy failed for this section");
-        console.error(
-          `[Tidy Content] Failed to tidy chunk ${chunkId}:`,
-          response?.error,
-        );
+        console.error(`[Tidy Content] Failed to tidy chunk ${chunkId}:`, response?.error);
       }
     } catch (err) {
       console.error(`[Tidy Content] Error tidying chunk ${chunkId}:`, err);
@@ -1064,8 +1013,7 @@ async function createReaderModeUI(
       const originalHtml = contentWrapper.innerHTML;
 
       // Split content into chunks locally (content script has DOM access)
-      const { getHtmlChunks } =
-        await import("../../services/html-chunk-splitter.js");
+      const { getHtmlChunks } = await import("../../services/html-chunk-splitter.js");
       const chunks = getHtmlChunks(originalHtml);
 
       if (chunks.length === 0) {
@@ -1083,9 +1031,7 @@ async function createReaderModeUI(
       tidyBtn.innerHTML = `${tidyIcon} Done Tidying`;
       wrapper.classList.add("tidy-mode");
 
-      console.log(
-        `[Tidy Content] Entered tidy mode with ${chunks.length} chunks`,
-      );
+      console.log(`[Tidy Content] Entered tidy mode with ${chunks.length} chunks`);
     } catch (err) {
       console.error("[Tidy Content] Failed to enter tidy mode:", err);
       showToast("Failed to enter tidy mode");
@@ -1308,8 +1254,7 @@ async function createReaderModeUI(
   dropdownMenu.appendChild(copyHighlightsBtn);
   dropdownMenu.appendChild(shareBtn);
   dropdownMenu.appendChild(readAloudBtn);
-  dropdownMenu.appendChild(document.createElement("div")).className =
-    "reader-dropdown-separator";
+  dropdownMenu.appendChild(document.createElement("div")).className = "reader-dropdown-separator";
   dropdownMenu.appendChild(deleteBtn);
 
   dropdown.appendChild(dropdownBtn);
@@ -1445,16 +1390,8 @@ function setupSelectionListener(): void {
  * Get the text offset of a node within a container
  * This calculates the absolute character position in the text content
  */
-function getTextOffset(
-  container: Node,
-  targetNode: Node,
-  offset: number,
-): number {
-  const walker = document.createTreeWalker(
-    container,
-    NodeFilter.SHOW_TEXT,
-    null,
-  );
+function getTextOffset(container: Node, targetNode: Node, offset: number): number {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let accumulated = 0;
   let node: Node | null;
 
@@ -1471,9 +1408,7 @@ function getTextOffset(
 /**
  * Create highlight from current selection
  */
-async function createHighlightFromSelection(
-  selection: Selection,
-): Promise<void> {
+async function createHighlightFromSelection(selection: Selection): Promise<void> {
   if (editModeActive || tidyModeActive) {
     return;
   }
@@ -1487,16 +1422,8 @@ async function createHighlightFromSelection(
   try {
     // Calculate the actual text offset in the document
     const range = selection.getRangeAt(0);
-    const startOffset = getTextOffset(
-      contentWrapper,
-      range.startContainer,
-      range.startOffset,
-    );
-    const endOffset = getTextOffset(
-      contentWrapper,
-      range.endContainer,
-      range.endOffset,
-    );
+    const startOffset = getTextOffset(contentWrapper, range.startContainer, range.startOffset);
+    const endOffset = getTextOffset(contentWrapper, range.endContainer, range.endOffset);
 
     const response = await chrome.runtime.sendMessage({
       action: "addHighlight",
@@ -1524,10 +1451,7 @@ async function createHighlightFromSelection(
 /**
  * Apply highlight styling to selection, returns the mark element
  */
-function applyHighlightToDOM(
-  selection: Selection,
-  highlightId: string,
-): HTMLElement | null {
+function applyHighlightToDOM(selection: Selection, highlightId: string): HTMLElement | null {
   const range = selection.getRangeAt(0);
 
   const mark = document.createElement("mark");
@@ -1556,11 +1480,7 @@ function supportsAnchorPositioning(): boolean {
 /**
  * Show note editor positioned to the right of a highlight
  */
-function showNoteEditor(
-  markElement: HTMLElement,
-  highlightId: string,
-  existingNote: string,
-): void {
+function showNoteEditor(markElement: HTMLElement, highlightId: string, existingNote: string): void {
   if (!noteEditor || !shadowRoot) return;
 
   activeHighlightId = highlightId;
@@ -1587,9 +1507,7 @@ function showNoteEditor(
   }
 
   // Set existing note value
-  const textarea = noteEditor.querySelector(
-    ".note-textarea",
-  ) as HTMLTextAreaElement;
+  const textarea = noteEditor.querySelector(".note-textarea") as HTMLTextAreaElement;
   if (textarea) {
     textarea.value = existingNote;
     textarea.focus();
@@ -1616,12 +1534,9 @@ function hideNoteEditor(): void {
  * Save the current note
  */
 async function saveCurrentNote(): Promise<void> {
-  if (!noteEditor || !activeHighlightId || !currentClipId || !shadowRoot)
-    return;
+  if (!noteEditor || !activeHighlightId || !currentClipId || !shadowRoot) return;
 
-  const textarea = noteEditor.querySelector(
-    ".note-textarea",
-  ) as HTMLTextAreaElement;
+  const textarea = noteEditor.querySelector(".note-textarea") as HTMLTextAreaElement;
   const note = textarea?.value || "";
 
   try {
@@ -1637,9 +1552,7 @@ async function saveCurrentNote(): Promise<void> {
     if (hl) hl.note = note;
 
     // Update has-note class on the mark element
-    const markElement = shadowRoot.querySelector(
-      `[data-highlight-id="${activeHighlightId}"]`,
-    );
+    const markElement = shadowRoot.querySelector(`[data-highlight-id="${activeHighlightId}"]`);
     if (markElement) {
       if (note) {
         markElement.classList.add("has-note");
@@ -1668,15 +1581,11 @@ async function deleteCurrentHighlight(): Promise<void> {
     });
 
     // Remove from local state
-    currentHighlights = currentHighlights.filter(
-      (h) => h.id !== activeHighlightId,
-    );
+    currentHighlights = currentHighlights.filter((h) => h.id !== activeHighlightId);
     updateCopyHighlightsButtonState();
 
     // Unwrap the mark element
-    const markElement = shadowRoot.querySelector(
-      `[data-highlight-id="${activeHighlightId}"]`,
-    );
+    const markElement = shadowRoot.querySelector(`[data-highlight-id="${activeHighlightId}"]`);
     if (markElement) {
       const parent = markElement.parentNode;
       while (markElement.firstChild) {
@@ -1698,9 +1607,7 @@ async function deleteCurrentHighlight(): Promise<void> {
 async function copyCurrentHighlight(): Promise<void> {
   if (!activeHighlightId) return;
 
-  const highlightData = currentHighlights.find(
-    (h) => h.id === activeHighlightId,
-  );
+  const highlightData = currentHighlights.find((h) => h.id === activeHighlightId);
   if (!highlightData) return;
 
   // Get the title from the reader mode header
@@ -1757,9 +1664,7 @@ async function copyAllHighlights(): Promise<void> {
   lines.push(`[${title}](${url})`);
   lines.push("");
 
-  const sortedHighlights = [...currentHighlights].sort(
-    (a, b) => a.startOffset - b.startOffset,
-  );
+  const sortedHighlights = [...currentHighlights].sort((a, b) => a.startOffset - b.startOffset);
 
   for (const highlight of sortedHighlights) {
     const text = highlight.text?.trim();
