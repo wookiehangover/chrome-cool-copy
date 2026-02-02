@@ -10,6 +10,7 @@ import { SessionList } from "@/components/SessionList";
 import { Navigation } from "@/components/Navigation";
 import { BoostsList } from "@/components/BoostsList";
 import { BoostCreate } from "@/components/BoostCreate";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function ChatContent() {
   const {
@@ -144,11 +145,13 @@ function ChatContent() {
 
 function App() {
   return (
-    <NavigationProvider>
-      <ChatProvider>
-        <ChatContent />
-      </ChatProvider>
-    </NavigationProvider>
+    <ErrorBoundary>
+      <NavigationProvider>
+        <ChatProvider>
+          <ChatContent />
+        </ChatProvider>
+      </NavigationProvider>
+    </ErrorBoundary>
   );
 }
 
