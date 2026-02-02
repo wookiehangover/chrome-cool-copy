@@ -92,10 +92,7 @@ describe("Clipboard Utilities", () => {
       const result = await copyToClipboard("test text");
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to copy to clipboard:",
-        error
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to copy to clipboard:", error);
     });
 
     it("should return false when clipboard API throws DOMException", async () => {
@@ -105,10 +102,7 @@ describe("Clipboard Utilities", () => {
       const result = await copyToClipboard("test");
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to copy to clipboard:",
-        domError
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to copy to clipboard:", domError);
     });
   });
 
@@ -135,10 +129,7 @@ describe("Clipboard Utilities", () => {
       const result = await copyImageToClipboard(blob);
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to copy image to clipboard:",
-        error
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to copy image to clipboard:", error);
     });
 
     it("should return false when ClipboardItem construction fails", async () => {
@@ -158,7 +149,7 @@ describe("Clipboard Utilities", () => {
       expect(result).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "Failed to copy image to clipboard:",
-        constructorError
+        constructorError,
       );
 
       // Restore mock for other tests
@@ -173,11 +164,7 @@ describe("Clipboard Utilities", () => {
       const result = await copyImageToClipboard(blob);
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to copy image to clipboard:",
-        domError
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to copy image to clipboard:", domError);
     });
   });
 });
-

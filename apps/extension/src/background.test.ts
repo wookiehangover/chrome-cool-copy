@@ -83,14 +83,16 @@ describe("Background Message Handlers", () => {
     describe("response structure", () => {
       it("should define expected success response shape", () => {
         // Document the expected response structure for clipElement
-        type ClipElementResponse = {
-          success: true;
-          message: string;
-          clipId: string;
-        } | {
-          success: false;
-          error: string;
-        };
+        type ClipElementResponse =
+          | {
+              success: true;
+              message: string;
+              clipId: string;
+            }
+          | {
+              success: false;
+              error: string;
+            };
 
         const successResponse: ClipElementResponse = {
           success: true,
@@ -215,13 +217,15 @@ describe("Background Message Handlers", () => {
     describe("response structure", () => {
       it("should define expected success response shape", () => {
         // Document the expected response structure for captureFullPage
-        type CaptureFullPageResponse = {
-          success: true;
-          imageData: string; // data URL of captured image
-        } | {
-          success: false;
-          error: string;
-        };
+        type CaptureFullPageResponse =
+          | {
+              success: true;
+              imageData: string; // data URL of captured image
+            }
+          | {
+              success: false;
+              error: string;
+            };
 
         const successResponse: CaptureFullPageResponse = {
           success: true,
@@ -245,9 +249,7 @@ describe("Background Message Handlers", () => {
       it("should define the required message structure for generateText", () => {
         const validMessage = {
           action: "generateText",
-          messages: [
-            { role: "user", content: "Hello, how are you?" },
-          ],
+          messages: [{ role: "user", content: "Hello, how are you?" }],
           system: "You are a helpful assistant.",
           temperature: 0.7,
           maxOutputTokens: 2000,
@@ -345,18 +347,20 @@ describe("Background Message Handlers", () => {
     describe("response structure", () => {
       it("should define expected success response shape", () => {
         // Document the expected response structure for generateText
-        type GenerateTextResponse = {
-          success: true;
-          content: string;
-          usage?: {
-            inputTokens: number;
-            outputTokens: number;
-            totalTokens: number;
-          };
-        } | {
-          success: false;
-          error: string;
-        };
+        type GenerateTextResponse =
+          | {
+              success: true;
+              content: string;
+              usage?: {
+                inputTokens: number;
+                outputTokens: number;
+                totalTokens: number;
+              };
+            }
+          | {
+              success: false;
+              error: string;
+            };
 
         const successResponse: GenerateTextResponse = {
           success: true,
@@ -390,4 +394,3 @@ describe("Background Message Handlers", () => {
     });
   });
 });
-

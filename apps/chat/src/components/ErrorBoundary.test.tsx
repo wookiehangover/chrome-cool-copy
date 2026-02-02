@@ -24,7 +24,7 @@ describe("ErrorBoundary", () => {
       render(
         <ErrorBoundary>
           <div>Child content</div>
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText("Child content")).toBeInTheDocument();
@@ -36,17 +36,11 @@ describe("ErrorBoundary", () => {
       render(
         <ErrorBoundary>
           <ThrowingComponent />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "[ErrorBoundary] Caught error:",
-        expect.any(Error)
-      );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "[ErrorBoundary] Error info:",
-        expect.any(String)
-      );
+      expect(consoleSpy).toHaveBeenCalledWith("[ErrorBoundary] Caught error:", expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith("[ErrorBoundary] Error info:", expect.any(String));
     });
   });
 
@@ -55,13 +49,11 @@ describe("ErrorBoundary", () => {
       render(
         <ErrorBoundary>
           <ThrowingComponent />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText("Something went wrong")).toBeInTheDocument();
-      expect(
-        screen.getByText(/An unexpected error occurred/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/An unexpected error occurred/)).toBeInTheDocument();
       expect(screen.getByText("Try Again")).toBeInTheDocument();
     });
 
@@ -69,7 +61,7 @@ describe("ErrorBoundary", () => {
       render(
         <ErrorBoundary>
           <ThrowingComponent />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText("Error details")).toBeInTheDocument();
@@ -91,7 +83,7 @@ describe("ErrorBoundary", () => {
       const { rerender } = render(
         <ErrorBoundary>
           <ConditionalThrower />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       // Error UI should be displayed
@@ -107,7 +99,7 @@ describe("ErrorBoundary", () => {
       rerender(
         <ErrorBoundary>
           <ConditionalThrower />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       // Should now show the recovered content
@@ -122,7 +114,7 @@ describe("ErrorBoundary", () => {
       render(
         <ErrorBoundary fallback={customFallback}>
           <ThrowingComponent />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByText("Custom error UI")).toBeInTheDocument();
@@ -140,7 +132,7 @@ describe("ErrorBoundary", () => {
       render(
         <ErrorBoundary fallback={customFallback}>
           <ThrowingComponent />
-        </ErrorBoundary>
+        </ErrorBoundary>,
       );
 
       expect(screen.getByRole("alert")).toBeInTheDocument();
@@ -149,4 +141,3 @@ describe("ErrorBoundary", () => {
     });
   });
 });
-

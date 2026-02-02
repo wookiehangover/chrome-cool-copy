@@ -391,9 +391,7 @@ describe("registerDynamicBoostCommands", () => {
     await registerDynamicBoostCommands();
 
     // Non-boost commands should be unchanged
-    const finalNonBoostCommands = commandRegistry.filter(
-      (cmd) => !cmd.id.startsWith("run-boost-"),
-    );
+    const finalNonBoostCommands = commandRegistry.filter((cmd) => !cmd.id.startsWith("run-boost-"));
     const finalNonBoostIds = finalNonBoostCommands.map((cmd) => cmd.id);
 
     expect(finalNonBoostIds).toEqual(initialNonBoostIds);

@@ -74,36 +74,27 @@ describe("Markdown Utilities", () => {
     });
 
     it("should handle URL with special characters", () => {
-      const result = createMarkdownLink(
-        "https://example.com/path?query=value&other=123",
-        "Page"
-      );
+      const result = createMarkdownLink("https://example.com/path?query=value&other=123", "Page");
       expect(result).toBe("[Page](https://example.com/path?query=value&other=123)");
     });
 
     it("should handle URL with parentheses", () => {
       const result = createMarkdownLink(
         "https://en.wikipedia.org/wiki/JavaScript_(programming_language)",
-        "JavaScript"
+        "JavaScript",
       );
       expect(result).toBe(
-        "[JavaScript](https://en.wikipedia.org/wiki/JavaScript_(programming_language))"
+        "[JavaScript](https://en.wikipedia.org/wiki/JavaScript_(programming_language))",
       );
     });
 
     it("should handle unicode in URL", () => {
-      const result = createMarkdownLink(
-        "https://example.com/日本語",
-        "Japanese Page"
-      );
+      const result = createMarkdownLink("https://example.com/日本語", "Japanese Page");
       expect(result).toBe("[Japanese Page](https://example.com/日本語)");
     });
 
     it("should preserve nested brackets in title", () => {
-      const result = createMarkdownLink(
-        "https://example.com",
-        "[[nested]] brackets"
-      );
+      const result = createMarkdownLink("https://example.com", "[[nested]] brackets");
       expect(result).toBe("[\\[\\[nested\\]\\] brackets](https://example.com)");
     });
 
@@ -161,7 +152,7 @@ describe("Markdown Utilities", () => {
       await handleCopyMarkdownLink();
 
       expect(copyToClipboard).toHaveBeenCalledWith(
-        "[Page \\[with\\] Brackets](https://example.com/test)"
+        "[Page \\[with\\] Brackets](https://example.com/test)",
       );
     });
 
@@ -175,9 +166,7 @@ describe("Markdown Utilities", () => {
       await handleCopyMarkdownLink();
 
       expect(cleanUrl).toHaveBeenCalledWith("https://example.com/test");
-      expect(copyToClipboard).toHaveBeenCalledWith(
-        "[Test Page](https://cleaned.example.com)"
-      );
+      expect(copyToClipboard).toHaveBeenCalledWith("[Test Page](https://cleaned.example.com)");
     });
   });
 
@@ -243,21 +232,17 @@ describe("Markdown Utilities", () => {
       });
 
       it("should handle URLs with fragments", () => {
-        const result = createMarkdownLink(
-          "https://example.com/page#section-1",
-          "Page Section"
-        );
+        const result = createMarkdownLink("https://example.com/page#section-1", "Page Section");
         expect(result).toBe("[Page Section](https://example.com/page#section-1)");
       });
 
       it("should handle URLs with encoded characters", () => {
         const result = createMarkdownLink(
           "https://example.com/path%20with%20spaces",
-          "Encoded URL"
+          "Encoded URL",
         );
         expect(result).toBe("[Encoded URL](https://example.com/path%20with%20spaces)");
       });
     });
   });
 });
-

@@ -311,4 +311,3 @@ describe("Local Clips Storage Service", () => {
     });
   });
 });
-
