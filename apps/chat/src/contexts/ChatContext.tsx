@@ -65,7 +65,7 @@ interface ChatProviderProps {
 export function ChatProvider({ children }: ChatProviderProps) {
   const [input, setInput] = useState("");
   const [showSessionList, setShowSessionList] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelId>("anthropic/claude-sonnet-4.5");
+  const [selectedModel, setSelectedModel] = useState<ModelId>("anthropic/claude-opus-4.6");
 
   // Page context from the active tab
   const { pageContext, isLoading: isLoadingContext, clearContext } = usePageContext();

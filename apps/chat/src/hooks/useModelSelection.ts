@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { ModelId } from "@repo/shared";
 
-const DEFAULT_MODEL: ModelId = "anthropic/claude-sonnet-4.5";
+const DEFAULT_MODEL: ModelId = "anthropic/claude-opus-4.6";
 
 /**
  * Hook for managing model selection with chrome.storage.sync

@@ -9,9 +9,11 @@
 export type ModelId =
   | "xai/grok-code-fast-1"
   | "anthropic/claude-sonnet-4.5"
+  | "anthropic/claude-sonnet-4.6"
   | "google/gemini-3-flash"
   | "openai/gpt-5.2"
   | "anthropic/claude-opus-4.5"
+  | "anthropic/claude-opus-4.6"
   | "anthropic/claude-haiku-4.5"
   | "google/gemini-3-pro-preview"
   | "xai/grok-4.1-fast-non-reasoning"
@@ -36,6 +38,16 @@ export interface ModelDefinition {
  */
 export const SUPPORTED_MODELS: ModelDefinition[] = [
   // Anthropic models
+  {
+    id: "anthropic/claude-opus-4.6",
+    displayName: "Claude Opus 4.6",
+    provider: "Anthropic",
+  },
+  {
+    id: "anthropic/claude-sonnet-4.6",
+    displayName: "Claude Sonnet 4.6",
+    provider: "Anthropic",
+  },
   {
     id: "anthropic/claude-sonnet-4.5",
     displayName: "Claude Sonnet 4.5",
