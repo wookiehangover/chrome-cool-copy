@@ -15,6 +15,7 @@ import {
 } from "@repo/shared/tts";
 import {
   ArrowLeft,
+  Download,
   MoreHorizontal,
   Pause,
   Pencil,
@@ -79,6 +80,7 @@ export function ViewerToolbar({
   const { copyShareUrl } = useShareUrl();
   const { ttsUrl } = useTtsUrl();
   const [isSharing, setIsSharing] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const [isTTSLoading, setIsTTSLoading] = useState(false);
   const [isTTSStreaming, setIsTTSStreaming] = useState(false);
   const [isTTSPaused, setIsTTSPaused] = useState(false);
@@ -113,6 +115,27 @@ export function ViewerToolbar({
   const handleReset = async () => {
     // Reset to original content - would need to refetch from storage
     window.location.reload();
+  };
+
+  const handleFetchContent = async () => {
+    setIsFetching(true);
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: "fetchClipContent",
+        clipId: clip.id,
+      });
+      if (response?.success) {
+        showToast("Content updated");
+        window.location.reload();
+      } else {
+        showToast(response?.error || "Failed to fetch content");
+      }
+    } catch (err) {
+      console.error("Failed to fetch content:", err);
+      showToast(err instanceof Error ? err.message : "Failed to fetch content");
+    } finally {
+      setIsFetching(false);
+    }
   };
 
   const handleShare = async () => {
@@ -301,6 +324,10 @@ export function ViewerToolbar({
               <DropdownMenuItem onClick={handleReset} disabled={tidyModeActive}>
                 <RotateCcw className="h-4 w-4" />
                 Reset Content
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleFetchContent} disabled={isFetching}>
+                <Download className="h-4 w-4" />
+                {isFetching ? "Fetching..." : "Fetch Content"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleShare} disabled={isSharing}>
