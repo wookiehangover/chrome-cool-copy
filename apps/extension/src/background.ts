@@ -374,6 +374,29 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
   });
 }
 
+/**
+ * Wait for a tab to finish loading with a timeout
+ */
+function waitForTabLoad(tabId: number, timeoutMs = 30000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      reject(new Error("Tab load timeout"));
+    }, timeoutMs);
+
+    const listener = (updatedTabId: number, changeInfo: { status?: string }) => {
+      if (updatedTabId === tabId && changeInfo.status === "complete") {
+        clearTimeout(timeout);
+        chrome.tabs.onUpdated.removeListener(listener);
+        // Give the page a moment to settle after load
+        setTimeout(resolve, 500);
+      }
+    };
+
+    chrome.tabs.onUpdated.addListener(listener);
+  });
+}
+
 chrome.commands.onCommand.addListener((command) => {
   // Get the active tab
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -970,6 +993,83 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             success: false,
             error: error instanceof Error ? error.message : String(error),
           });
+        }
+      })();
+      return true;
+    } else if (message.action === "fetchClipContent") {
+      // Fetch fresh content for a clip: open background tab, extract content, update clip
+      (async () => {
+        let tabId: number | undefined;
+        try {
+          const { clipId } = message;
+
+          // 1. Look up the clip to get its URL
+          const clip = await getLocalClip(clipId);
+          if (!clip) {
+            sendResponse({ success: false, error: "Clip not found" });
+            return;
+          }
+
+          // 2. Open a background tab
+          const newTab = await chrome.tabs.create({ url: clip.url, active: false });
+          if (!newTab.id) {
+            throw new Error("Failed to create tab");
+          }
+          tabId = newTab.id;
+
+          // 3. Wait for tab to load with 30-second timeout
+          await waitForTabLoad(tabId, 30000);
+
+          // 4. Send extractArticleContent message to content script
+          const response = await new Promise<{
+            success: boolean;
+            title?: string;
+            domContent?: string;
+            textContent?: string;
+            error?: string;
+          }>((resolve) => {
+            chrome.tabs.sendMessage(
+              tabId,
+              { action: "extractArticleContent" },
+              (response) => {
+                if (chrome.runtime.lastError) {
+                  resolve({
+                    success: false,
+                    error: chrome.runtime.lastError.message,
+                  });
+                } else {
+                  resolve(response || { success: false, error: "No response from content script" });
+                }
+              },
+            );
+          });
+
+          if (!response.success) {
+            throw new Error(response.error || "Failed to extract article content");
+          }
+
+          // 5. Update the clip with extracted content
+          await updateLocalClip(clipId, {
+            title: response.title,
+            dom_content: response.domContent,
+            text_content: response.textContent,
+          });
+
+          // 6. Respond with success
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error("[Clean Link Copy] Error in fetchClipContent handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        } finally {
+          // Always close the tab if it was created
+          if (tabId !== undefined) {
+            await chrome.tabs.remove(tabId).catch((error) => {
+              console.warn("[Clean Link Copy] Failed to close background tab:", error);
+            });
+          }
         }
       })();
       return true;
