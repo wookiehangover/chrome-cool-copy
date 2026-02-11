@@ -232,7 +232,7 @@ export async function initReaderMode(): Promise<void> {
 /**
  * Extract the main article content from the page
  */
-function extractArticleContent(): {
+export function extractArticleContent(): {
   title: string;
   content: Element;
   images: string[];

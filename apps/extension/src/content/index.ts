@@ -14,7 +14,7 @@ import { initializeGrokipediaBanner } from "./features/grokipedia-banner.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { buildPageContext, type PageContext } from "./features/page-context.js";
 import { scrapePage, type ScrapedPage } from "./features/page-scraper.js";
-import { toggleReaderMode, initReaderMode } from "./features/reader-mode.js";
+import { toggleReaderMode, initReaderMode, extractArticleContent } from "./features/reader-mode.js";
 import {
   initConsoleCapture,
   getConsoleEntries,
@@ -107,6 +107,22 @@ chrome.runtime.onMessage.addListener(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error("[Reader Mode] Error in toggleReaderMode:", error);
+          sendResponse({ success: false, error: errorMessage });
+        }
+      } else if (message.action === "extractArticleContent") {
+        // Handle article content extraction request
+        try {
+          const { title, content, images } = extractArticleContent();
+          sendResponse({
+            success: true,
+            title,
+            domContent: content.outerHTML,
+            textContent: content.textContent || "",
+            images,
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error("[Reader Mode] Error in extractArticleContent:", error);
           sendResponse({ success: false, error: errorMessage });
         }
       } else if (message.action === "clipPage") {
