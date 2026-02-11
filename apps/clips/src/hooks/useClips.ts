@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import type { LocalClip, Clip } from "@repo/shared";
 
 export interface SyncResult {
-  synced: number;
+  imported: number;
+  skipped: number;
   failed: number;
+  total: number;
 }
 
 export interface UseClipsReturn {
@@ -91,14 +93,16 @@ export function useClips(): UseClipsReturn {
   const syncClips = useCallback(async (): Promise<SyncResult> => {
     try {
       const response = await chrome.runtime.sendMessage({
-        action: "syncPendingClips",
+        action: "syncFromAgentDB",
       });
-      return response?.data || { synced: 0, failed: 0 };
+      // Reload clips after sync completes
+      await loadClips();
+      return response?.data || { imported: 0, skipped: 0, failed: 0, total: 0 };
     } catch (err) {
       console.error("Failed to sync clips:", err);
-      return { synced: 0, failed: 0 };
+      return { imported: 0, skipped: 0, failed: 0, total: 0 };
     }
-  }, []);
+  }, [loadClips]);
 
   const updateClip = useCallback(
     async (id: string, updates: Partial<LocalClip>) => {

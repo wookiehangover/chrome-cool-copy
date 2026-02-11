@@ -170,10 +170,18 @@ export function ClipsList() {
           </div>
         ) : totalCount === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm text-muted-foreground">No clips yet</p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Press <kbd className="font-mono text-[11px]">⌘+Shift+C</kbd> to save a clip
-            </p>
+            {agentdbConfigured ? (
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="px-0 border-none bg-transparent text-[11px] uppercase tracking-wide text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCwIcon className={cn("h-3 w-3 inline mr-1", isSyncing && "animate-spin")} />
+                {isSyncing ? "Syncing..." : "Sync"}
+              </button>
+            ) : (
+              <p className="text-sm text-muted-foreground">No clips yet</p>
+            )}
           </div>
         ) : feedItems.length === 0 ? (
           <div className="py-16 text-center">

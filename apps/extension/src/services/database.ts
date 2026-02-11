@@ -134,6 +134,61 @@ export async function getWebpages(): Promise<Webpage[]> {
 }
 
 /**
+ * Get a batch of webpages with pagination
+ * @param offset - Number of rows to skip
+ * @param limit - Maximum number of rows to return
+ * @returns Array of webpages for the given page
+ */
+export async function getWebpagesBatch(offset: number, limit: number): Promise<Webpage[]> {
+  const connection = ensureInitialized();
+
+  try {
+    const result = await connection.execute({
+      sql: "SELECT id, url, title, text_content, metadata, highlights, status_code, content_type, content_length, last_modified, captured_at, created_at, updated_at, share_id FROM webpages ORDER BY created_at DESC LIMIT ? OFFSET ?",
+      params: [limit, offset],
+    });
+
+    const rows = result.results[0]?.rows || [];
+    console.log(
+      "[Database] Retrieved",
+      rows.length,
+      "webpages (offset:",
+      offset,
+      "limit:",
+      limit,
+      ")",
+    );
+    return rows as Webpage[];
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to retrieve webpages batch: ${message}`);
+  }
+}
+
+/**
+ * Get the total count of webpages in the database
+ * @returns Total number of webpages
+ */
+export async function getWebpagesCount(): Promise<number> {
+  const connection = ensureInitialized();
+
+  try {
+    const result = await connection.execute({
+      sql: "SELECT COUNT(*) as count FROM webpages",
+      params: [],
+    });
+
+    const rows = result.results[0]?.rows || [];
+    const count = rows.length > 0 ? (rows[0] as { count: number }).count : 0;
+    console.log("[Database] Total webpages count:", count);
+    return count;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to retrieve webpages count: ${message}`);
+  }
+}
+
+/**
  * Get a single webpage by ID
  * @param id - The webpage ID
  * @returns The webpage or null if not found

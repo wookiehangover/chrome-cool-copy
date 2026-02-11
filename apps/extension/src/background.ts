@@ -27,6 +27,7 @@ import {
   isAgentDBConfigured,
   syncPendingClips,
   deleteClipWithSync,
+  syncFromAgentDB,
 } from "./services/clips-sync";
 import {
   getBoosts,
@@ -1653,6 +1654,21 @@ IMPORTANT: Return ONLY raw HTML. Do NOT wrap in markdown code fences like \`\`\`
           sendResponse({ success: true, data: result });
         } catch (error) {
           console.error("[Clips] Error in syncPendingClips handler:", error);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+      return true;
+    } else if (message.action === "syncFromAgentDB") {
+      // Handle sync from AgentDB request - fetches webpages from AgentDB and imports them locally
+      (async () => {
+        try {
+          const result = await syncFromAgentDB();
+          sendResponse({ success: true, data: result });
+        } catch (error) {
+          console.error("[Clips] Error in syncFromAgentDB handler:", error);
           sendResponse({
             success: false,
             error: error instanceof Error ? error.message : String(error),

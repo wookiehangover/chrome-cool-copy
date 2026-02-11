@@ -5,12 +5,14 @@
 
 import { nanoid } from "nanoid";
 import type { LocalClip } from "@repo/shared";
+import { generateClipId } from "@repo/shared/utils";
 import {
   getPendingClips,
   updateClipSyncStatus,
   getLocalClip,
   deleteLocalClip,
   getLocalClips,
+  saveLocalClip,
 } from "./local-clips";
 import {
   initializeDatabase,
@@ -18,6 +20,8 @@ import {
   deleteWebpage,
   updateWebpageByShareId,
   getWebpageByShareId,
+  getWebpagesBatch,
+  getWebpagesCount,
 } from "./database";
 import { deleteClipAssets } from "./asset-store";
 
@@ -235,4 +239,132 @@ export async function deleteClipWithSync(
 
   const localDeleted = await deleteLocalClip(localId);
   return { localDeleted, agentdbDeleted };
+}
+
+/**
+ * Sync all webpages from AgentDB to local storage
+ * Fetches webpages in batches and upserts them as LocalClip entries
+ */
+export async function syncFromAgentDB(): Promise<{
+  imported: number;
+  skipped: number;
+  failed: number;
+  total: number;
+}> {
+  const config = await getAgentDBConfig();
+
+  if (!config) {
+    console.log("[Clips Sync] AgentDB not configured, skipping pull-sync");
+    return { imported: 0, skipped: 0, failed: 0, total: 0 };
+  }
+
+  try {
+    await initializeDatabase(config);
+
+    // Get total count of webpages
+    const totalCount = await getWebpagesCount();
+    console.log("[Clips Sync] Starting pull-sync from AgentDB, total webpages:", totalCount);
+
+    // Get existing local clips for deduplication
+    const existingClips = await getLocalClips();
+    const existingUrls = new Set(existingClips.map((c) => c.url));
+
+    let imported = 0;
+    let skipped = 0;
+    let failed = 0;
+    const batchSize = 50;
+
+    // Fetch webpages in batches
+    for (let offset = 0; offset < totalCount; offset += batchSize) {
+      try {
+        const webpages = await getWebpagesBatch(offset, batchSize);
+
+        if (webpages.length === 0) {
+          break;
+        }
+
+        for (const webpage of webpages) {
+          try {
+            // Skip if URL already exists locally
+            if (existingUrls.has(webpage.url)) {
+              skipped++;
+              continue;
+            }
+
+            // Parse metadata if it's a JSON string
+            let metadata: Record<string, unknown> | undefined;
+            if (webpage.metadata) {
+              if (typeof webpage.metadata === "string") {
+                try {
+                  metadata = JSON.parse(webpage.metadata);
+                } catch {
+                  metadata = undefined;
+                }
+              } else {
+                metadata = webpage.metadata;
+              }
+            }
+
+            // Parse highlights if it's a JSON string
+            let highlights: unknown[] | undefined;
+            if (webpage.highlights) {
+              if (typeof webpage.highlights === "string") {
+                try {
+                  highlights = JSON.parse(webpage.highlights);
+                } catch {
+                  highlights = undefined;
+                }
+              } else {
+                highlights = webpage.highlights;
+              }
+            }
+
+            // Create LocalClip from webpage
+            const localClip: LocalClip = {
+              id: generateClipId(),
+              url: webpage.url,
+              title: webpage.title,
+              dom_content: "",
+              text_content: webpage.text_content,
+              metadata,
+              highlights: highlights as any,
+              sync_status: "synced",
+              share_id: webpage.share_id,
+              created_at: webpage.created_at || webpage.captured_at || new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+
+            // Save to local storage
+            const clips = await getLocalClips();
+            clips.push(localClip);
+            await chrome.storage.local.set({ local_clips: clips });
+
+            imported++;
+            existingUrls.add(webpage.url);
+          } catch (error) {
+            failed++;
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error("[Clips Sync] Failed to import webpage:", webpage.url, errorMessage);
+          }
+        }
+
+        console.log(
+          `[Clips Sync] Batch complete (offset: ${offset}, size: ${webpages.length}): imported ${imported}, skipped ${skipped}, failed ${failed}`,
+        );
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("[Clips Sync] Failed to fetch batch at offset:", offset, errorMessage);
+        // Continue with next batch even if one fails
+      }
+    }
+
+    console.log(
+      `[Clips Sync] Pull-sync complete: ${imported} imported, ${skipped} skipped, ${failed} failed, ${totalCount} total`,
+    );
+    return { imported, skipped, failed, total: totalCount };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[Clips Sync] Failed to sync from AgentDB:", errorMessage);
+    throw error;
+  }
 }
