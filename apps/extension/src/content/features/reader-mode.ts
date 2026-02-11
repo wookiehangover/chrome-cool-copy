@@ -222,25 +222,64 @@ async function shouldAutoEnterReaderMode(): Promise<boolean> {
  */
 export async function initReaderMode(): Promise<void> {
   if (await shouldAutoEnterReaderMode()) {
-    // Small delay to let the page finish loading
+    // X.com is an SPA — content loads dynamically after initial page load.
+    // Use a longer delay and let extractArticleContent handle waiting for tweets.
+    const delay = isXPage() ? 500 : 100;
     setTimeout(() => {
       activateReaderMode();
-    }, 100);
+    }, delay);
   }
 }
 
 /**
- * Extract the main article content from the page
+ * Wait for an element matching the selector to appear in the DOM.
+ * Returns true if found within the timeout, false otherwise.
  */
-export function extractArticleContent(): {
+function waitForSelector(selector: string, timeoutMs: number = 5000): Promise<boolean> {
+  return new Promise((resolve) => {
+    // Check if already present
+    if (document.querySelector(selector)) {
+      resolve(true);
+      return;
+    }
+
+    const observer = new MutationObserver(() => {
+      if (document.querySelector(selector)) {
+        observer.disconnect();
+        resolve(true);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    setTimeout(() => {
+      observer.disconnect();
+      resolve(!!document.querySelector(selector));
+    }, timeoutMs);
+  });
+}
+
+/**
+ * Extract the main article content from the page.
+ * For X.com pages, waits for tweet elements to render before extracting.
+ */
+export async function extractArticleContent(): Promise<{
   title: string;
   content: Element;
   images: string[];
-} {
+}> {
   // X.com / Twitter: use custom extractor for better tweet presentation
   if (isXPage()) {
     try {
+      // X.com is an SPA — tweets may not be in the DOM yet.
+      // Wait for tweet elements to appear before extracting.
+      const tweetsReady = await waitForSelector('[data-testid="tweet"]', 5000);
+      if (!tweetsReady) {
+        console.warn("[Reader Mode] X.com: timed out waiting for tweet elements");
+      }
+
       const xResult = extractXContent();
+      console.log(`[Reader Mode] X.com: extracted ${xResult.tweets.length} tweets (${xResult.pageType})`);
       if (xResult.tweets.length > 0) {
         const content = renderXContent(xResult);
         const title = generateXTitle(xResult);
@@ -668,7 +707,9 @@ export async function activateReaderMode(): Promise<void> {
 
   try {
     // Check if page is already clipped - use saved content if so
-    const existingClip = await checkForExistingClip();
+    // Skip clip cache for X.com pages - always re-extract fresh content
+    // because X.com is an SPA and cached content is often stale or empty
+    const existingClip = isXPage() ? null : await checkForExistingClip();
 
     let title: string;
     let content: Element;
@@ -682,7 +723,7 @@ export async function activateReaderMode(): Promise<void> {
       currentHighlights = existingClip.highlights || [];
     } else {
       // Extract fresh content from the page
-      const extracted = extractArticleContent();
+      const extracted = await extractArticleContent();
       title = extracted.title;
       content = extracted.content;
     }

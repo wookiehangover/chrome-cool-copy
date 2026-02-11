@@ -110,21 +110,22 @@ chrome.runtime.onMessage.addListener(
           sendResponse({ success: false, error: errorMessage });
         }
       } else if (message.action === "extractArticleContent") {
-        // Handle article content extraction request
-        try {
-          const { title, content, images } = extractArticleContent();
-          sendResponse({
-            success: true,
-            title,
-            domContent: content.outerHTML,
-            textContent: content.textContent || "",
-            images,
+        // Handle article content extraction request (async for X.com SPA wait)
+        extractArticleContent()
+          .then(({ title, content, images }) => {
+            sendResponse({
+              success: true,
+              title,
+              domContent: content.outerHTML,
+              textContent: content.textContent || "",
+              images,
+            });
+          })
+          .catch((error) => {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error("[Reader Mode] Error in extractArticleContent:", error);
+            sendResponse({ success: false, error: errorMessage });
           });
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error("[Reader Mode] Error in extractArticleContent:", error);
-          sendResponse({ success: false, error: errorMessage });
-        }
       } else if (message.action === "clipPage") {
         // Handle clip page request - collect page data and send to background
         try {
