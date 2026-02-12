@@ -11,6 +11,7 @@ import { openCommandPalette, registerCommands } from "./command-palette.js";
 import { commandRegistry, registerDynamicBoostCommands } from "./commands.js";
 import { initializeDarkMode } from "./features/dark-mode-manager.js";
 import { initializeGrokipediaBanner } from "./features/grokipedia-banner.js";
+import { initializeDeepWikiBanner } from "./features/deepwiki-banner.js";
 import { buildPageClipPayload, handleClipError } from "./features/page-clip.js";
 import { buildPageContext, type PageContext } from "./features/page-context.js";
 import { scrapePage, type ScrapedPage } from "./features/page-scraper.js";
@@ -262,6 +263,17 @@ function initializeGrokipediaBannerFeature(): void {
 }
 
 /**
+ * Initialize DeepWiki banner feature
+ */
+function initializeDeepWikiBannerFeature(): void {
+  try {
+    initializeDeepWikiBanner();
+  } catch (error) {
+    console.error("[DeepWiki Banner] Initialization failed:", error);
+  }
+}
+
+/**
  * Initialize auto-run boosts for the current domain
  * Fetches enabled auto-mode boosts and executes them in order
  */
@@ -354,6 +366,9 @@ initializeDarkModeFeature();
 
 // Initialize Grokipedia banner feature
 initializeGrokipediaBannerFeature();
+
+// Initialize DeepWiki banner feature
+initializeDeepWikiBannerFeature();
 
 // Initialize auto-run boosts
 initializeAutoRunBoosts();
