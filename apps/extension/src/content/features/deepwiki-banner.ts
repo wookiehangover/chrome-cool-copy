@@ -5,7 +5,7 @@
  */
 
 import styles from "./deepwiki-banner.css?raw";
-import { getGitHubRepo } from "./github-detector.js";
+import { getGitHubRepo, isPublicRepo } from "./github-detector.js";
 
 let bannerElement: HTMLDivElement | null = null;
 let styleInjected = false;
@@ -90,6 +90,11 @@ export function showDeepWikiBanner(): void {
     // Get the repo info (returns null for non-repo pages)
     const repoInfo = getGitHubRepo();
     if (!repoInfo) {
+      return;
+    }
+
+    // DeepWiki only indexes public repos — skip private ones
+    if (!isPublicRepo()) {
       return;
     }
 

@@ -94,3 +94,17 @@ export function getGitHubRepo(
   }
 }
 
+/**
+ * Check if the current repository is public.
+ * Uses GitHub's meta tag that indicates repository visibility.
+ * @returns true if the repo is public, false if private or unknown
+ */
+export function isPublicRepo(): boolean {
+  try {
+    const meta = document.querySelector('meta[name="octolytics-dimension-repository_public"]');
+    return meta?.getAttribute("content") === "true";
+  } catch {
+    return false;
+  }
+}
+
