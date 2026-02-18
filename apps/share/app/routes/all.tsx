@@ -1,62 +1,20 @@
-import { data, Form, useNavigation } from "react-router";
+import { data } from "react-router";
 import type { Route } from "./+types/all";
 import { getAllClips, getMediaClips } from "~/lib/agentdb.server";
 import { ClipsList } from "~/components/ClipsList";
-import { useMemo } from "react";
-import { cn } from "~/lib/utils";
-import { isAuthenticated, getAuthCookieHeader } from "~/lib/auth.server";
-
-// Password constant
-const PASSWORD = "swordfish";
 
 /**
- * Server-side action - handles password submission
- */
-export async function action({ request }: Route.ActionArgs) {
-  if (request.method !== "POST") {
-    return data({ error: "Method not allowed" }, { status: 405 });
-  }
-
-  try {
-    const formData = await request.formData();
-    const password = formData.get("access_code");
-
-    if (password === PASSWORD) {
-      return data(
-        { success: true, error: null },
-        {
-          status: 200,
-          headers: {
-            "Set-Cookie": getAuthCookieHeader(),
-          },
-        },
-      );
-    } else {
-      return data({ error: "Invalid password", success: false }, { status: 401 });
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to process password";
-    console.error("[All Clips Route] Action error:", message);
-    return data({ error: message, success: false }, { status: 500 });
-  }
-}
-
-/**
- * Server-side loader - checks authentication and fetches clips
+ * Server-side loader - fetches clips (auth is handled by auth-layout)
  */
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    if (!isAuthenticated(request)) {
-      return { authenticated: false, clips: null, mediaClips: null };
-    }
-
     // Fetch both page clips and media clips in parallel
     const [clips, mediaResponse] = await Promise.all([
       getAllClips(),
       getMediaClips({ limit: 50, offset: 0 }),
     ]);
 
-    return { authenticated: true, clips, mediaClips: mediaResponse.clips };
+    return { clips, mediaClips: mediaResponse.clips };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load clips";
     console.error("[All Clips Route] Error:", message);
@@ -77,44 +35,8 @@ export function meta(): Route.MetaDescriptors {
 /**
  * All clips page component
  */
-export default function AllClipsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { authenticated, clips, mediaClips } = loaderData;
-  const { state } = useNavigation();
-  const isSubmitting = useMemo(() => state === "submitting", [state]);
-
-  if (actionData?.error || !authenticated) {
-    return (
-      <div className="grid place-items-center bg-background text-foreground h-screen max-h-screen">
-        <div className="w-full max-w-md px-6">
-          <Form
-            method="POST"
-            className={cn("space-y-4", { "opacity-50 cursor-not-allowed": isSubmitting })}
-          >
-            <div>
-              <input
-                id="access_code"
-                type="password"
-                name="access_code"
-                placeholder="Enter password"
-                className="w-full px-4 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none"
-                data-1p-ignore
-                data-op-ignore
-                autoComplete="off"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {actionData?.error ? "Incorrect" : isSubmitting ? "Authenticating..." : "Submit"}
-            </button>
-          </Form>
-        </div>
-      </div>
-    );
-  }
+export default function AllClipsPage({ loaderData }: Route.ComponentProps) {
+  const { clips, mediaClips } = loaderData;
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-foreground">

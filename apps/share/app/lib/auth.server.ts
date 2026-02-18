@@ -1,32 +1,65 @@
 /**
  * Server-side authentication utilities
  * Handles cookie-based authentication for protected routes
+ *
+ * Password is read from SITE_PASSWORD env var.
+ * Cookie token is a SHA-256 hash (not a plain string).
  */
+
+import { createHash } from "node:crypto";
 
 const AUTH_COOKIE_NAME = "all_clips_auth";
 
 /**
- * Check if a request is authenticated by verifying the auth cookie
- * @param request - The incoming request object
- * @returns true if authenticated, false otherwise
+ * Compute the expected cookie token for a given password.
+ * Token = SHA-256 hex digest of "clips-auth:<password>".
+ */
+function computeToken(password: string): string {
+  return createHash("sha256")
+    .update(`clips-auth:${password}`)
+    .digest("hex");
+}
+
+/**
+ * Check if a request carries a valid auth cookie.
+ * When SITE_PASSWORD is unset, returns true (no auth required).
  */
 export function isAuthenticated(request: Request): boolean {
+  const password = process.env.SITE_PASSWORD;
+  if (!password) return true;
+
   const cookieHeader = request.headers.get("Cookie");
-  return cookieHeader?.includes(`${AUTH_COOKIE_NAME}=authenticated`) ?? false;
+  if (!cookieHeader) return false;
+
+  const expected = computeToken(password);
+  return cookieHeader.includes(`${AUTH_COOKIE_NAME}=${expected}`);
 }
 
 /**
- * Get the authentication cookie name
- * @returns The cookie name used for authentication
+ * Validate a user-supplied password against SITE_PASSWORD.
  */
-export function getAuthCookieName(): string {
-  return AUTH_COOKIE_NAME;
+export function checkPassword(input: string): boolean {
+  const password = process.env.SITE_PASSWORD;
+  if (!password) return true;
+  return input === password;
 }
 
 /**
- * Generate the Set-Cookie header value for authentication
- * @returns The Set-Cookie header value
+ * Return whether a SITE_PASSWORD is configured.
+ */
+export function isPasswordRequired(): boolean {
+  return !!process.env.SITE_PASSWORD;
+}
+
+/**
+ * Generate the Set-Cookie header value to mark the user as authenticated.
+ * Cookie is HttpOnly, SameSite=Strict, 7-day expiry, Secure in production.
  */
 export function getAuthCookieHeader(): string {
-  return `${AUTH_COOKIE_NAME}=authenticated; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`;
+  const password = process.env.SITE_PASSWORD;
+  if (!password) return "";
+
+  const token = computeToken(password);
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${AUTH_COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800${secure}`;
 }
