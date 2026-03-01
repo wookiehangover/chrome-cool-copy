@@ -151,12 +151,12 @@ async function filterCommands(query: string): Promise<Command[]> {
 
   const results = [];
 
-  const extactMatch = visibleCommands.find((cmd) =>
+  const exactMatch = visibleCommands.find((cmd) =>
     cmd.name.toLowerCase().includes(query.toLowerCase()),
   );
 
-  if (extactMatch) {
-    results.push(extactMatch);
+  if (exactMatch) {
+    results.push(exactMatch);
   }
 
   const fuzzyMatches = visibleCommands.filter((cmd) => fuzzyMatch(query, cmd.name));

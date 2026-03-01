@@ -62,7 +62,7 @@ export async function saveAsset(
     throw new Error("Asset store not initialized. Call initAssetStore() first.");
   }
 
-  const assetId = `asset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const assetId = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   const asset: ClipAsset = {
     id: assetId,
     clipId,

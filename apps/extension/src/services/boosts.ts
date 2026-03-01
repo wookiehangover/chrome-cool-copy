@@ -44,7 +44,7 @@ export async function saveBoost(
   const now = new Date().toISOString();
 
   const newBoost: Boost = {
-    id: `boost_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `boost_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
     ...input,
     createdAt: now,
     updatedAt: now,

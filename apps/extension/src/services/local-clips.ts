@@ -134,7 +134,7 @@ export async function addHighlight(
   }
 
   const newHighlight: Highlight = {
-    id: `hl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `hl_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
     ...highlight,
     created_at: new Date().toISOString(),
   };
