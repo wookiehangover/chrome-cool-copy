@@ -419,7 +419,7 @@ export async function deleteMediaClip(id: string): Promise<boolean> {
       params: [id],
     });
 
-    const rowsAffected = result.results[0]?.rowsAffected ?? 0;
+    const rowsAffected = result.results[0]?.changes ?? 0;
 
     if (rowsAffected === 0) {
       console.log("[AgentDB] Media clip not found for deletion, id:", id);
