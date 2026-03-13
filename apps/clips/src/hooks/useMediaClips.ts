@@ -34,6 +34,7 @@ export interface UseMediaClipsReturn {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  deleteMediaClip: (id: string) => Promise<void>;
 }
 
 /**
@@ -97,10 +98,41 @@ export function useMediaClips(): UseMediaClipsReturn {
     await loadMediaClips();
   }, [loadMediaClips]);
 
+  const deleteMediaClip = useCallback(async (id: string) => {
+    const result = await chrome.storage.sync.get(["clipsServerConfig"]);
+    const clipsServerConfig = result.clipsServerConfig as
+      | { baseUrl: string; apiToken: string }
+      | undefined;
+
+    if (!clipsServerConfig?.baseUrl) {
+      throw new Error("Server not configured");
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (clipsServerConfig.apiToken) {
+      headers["Authorization"] = `Bearer ${clipsServerConfig.apiToken}`;
+    }
+
+    const response = await fetch(`${clipsServerConfig.baseUrl}/api/media/delete`, {
+      method: "DELETE",
+      headers,
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete media clip: ${response.statusText}`);
+    }
+
+    await loadMediaClips();
+  }, [loadMediaClips]);
+
   return {
     mediaClips,
     isLoading,
     error,
     refresh,
+    deleteMediaClip,
   };
 }

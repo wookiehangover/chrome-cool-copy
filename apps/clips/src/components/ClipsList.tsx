@@ -23,7 +23,7 @@ type FeedItem = { type: "local"; item: Clip } | { type: "media"; item: MediaClip
 
 export function ClipsList() {
   const { clips, isLoading: clipsLoading, deleteClip, syncClips } = useClips();
-  const { mediaClips, isLoading: mediaLoading } = useMediaClips();
+  const { mediaClips, isLoading: mediaLoading, deleteMediaClip } = useMediaClips();
   const { isConfigured: agentdbConfigured } = useAgentDBConfig();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
@@ -196,7 +196,7 @@ export function ClipsList() {
                   <ClipCard clip={feedItem.item} viewMode="grid" onDelete={deleteClip} />
                 </div>
               ) : (
-                <MediaClipCard key={`media-${feedItem.item.id}`} clip={feedItem.item} />
+                <MediaClipCard key={`media-${feedItem.item.id}`} clip={feedItem.item} onDelete={deleteMediaClip} />
               ),
             )}
           </div>
@@ -212,7 +212,7 @@ export function ClipsList() {
                   onDelete={deleteClip}
                 />
               ) : (
-                <MediaClipCard key={`media-${feedItem.item.id}`} clip={feedItem.item} />
+                <MediaClipCard key={`media-${feedItem.item.id}`} clip={feedItem.item} onDelete={deleteMediaClip} />
               ),
             )}
           </div>
