@@ -399,3 +399,37 @@ export async function updateMediaClipAIDescription(
     throw new Error(`Failed to update media clip AI description: ${message}`);
   }
 }
+
+
+/**
+ * Delete a media clip by ID
+ * @param id - The media clip ID to delete
+ * @returns true if a row was deleted, false if not found
+ */
+export async function deleteMediaClip(id: string): Promise<boolean> {
+  try {
+    await initializeConnection();
+
+    if (!dbConnection) {
+      throw new Error("Database connection not initialized");
+    }
+
+    const result = await dbConnection.execute({
+      sql: "DELETE FROM media_clips WHERE id = ?",
+      params: [id],
+    });
+
+    const rowsAffected = result.results[0]?.rowsAffected ?? 0;
+
+    if (rowsAffected === 0) {
+      console.log("[AgentDB] Media clip not found for deletion, id:", id);
+      return false;
+    }
+
+    console.log("[AgentDB] Media clip deleted:", id);
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to delete media clip: ${message}`);
+  }
+}
