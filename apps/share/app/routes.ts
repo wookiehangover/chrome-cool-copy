@@ -10,6 +10,7 @@ export default [
   route("api/share", "routes/api/share.tsx"),
   route("api/media/list", "routes/api/media.list.tsx"),
   route("api/media/upload", "routes/api/media.upload.tsx"),
+  route("api/media/delete", "routes/api/media.delete.tsx"),
   route("api/media/:id", "routes/api/media.$id.tsx"),
   route("*", "routes/$.tsx"),
   index("routes/index.tsx"),

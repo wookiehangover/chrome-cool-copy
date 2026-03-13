@@ -1,28 +1,40 @@
 import { data } from "react-router";
 import type { Route } from "./+types/api.media.delete";
 import { deleteMediaClip } from "~/lib/agentdb.server";
+import { isAuthenticated } from "~/lib/auth.server";
 
 export async function action({ request }: Route.ActionArgs) {
-  if (request.method !== "DELETE") {
+  // Support both DELETE (extension API) and POST (share app fetcher)
+  if (request.method !== "DELETE" && request.method !== "POST") {
     return data({ error: "Method not allowed" }, { status: 405 });
   }
 
-  // 1. Validate Bearer token
+  // Auth: accept Bearer token OR cookie auth
   const authHeader = request.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "");
-  if (!token || token !== process.env.CLIPS_API_TOKEN) {
+  const hasBearerAuth = token && token === process.env.CLIPS_API_TOKEN;
+  const hasCookieAuth = isAuthenticated(request);
+
+  if (!hasBearerAuth && !hasCookieAuth) {
     return data({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2. Parse JSON body for the media clip ID
-  let body: { id?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return data({ error: "Invalid JSON body" }, { status: 400 });
+  // Parse the media clip ID from either JSON body or form data
+  let id: string | undefined;
+
+  const contentType = request.headers.get("Content-Type") || "";
+  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+    const formData = await request.formData();
+    id = formData.get("id")?.toString();
+  } else {
+    try {
+      const body = await request.json();
+      id = body?.id;
+    } catch {
+      return data({ error: "Invalid JSON body" }, { status: 400 });
+    }
   }
 
-  const { id } = body;
   if (!id) {
     return data({ error: "Media clip ID is required" }, { status: 400 });
   }
