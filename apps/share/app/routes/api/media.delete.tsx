@@ -23,7 +23,10 @@ export async function action({ request }: Route.ActionArgs) {
   let id: string | undefined;
 
   const contentType = request.headers.get("Content-Type") || "";
-  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+  if (
+    contentType.includes("application/x-www-form-urlencoded") ||
+    contentType.includes("multipart/form-data")
+  ) {
     const formData = await request.formData();
     id = formData.get("id")?.toString();
   } else {
@@ -53,4 +56,3 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: message }, { status: 500 });
   }
 }
-

@@ -196,7 +196,11 @@ export function ClipsList() {
                   <ClipCard clip={feedItem.item} viewMode="grid" onDelete={deleteClip} />
                 </div>
               ) : (
-                <MediaClipCard key={`media-${feedItem.item.id}`} clip={feedItem.item} onDelete={deleteMediaClip} />
+                <MediaClipCard
+                  key={`media-${feedItem.item.id}`}
+                  clip={feedItem.item}
+                  onDelete={deleteMediaClip}
+                />
               ),
             )}
           </div>
@@ -212,7 +216,11 @@ export function ClipsList() {
                   onDelete={deleteClip}
                 />
               ) : (
-                <MediaClipCard key={`media-${feedItem.item.id}`} clip={feedItem.item} onDelete={deleteMediaClip} />
+                <MediaClipCard
+                  key={`media-${feedItem.item.id}`}
+                  clip={feedItem.item}
+                  onDelete={deleteMediaClip}
+                />
               ),
             )}
           </div>

@@ -400,7 +400,6 @@ export async function updateMediaClipAIDescription(
   }
 }
 
-
 /**
  * Delete a media clip by ID
  * @param id - The media clip ID to delete

@@ -15,9 +15,7 @@ const AUTH_COOKIE_NAME = "all_clips_auth";
  * Token = SHA-256 hex digest of "clips-auth:<password>".
  */
 function computeToken(password: string): string {
-  return createHash("sha256")
-    .update(`clips-auth:${password}`)
-    .digest("hex");
+  return createHash("sha256").update(`clips-auth:${password}`).digest("hex");
 }
 
 /**

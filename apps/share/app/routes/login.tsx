@@ -8,13 +8,7 @@ import {
 } from "~/lib/auth.server";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 
 // ---------------------------------------------------------------------------
 // Loader — redirect to /all if already authenticated or no password required
@@ -95,4 +89,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

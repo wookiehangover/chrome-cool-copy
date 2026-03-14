@@ -1035,7 +1035,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             chrome.tabs.sendMessage(
               tabId,
               { action: "extractArticleContent" },
-              (response: { success: boolean; title?: string; domContent?: string; textContent?: string; error?: string }) => {
+              (response: {
+                success: boolean;
+                title?: string;
+                domContent?: string;
+                textContent?: string;
+                error?: string;
+              }) => {
                 if (chrome.runtime.lastError) {
                   resolve({
                     success: false,

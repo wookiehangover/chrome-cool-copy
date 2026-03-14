@@ -107,4 +107,3 @@ export function isPublicRepo(): boolean {
     return false;
   }
 }
-

@@ -2,9 +2,7 @@ import { type RouteConfig, index, layout, route } from "@react-router/dev/routes
 
 export default [
   route("login", "routes/login.tsx"),
-  layout("routes/auth-layout.tsx", [
-    route("all", "routes/all.tsx"),
-  ]),
+  layout("routes/auth-layout.tsx", [route("all", "routes/all.tsx")]),
   route("share/:shareId", "routes/share.$shareId.tsx"),
   route("media/:id", "routes/media.$id.tsx"),
   route("api/share", "routes/api/share.tsx"),

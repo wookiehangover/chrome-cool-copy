@@ -413,4 +413,3 @@ function setLocation(url: string) {
     configurable: true,
   });
 }
-

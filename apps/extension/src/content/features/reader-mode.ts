@@ -279,7 +279,9 @@ export async function extractArticleContent(): Promise<{
       }
 
       const xResult = extractXContent();
-      console.log(`[Reader Mode] X.com: extracted ${xResult.tweets.length} tweets (${xResult.pageType})`);
+      console.log(
+        `[Reader Mode] X.com: extracted ${xResult.tweets.length} tweets (${xResult.pageType})`,
+      );
       if (xResult.tweets.length > 0) {
         const content = renderXContent(xResult);
         const title = generateXTitle(xResult);

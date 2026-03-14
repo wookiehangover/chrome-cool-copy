@@ -193,4 +193,3 @@ export function initializeDeepWikiBanner(): void {
     console.error("[DeepWiki Banner] Initialization failed:", error);
   }
 }
-
