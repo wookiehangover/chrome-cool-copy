@@ -38,6 +38,10 @@ interface ContentMessage {
 interface MessageResponse {
   success: boolean;
   error?: string;
+  title?: string;
+  domContent?: string;
+  textContent?: string;
+  images?: string[];
   context?: PageContext;
   scrapedPage?: ScrapedPage;
   entries?: ConsoleEntry[];

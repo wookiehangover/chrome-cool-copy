@@ -1028,10 +1028,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             textContent?: string;
             error?: string;
           }>((resolve) => {
+            if (!tabId) {
+              resolve({ success: false, error: "No tab ID" });
+              return;
+            }
             chrome.tabs.sendMessage(
               tabId,
               { action: "extractArticleContent" },
-              (response) => {
+              (response: { success: boolean; title?: string; domContent?: string; textContent?: string; error?: string }) => {
                 if (chrome.runtime.lastError) {
                   resolve({
                     success: false,
