@@ -39,7 +39,7 @@ endef
 #------------------------------------------------------------------------------
 
 # Full production build: extension + chat sidepanel + clips viewer
-build: clean checks format extension chat clips safari
+build: clean checks format extension chat clips
 	@echo ""
 	@echo "\033[32m✓\033[0m Build complete: apps/extension/dist/"
 
