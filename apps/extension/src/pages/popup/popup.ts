@@ -6,7 +6,8 @@ document.addEventListener("DOMContentLoaded", (): void => {
   document.getElementById("openChatBtn")?.addEventListener("click", async (): Promise<void> => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.id) {
-      chrome.sidePanel.open({ tabId: tab.id });
+      // Send to background so the tab is grouped before opening the side panel
+      chrome.runtime.sendMessage({ action: "openSidePanelFromPopup", tabId: tab.id });
     }
     window.close();
   });
