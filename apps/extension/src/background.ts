@@ -438,7 +438,6 @@ chrome.commands.onCommand.addListener((command) => {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
         } else {
           console.log("[Side Panel] Side panel opened via keyboard shortcut for tab", tabId);
-          ensureTabInGroup(tabId);
         }
       });
     }
@@ -1953,19 +1952,6 @@ async function sendNavigationWithRetry(
 }
 
 /**
- * Ensure a tab is in a tab group. If the tab is ungrouped, create a new
- * unnamed group containing it. Returns the groupId.
- */
-async function ensureTabInGroup(tabId: number): Promise<number> {
-  const tab = await chrome.tabs.get(tabId);
-  if (tab.groupId !== -1) {
-    return tab.groupId;
-  }
-  const groupId = await chrome.tabs.group({ tabIds: [tabId] });
-  return groupId;
-}
-
-/**
  * Handle side panel open/close
  * Opens the side panel for the current tab
  */
@@ -1981,7 +1967,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: false, error: chrome.runtime.lastError.message });
         } else {
           console.log("[Side Panel] Side panel opened for tab", tabId);
-          ensureTabInGroup(tabId);
           sendResponse({ success: true });
         }
       });
@@ -2003,7 +1988,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             "navigating to",
             message.path,
           );
-          ensureTabInGroup(tabId);
           // Send navigation message with retry to handle race condition
           // where sidepanel hasn't registered its listener yet
           const success = await sendNavigationWithRetry(message.path, message.params);
@@ -2023,7 +2007,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
         } else {
           console.log("[Side Panel] Side panel opened from popup for tab", tabId);
-          ensureTabInGroup(tabId);
         }
       });
     }
