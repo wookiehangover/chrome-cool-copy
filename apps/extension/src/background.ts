@@ -428,15 +428,14 @@ chrome.commands.onCommand.addListener((command) => {
     } else if (command === "reader-mode") {
       sendMessageToTab(tabId, { action: "toggleReaderMode" });
     } else if (command === "open-chat") {
-      // Ensure tab is in a group, then open the side panel for chat
-      ensureTabInGroup(tabId).then(() => {
-        chrome.sidePanel.open({ tabId }, () => {
-          if (chrome.runtime.lastError) {
-            console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
-          } else {
-            console.log("[Side Panel] Side panel opened via keyboard shortcut for tab", tabId);
-          }
-        });
+      // Open side panel first (requires user gesture context), then group the tab
+      chrome.sidePanel.open({ tabId }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
+        } else {
+          console.log("[Side Panel] Side panel opened via keyboard shortcut for tab", tabId);
+          ensureTabInGroup(tabId);
+        }
       });
     }
   });
@@ -1970,41 +1969,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "openSidePanel") {
     const tabId = sender.tab?.id;
     if (tabId !== undefined) {
-      ensureTabInGroup(tabId).then(() => {
-        chrome.sidePanel.open({ tabId }, () => {
-          if (chrome.runtime.lastError) {
-            console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
-            sendResponse({ success: false, error: chrome.runtime.lastError.message });
-          } else {
-            console.log("[Side Panel] Side panel opened for tab", tabId);
-            sendResponse({ success: true });
-          }
-        });
+      // Open side panel first (requires user gesture context), then group the tab
+      chrome.sidePanel.open({ tabId }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log("[Side Panel] Side panel opened for tab", tabId);
+          ensureTabInGroup(tabId);
+          sendResponse({ success: true });
+        }
       });
       return true;
     }
   } else if (message.action === "openSidePanelTo") {
-    // Open side panel and navigate to a specific path
+    // Open side panel first (requires user gesture context), then group the tab
     const tabId = sender.tab?.id;
     if (tabId !== undefined) {
-      ensureTabInGroup(tabId).then(() => {
-        chrome.sidePanel.open({ tabId }, async () => {
-          if (chrome.runtime.lastError) {
-            console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
-            sendResponse({ success: false, error: chrome.runtime.lastError.message });
-          } else {
-            console.log(
-              "[Side Panel] Side panel opened for tab",
-              tabId,
-              "navigating to",
-              message.path,
-            );
-            // Send navigation message with retry to handle race condition
-            // where sidepanel hasn't registered its listener yet
-            const success = await sendNavigationWithRetry(message.path, message.params);
-            sendResponse({ success });
-          }
-        });
+      chrome.sidePanel.open({ tabId }, async () => {
+        if (chrome.runtime.lastError) {
+          console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log(
+            "[Side Panel] Side panel opened for tab",
+            tabId,
+            "navigating to",
+            message.path,
+          );
+          ensureTabInGroup(tabId);
+          // Send navigation message with retry to handle race condition
+          // where sidepanel hasn't registered its listener yet
+          const success = await sendNavigationWithRetry(message.path, message.params);
+          sendResponse({ success });
+        }
       });
       return true;
     }
@@ -2012,14 +2010,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Popup sends tabId explicitly since sender.tab is undefined for popups
     const tabId = message.tabId;
     if (tabId !== undefined) {
-      ensureTabInGroup(tabId).then(() => {
-        chrome.sidePanel.open({ tabId }, () => {
-          if (chrome.runtime.lastError) {
-            console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
-          } else {
-            console.log("[Side Panel] Side panel opened from popup for tab", tabId);
-          }
-        });
+      // Open side panel first (requires user gesture context), then group the tab
+      chrome.sidePanel.open({ tabId }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
+        } else {
+          console.log("[Side Panel] Side panel opened from popup for tab", tabId);
+          ensureTabInGroup(tabId);
+        }
       });
     }
   }
