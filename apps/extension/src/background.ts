@@ -397,6 +397,9 @@ function waitForTabLoad(tabId: number, timeoutMs = 30000): Promise<void> {
   });
 }
 
+// Disable the side panel globally so it only appears on tabs that explicitly open it
+chrome.sidePanel.setOptions({ enabled: false });
+
 chrome.commands.onCommand.addListener((command) => {
   // Get the active tab
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -428,7 +431,8 @@ chrome.commands.onCommand.addListener((command) => {
     } else if (command === "reader-mode") {
       sendMessageToTab(tabId, { action: "toggleReaderMode" });
     } else if (command === "open-chat") {
-      // Open side panel first (requires user gesture context), then group the tab
+      // Enable side panel for this specific tab, then open it
+      chrome.sidePanel.setOptions({ tabId, enabled: true, path: "sidepanel/index.html" });
       chrome.sidePanel.open({ tabId }, () => {
         if (chrome.runtime.lastError) {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
@@ -1969,7 +1973,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "openSidePanel") {
     const tabId = sender.tab?.id;
     if (tabId !== undefined) {
-      // Open side panel first (requires user gesture context), then group the tab
+      // Enable side panel for this specific tab, then open it
+      chrome.sidePanel.setOptions({ tabId, enabled: true, path: "sidepanel/index.html" });
       chrome.sidePanel.open({ tabId }, () => {
         if (chrome.runtime.lastError) {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
@@ -1983,9 +1988,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
   } else if (message.action === "openSidePanelTo") {
-    // Open side panel first (requires user gesture context), then group the tab
+    // Enable side panel for this specific tab, then open it
     const tabId = sender.tab?.id;
     if (tabId !== undefined) {
+      chrome.sidePanel.setOptions({ tabId, enabled: true, path: "sidepanel/index.html" });
       chrome.sidePanel.open({ tabId }, async () => {
         if (chrome.runtime.lastError) {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
@@ -2010,7 +2016,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Popup sends tabId explicitly since sender.tab is undefined for popups
     const tabId = message.tabId;
     if (tabId !== undefined) {
-      // Open side panel first (requires user gesture context), then group the tab
+      // Enable side panel for this specific tab, then open it
+      chrome.sidePanel.setOptions({ tabId, enabled: true, path: "sidepanel/index.html" });
       chrome.sidePanel.open({ tabId }, () => {
         if (chrome.runtime.lastError) {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
