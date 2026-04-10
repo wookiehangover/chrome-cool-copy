@@ -397,6 +397,9 @@ function waitForTabLoad(tabId: number, timeoutMs = 30000): Promise<void> {
   });
 }
 
+// Disable the side panel globally so it only appears on tabs that explicitly open it
+chrome.sidePanel.setOptions({ enabled: false });
+
 chrome.commands.onCommand.addListener((command) => {
   // Get the active tab
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -416,23 +419,25 @@ chrome.commands.onCommand.addListener((command) => {
       console.warn("[Clean Link Copy] Tab ID is undefined");
       return;
     }
+    const tabId = tab.id;
 
     // Send message to content script based on the command
     if (command === "copy-clean-url") {
-      sendMessageToTab(tab.id, { action: "copyCleanUrl" });
+      sendMessageToTab(tabId, { action: "copyCleanUrl" });
     } else if (command === "copy-markdown-link") {
-      sendMessageToTab(tab.id, { action: "copyMarkdownLink" });
+      sendMessageToTab(tabId, { action: "copyMarkdownLink" });
     } else if (command === "open-command-palette") {
-      sendMessageToTab(tab.id, { action: "openCommandPalette" });
+      sendMessageToTab(tabId, { action: "openCommandPalette" });
     } else if (command === "reader-mode") {
-      sendMessageToTab(tab.id, { action: "toggleReaderMode" });
+      sendMessageToTab(tabId, { action: "toggleReaderMode" });
     } else if (command === "open-chat") {
-      // Open the side panel for chat
-      chrome.sidePanel.open({ tabId: tab.id }, () => {
+      // Enable side panel for this specific tab, then open it
+      chrome.sidePanel.setOptions({ tabId, enabled: true, path: "sidepanel/index.html" });
+      chrome.sidePanel.open({ tabId }, () => {
         if (chrome.runtime.lastError) {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
         } else {
-          console.log("[Side Panel] Side panel opened via keyboard shortcut for tab", tab.id);
+          console.log("[Side Panel] Side panel opened via keyboard shortcut for tab", tabId);
         }
       });
     }
@@ -1954,6 +1959,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "openSidePanel") {
     const tabId = sender.tab?.id;
     if (tabId !== undefined) {
+      // Enable side panel for this specific tab, then open it
+      chrome.sidePanel.setOptions({ tabId, enabled: true, path: "sidepanel/index.html" });
       chrome.sidePanel.open({ tabId }, () => {
         if (chrome.runtime.lastError) {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
@@ -1966,9 +1973,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
   } else if (message.action === "openSidePanelTo") {
-    // Open side panel and navigate to a specific path
+    // Enable side panel for this specific tab, then open it
     const tabId = sender.tab?.id;
     if (tabId !== undefined) {
+      chrome.sidePanel.setOptions({ tabId, enabled: true, path: "sidepanel/index.html" });
       chrome.sidePanel.open({ tabId }, async () => {
         if (chrome.runtime.lastError) {
           console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
@@ -1987,6 +1995,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
       return true;
+    }
+  } else if (message.action === "openSidePanelFromPopup") {
+    // Popup sends tabId explicitly since sender.tab is undefined for popups
+    const tabId = message.tabId;
+    if (tabId !== undefined) {
+      // Enable side panel for this specific tab, then open it
+      chrome.sidePanel.setOptions({ tabId, enabled: true, path: "sidepanel/index.html" });
+      chrome.sidePanel.open({ tabId }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
+        } else {
+          console.log("[Side Panel] Side panel opened from popup for tab", tabId);
+        }
+      });
     }
   }
 });
