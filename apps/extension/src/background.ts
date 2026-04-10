@@ -416,24 +416,25 @@ chrome.commands.onCommand.addListener((command) => {
       console.warn("[Clean Link Copy] Tab ID is undefined");
       return;
     }
+    const tabId = tab.id;
 
     // Send message to content script based on the command
     if (command === "copy-clean-url") {
-      sendMessageToTab(tab.id, { action: "copyCleanUrl" });
+      sendMessageToTab(tabId, { action: "copyCleanUrl" });
     } else if (command === "copy-markdown-link") {
-      sendMessageToTab(tab.id, { action: "copyMarkdownLink" });
+      sendMessageToTab(tabId, { action: "copyMarkdownLink" });
     } else if (command === "open-command-palette") {
-      sendMessageToTab(tab.id, { action: "openCommandPalette" });
+      sendMessageToTab(tabId, { action: "openCommandPalette" });
     } else if (command === "reader-mode") {
-      sendMessageToTab(tab.id, { action: "toggleReaderMode" });
+      sendMessageToTab(tabId, { action: "toggleReaderMode" });
     } else if (command === "open-chat") {
       // Ensure tab is in a group, then open the side panel for chat
-      ensureTabInGroup(tab.id).then(() => {
-        chrome.sidePanel.open({ tabId: tab.id }, () => {
+      ensureTabInGroup(tabId).then(() => {
+        chrome.sidePanel.open({ tabId }, () => {
           if (chrome.runtime.lastError) {
             console.error("[Side Panel] Error opening side panel:", chrome.runtime.lastError);
           } else {
-            console.log("[Side Panel] Side panel opened via keyboard shortcut for tab", tab.id);
+            console.log("[Side Panel] Side panel opened via keyboard shortcut for tab", tabId);
           }
         });
       });
