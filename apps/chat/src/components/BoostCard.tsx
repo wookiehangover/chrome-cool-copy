@@ -1,21 +1,19 @@
 import { useState } from "react";
 import { MoreHorizontalIcon, PlayIcon, PencilIcon, TrashIcon } from "lucide-react";
 import type { Boost } from "@repo/shared";
-import { Button } from "@/components/ui/button";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@repo/ui";
 import { useNavigationContext } from "@/contexts/NavigationContext";
 
 interface BoostCardProps {

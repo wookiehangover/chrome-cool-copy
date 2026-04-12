@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import type { Boost } from "@repo/shared";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
+  Button,
+  Input,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@repo/ui";
 import { Label } from "@/components/ui/label";
 
 interface BoostSaveDialogProps {
