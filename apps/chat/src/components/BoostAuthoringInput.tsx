@@ -6,7 +6,7 @@ import {
   PromptInputFooter,
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui";
 
 interface BoostAuthoringInputProps {
   onSendMessage: (content: string) => void;

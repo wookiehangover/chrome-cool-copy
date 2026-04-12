@@ -1,5 +1,5 @@
 import type { ConversationSession } from "@/lib/storage";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui";
 
 interface SessionListProps {
   sessions: ConversationSession[];

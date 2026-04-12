@@ -1,5 +1,5 @@
 import { useNavigationContext } from "@/contexts/NavigationContext";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui";
 
 export function Navigation() {
   const { path, navigate } = useNavigationContext();

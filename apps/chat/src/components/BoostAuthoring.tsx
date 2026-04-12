@@ -12,7 +12,7 @@ import { MessageList } from "@/components/MessageList";
 import { BoostSaveDialog } from "@/components/BoostSaveDialog";
 import { BoostAuthoringInput } from "@/components/BoostAuthoringInput";
 import { BoostCodeEditor } from "@/components/BoostCodeEditor";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "chat" | "code";
