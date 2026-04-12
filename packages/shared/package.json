@@ -17,6 +17,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@types/chrome": "^0.1.32",
     "jsdom": "^27.3.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"

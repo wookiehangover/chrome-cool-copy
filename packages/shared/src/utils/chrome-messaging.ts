@@ -37,9 +37,7 @@ export function sendMessage<T = unknown>(
         return;
       }
       if (response?.success === false) {
-        reject(
-          new Error((response?.error as string) || "Chrome runtime message failed"),
-        );
+        reject(new Error((response?.error as string) || "Chrome runtime message failed"));
         return;
       }
       if (options?.responseKey) {

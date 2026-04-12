@@ -120,9 +120,7 @@ describe("Boosts Handlers", () => {
 
   describe("runBoost", () => {
     it("should find boost by id and execute its code", async () => {
-      const boosts = [
-        { id: "b1", name: "Test Boost", code: "document.title = 'boosted'" },
-      ];
+      const boosts = [{ id: "b1", name: "Test Boost", code: "document.title = 'boosted'" }];
       mockGetBoosts.mockResolvedValue(boosts);
       mockExecuteScript.mockResolvedValue([
         { result: Promise.resolve({ success: true, result: "boosted" }) },
@@ -166,11 +164,7 @@ describe("Boosts Handlers", () => {
     });
 
     it("should throw when boostId is missing", async () => {
-      const result = await callHandler(
-        "runBoost",
-        {},
-        { tab: { id: 42 } as chrome.tabs.Tab },
-      );
+      const result = await callHandler("runBoost", {}, { tab: { id: 42 } as chrome.tabs.Tab });
 
       expect(result).toEqual({ success: false, error: "Boost ID is required" });
     });

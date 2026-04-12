@@ -43,9 +43,7 @@ describe("AI Gateway", () => {
         },
       );
 
-      await expect(getAIGateway()).rejects.toThrow(
-        "Vercel AI Gateway configuration not found",
-      );
+      await expect(getAIGateway()).rejects.toThrow("Vercel AI Gateway configuration not found");
     });
 
     it("should throw when apiKey is missing", async () => {
@@ -55,9 +53,7 @@ describe("AI Gateway", () => {
         },
       );
 
-      await expect(getAIGateway()).rejects.toThrow(
-        "Vercel AI Gateway configuration not found",
-      );
+      await expect(getAIGateway()).rejects.toThrow("Vercel AI Gateway configuration not found");
     });
 
     it("should throw when model is missing", async () => {
@@ -67,9 +63,7 @@ describe("AI Gateway", () => {
         },
       );
 
-      await expect(getAIGateway()).rejects.toThrow(
-        "Vercel AI Gateway configuration not found",
-      );
+      await expect(getAIGateway()).rejects.toThrow("Vercel AI Gateway configuration not found");
     });
   });
 

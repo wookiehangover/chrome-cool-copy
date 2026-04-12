@@ -35,12 +35,10 @@ describe("storage utilities", () => {
       },
     );
 
-    local.set.mockImplementation(
-      (items: Record<string, unknown>, callback: () => void) => {
-        Object.assign(store, items);
-        callback();
-      },
-    );
+    local.set.mockImplementation((items: Record<string, unknown>, callback: () => void) => {
+      Object.assign(store, items);
+      callback();
+    });
 
     local.remove.mockImplementation((keys: string[], callback: () => void) => {
       keys.forEach((key) => {
