@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useClips } from "@/hooks/useClips";
 import { useHighlights, useHighlightSync } from "@/hooks/useHighlights";
+import { sendMessage } from "@repo/shared";
 import type { LocalClip, ElementClip, Clip, Highlight } from "@repo/shared";
 import { getHtmlChunks } from "@repo/shared/utils";
 import { ViewerToolbar } from "./ViewerToolbar";
@@ -265,14 +266,15 @@ export function ClipViewer() {
       return;
     }
 
-    chrome.runtime.sendMessage(
-      { action: "getClipAsset", assetId: elementClip.screenshotAssetId },
-      (response) => {
-        if (response?.dataUrl) {
-          setScreenshotUrl(response.dataUrl);
+    sendMessage<string>({ action: "getClipAsset", assetId: elementClip.screenshotAssetId }, { responseKey: "dataUrl" })
+      .then((dataUrl) => {
+        if (dataUrl) {
+          setScreenshotUrl(dataUrl);
         }
-      },
-    );
+      })
+      .catch(() => {
+        // Silently ignore asset load failures
+      });
   }, [clip]);
 
   // Document-level click handler to close popover when clicking outside
@@ -511,16 +513,13 @@ export function ClipViewer() {
     buttons.forEach((btn) => (btn.disabled = true));
 
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: "tidyContent",
-        domContent: chunkHtml,
-      });
+      const data = await sendMessage<string>({ action: "tidyContent", domContent: chunkHtml }, { responseKey: "data" });
 
-      if (response?.success && response?.data) {
-        contentEl.innerHTML = response.data;
+      if (data) {
+        contentEl.innerHTML = data;
       } else {
         showToast("Tidy failed for this section");
-        console.error(`[Tidy Content] Failed to tidy chunk ${chunkId}:`, response?.error);
+        console.error(`[Tidy Content] Failed to tidy chunk ${chunkId}: no data returned`);
       }
     } catch (err) {
       console.error(`[Tidy Content] Error tidying chunk ${chunkId}:`, err);
@@ -653,11 +652,7 @@ export function ClipViewer() {
 
       // Update the clip with new content
       if (clip) {
-        await chrome.runtime.sendMessage({
-          action: "updateLocalClip",
-          clipId: clip.id,
-          updates: { dom_content: finalHtml },
-        });
+        await sendMessage({ action: "updateLocalClip", clipId: clip.id, updates: { dom_content: finalHtml } });
       }
 
       // Update local state

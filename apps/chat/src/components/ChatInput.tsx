@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { sendMessage } from "@repo/shared";
 import {
   PromptInput,
   PromptInputTextarea,
@@ -51,19 +52,16 @@ export function ChatInput() {
       setSelectedModel(model);
 
       // Save to chrome.storage.sync
-      chrome.runtime.sendMessage(
-        {
-          action: "updateAIGatewayConfig",
-          config: { model },
-        },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            console.error("[ChatInput] Failed to save model:", chrome.runtime.lastError);
-          } else if (response?.success) {
-            console.log("[ChatInput] Model saved successfully:", model);
-          }
-        },
-      );
+      sendMessage({
+        action: "updateAIGatewayConfig",
+        config: { model },
+      })
+        .then(() => {
+          console.log("[ChatInput] Model saved successfully:", model);
+        })
+        .catch((err) => {
+          console.error("[ChatInput] Failed to save model:", err);
+        });
     },
     [setSelectedModel],
   );

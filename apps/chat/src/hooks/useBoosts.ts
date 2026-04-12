@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { sendMessage } from "@repo/shared";
 import type { Boost } from "@repo/shared";
 
 export interface UseBoostsReturn {
@@ -19,10 +20,8 @@ export function useBoosts(): UseBoostsReturn {
   const loadBoosts = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await chrome.runtime.sendMessage({
-        action: "getBoosts",
-      });
-      setBoosts(response?.data || []);
+      const data = await sendMessage<Boost[]>({ action: "getBoosts" }, { responseKey: "data" });
+      setBoosts(data || []);
     } catch (error) {
       console.error("Failed to load boosts:", error);
       setBoosts([]);
@@ -57,10 +56,7 @@ export function useBoosts(): UseBoostsReturn {
   const toggleBoost = useCallback(
     async (id: string) => {
       try {
-        await chrome.runtime.sendMessage({
-          action: "toggleBoost",
-          id,
-        });
+        await sendMessage({ action: "toggleBoost", id });
         await loadBoosts();
       } catch (error) {
         console.error("Failed to toggle boost:", error);
@@ -72,10 +68,7 @@ export function useBoosts(): UseBoostsReturn {
   const deleteBoost = useCallback(
     async (id: string) => {
       try {
-        await chrome.runtime.sendMessage({
-          action: "deleteBoost",
-          id,
-        });
+        await sendMessage({ action: "deleteBoost", id });
         await loadBoosts();
       } catch (error) {
         console.error("Failed to delete boost:", error);
@@ -86,10 +79,7 @@ export function useBoosts(): UseBoostsReturn {
 
   const runBoost = useCallback(async (id: string) => {
     try {
-      await chrome.runtime.sendMessage({
-        action: "runBoost",
-        id,
-      });
+      await sendMessage({ action: "runBoost", id });
     } catch (error) {
       console.error("Failed to run boost:", error);
     }

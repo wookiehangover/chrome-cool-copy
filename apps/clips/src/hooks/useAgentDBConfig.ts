@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { sendMessage } from "@repo/shared";
 
 export interface UseAgentDBConfigReturn {
   isConfigured: boolean;
@@ -17,10 +18,8 @@ export function useAgentDBConfig(): UseAgentDBConfigReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await chrome.runtime.sendMessage({
-        action: "isAgentDBConfigured",
-      });
-      setIsConfigured(response?.data ?? false);
+      const data = await sendMessage<boolean>({ action: "isAgentDBConfigured" }, { responseKey: "data" });
+      setIsConfigured(data ?? false);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to check AgentDB configuration";
       console.error("Failed to check AgentDB configuration:", err);

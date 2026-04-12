@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { sendMessage } from "@repo/shared";
 import type { LocalClip, Clip } from "@repo/shared";
 
 export interface SyncResult {
@@ -30,10 +31,8 @@ export function useClips(): UseClipsReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await chrome.runtime.sendMessage({
-        action: "getLocalClips",
-      });
-      setClips(response?.data || []);
+      const data = await sendMessage<Clip[]>({ action: "getLocalClips" }, { responseKey: "data" });
+      setClips(data || []);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to load clips";
       console.error("Failed to load clips:", err);
@@ -51,10 +50,8 @@ export function useClips(): UseClipsReturn {
 
   const getClips = useCallback(async (): Promise<Clip[]> => {
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: "getLocalClips",
-      });
-      return response?.data || [];
+      const data = await sendMessage<Clip[]>({ action: "getLocalClips" }, { responseKey: "data" });
+      return data || [];
     } catch (err) {
       console.error("Failed to get clips:", err);
       return [];
@@ -63,11 +60,8 @@ export function useClips(): UseClipsReturn {
 
   const getClip = useCallback(async (id: string): Promise<Clip | null> => {
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: "getLocalClip",
-        clipId: id,
-      });
-      return response?.data || null;
+      const data = await sendMessage<Clip | null>({ action: "getLocalClip", clipId: id }, { responseKey: "data" });
+      return data || null;
     } catch (err) {
       console.error("Failed to get clip:", err);
       return null;
@@ -77,10 +71,7 @@ export function useClips(): UseClipsReturn {
   const deleteClip = useCallback(
     async (id: string) => {
       try {
-        await chrome.runtime.sendMessage({
-          action: "deleteClipWithSync",
-          clipId: id,
-        });
+        await sendMessage({ action: "deleteClipWithSync", clipId: id });
         await loadClips();
       } catch (err) {
         console.error("Failed to delete clip:", err);
@@ -92,12 +83,10 @@ export function useClips(): UseClipsReturn {
 
   const syncClips = useCallback(async (): Promise<SyncResult> => {
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: "syncFromAgentDB",
-      });
+      const data = await sendMessage<SyncResult>({ action: "syncFromAgentDB" }, { responseKey: "data" });
       // Reload clips after sync completes
       await loadClips();
-      return response?.data || { imported: 0, skipped: 0, failed: 0, total: 0 };
+      return data || { imported: 0, skipped: 0, failed: 0, total: 0 };
     } catch (err) {
       console.error("Failed to sync clips:", err);
       return { imported: 0, skipped: 0, failed: 0, total: 0 };
@@ -107,11 +96,7 @@ export function useClips(): UseClipsReturn {
   const updateClip = useCallback(
     async (id: string, updates: Partial<LocalClip>) => {
       try {
-        await chrome.runtime.sendMessage({
-          action: "updateLocalClip",
-          clipId: id,
-          updates,
-        });
+        await sendMessage({ action: "updateLocalClip", clipId: id, updates });
         await loadClips();
       } catch (err) {
         console.error("Failed to update clip:", err);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { sendMessage } from "@repo/shared";
 import type { Highlight, LocalClip } from "@repo/shared";
 
 // Storage key for local clips (must match local-clips.ts)
@@ -52,15 +53,15 @@ export function useHighlights(): UseHighlightsReturn {
       highlight: Omit<Highlight, "id" | "created_at">,
     ): Promise<Highlight | null> => {
       try {
-        const response = await chrome.runtime.sendMessage({
+        const result = await sendMessage<Highlight>({
           action: "addHighlight",
           clipId,
           highlight,
-        });
-        if (response?.success && response?.highlight) {
-          return response.highlight as Highlight;
+        }, { responseKey: "highlight" });
+        if (result) {
+          return result;
         }
-        console.error("Failed to add highlight:", response?.error);
+        console.error("Failed to add highlight: no highlight returned");
         return null;
       } catch (error) {
         console.error("Failed to add highlight:", error);
@@ -72,12 +73,7 @@ export function useHighlights(): UseHighlightsReturn {
 
   const updateNote = useCallback(async (clipId: string, highlightId: string, note: string) => {
     try {
-      await chrome.runtime.sendMessage({
-        action: "updateHighlightNote",
-        clipId,
-        highlightId,
-        note,
-      });
+      await sendMessage({ action: "updateHighlightNote", clipId, highlightId, note });
     } catch (error) {
       console.error("Failed to update highlight note:", error);
       throw error;
@@ -86,11 +82,7 @@ export function useHighlights(): UseHighlightsReturn {
 
   const deleteHighlight = useCallback(async (clipId: string, highlightId: string) => {
     try {
-      await chrome.runtime.sendMessage({
-        action: "deleteHighlight",
-        clipId,
-        highlightId,
-      });
+      await sendMessage({ action: "deleteHighlight", clipId, highlightId });
     } catch (error) {
       console.error("Failed to delete highlight:", error);
       throw error;
