@@ -296,7 +296,7 @@ export async function getMediaClips(options: {
     sql: "SELECT COUNT(*) as count FROM media_clips",
     params: [],
   });
-  const total = (countResult.results[0]?.rows[0] as { count: number })?.count || 0;
+  const total = (countResult.results[0]?.rows?.[0] as { count: number } | undefined)?.count || 0;
 
   // Get paginated clips
   const result = await dbConnection.execute({

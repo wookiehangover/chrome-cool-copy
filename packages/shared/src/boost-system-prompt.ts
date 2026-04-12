@@ -3,7 +3,7 @@
  * Instructions for the AI agent that helps users create custom boosts
  */
 
-export interface PageContext {
+interface BoostPageContext {
   url?: string;
   title?: string;
 }
@@ -11,7 +11,7 @@ export interface PageContext {
 /**
  * Generate the boost system prompt with optional page context
  */
-export function getBoostSystemPrompt(pageContext?: PageContext): string {
+export function getBoostSystemPrompt(pageContext?: BoostPageContext): string {
   const pageInfo = pageContext?.url
     ? `
 ## Current Page Context

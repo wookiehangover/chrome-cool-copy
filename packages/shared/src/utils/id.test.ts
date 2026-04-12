@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  generateClipId,
-  generateId,
-  generateSessionId,
-  generateUUID,
-} from "./id.js";
+import { generateClipId, generateId, generateSessionId, generateUUID } from "./id.js";
 
 describe("ID utilities", () => {
   afterEach(() => {
@@ -12,16 +7,16 @@ describe("ID utilities", () => {
   });
 
   it("generateUUID returns crypto.randomUUID", () => {
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("uuid-1");
+    vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-0000-0000-000000000001");
 
-    expect(generateUUID()).toBe("uuid-1");
+    expect(generateUUID()).toBe("00000000-0000-0000-0000-000000000001");
     expect(crypto.randomUUID).toHaveBeenCalledTimes(1);
   });
 
   it("generateSessionId returns crypto.randomUUID", () => {
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("session-uuid");
+    vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-0000-0000-000000000002");
 
-    expect(generateSessionId()).toBe("session-uuid");
+    expect(generateSessionId()).toBe("00000000-0000-0000-0000-000000000002");
     expect(crypto.randomUUID).toHaveBeenCalledTimes(1);
   });
 

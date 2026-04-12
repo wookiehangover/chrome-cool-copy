@@ -1,5 +1,5 @@
 import { data } from "react-router";
-import type { Route } from "./+types/api.share";
+import type { Route } from "./+types/share";
 import { shareClip } from "~/lib/agentdb.server";
 import { isAuthenticated } from "~/lib/auth.server";
 
@@ -25,11 +25,16 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const formData = await request.formData();
-    const id = formData.get("id");
+    const rawId = formData.get("id");
 
     // Validate input
-    if (!id) {
+    if (!rawId || typeof rawId !== "string") {
       return data({ error: "Either 'id' (number) or 'url' (string) is required" }, { status: 400 });
+    }
+
+    const id = Number(rawId);
+    if (Number.isNaN(id)) {
+      return data({ error: "'id' must be a valid number" }, { status: 400 });
     }
 
     const shareId = await shareClip(id);

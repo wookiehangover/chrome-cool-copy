@@ -318,7 +318,7 @@ export async function syncFromAgentDB(): Promise<{
               metadata,
               highlights: highlights as any,
               sync_status: "synced",
-              share_id: webpage.share_id,
+              share_id: webpage.share_id ?? undefined,
               created_at: webpage.created_at || webpage.captured_at || new Date().toISOString(),
               updated_at: new Date().toISOString(),
             };

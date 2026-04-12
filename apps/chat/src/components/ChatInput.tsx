@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import { sendMessage } from "@repo/shared";
+import { sendMessage as sendChromeMessage } from "@repo/shared";
 import {
   PromptInput,
   PromptInputTextarea,
@@ -52,14 +52,14 @@ export function ChatInput() {
       setSelectedModel(model);
 
       // Save to chrome.storage.sync
-      sendMessage({
+      sendChromeMessage({
         action: "updateAIGatewayConfig",
         config: { model },
       })
         .then(() => {
           console.log("[ChatInput] Model saved successfully:", model);
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           console.error("[ChatInput] Failed to save model:", err);
         });
     },

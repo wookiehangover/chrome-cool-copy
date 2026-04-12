@@ -98,7 +98,10 @@ export const clipsHandlers: HandlerMap = {
       try {
         const clipData = message.data as Record<string, unknown>;
         const screenshotDataUrl = message.screenshotDataUrl as string | undefined;
-        const imageBlob = message.imageBlob as Blob | { data?: ArrayBuffer; type?: string } | undefined;
+        const imageBlob = message.imageBlob as
+          | Blob
+          | { data?: ArrayBuffer; type?: string }
+          | undefined;
 
         const now = new Date().toISOString();
         const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -120,7 +123,7 @@ export const clipsHandlers: HandlerMap = {
             let imageBlobToSave: Blob = imageBlob as Blob;
             if (!(imageBlob instanceof Blob)) {
               const blobLike = imageBlob as { data?: ArrayBuffer; type?: string };
-              imageBlobToSave = new Blob([blobLike.data || imageBlob], {
+              imageBlobToSave = new Blob([blobLike.data || (imageBlob as ArrayBuffer)], {
                 type: blobLike.type || "image/png",
               });
             }
@@ -133,10 +136,7 @@ export const clipsHandlers: HandlerMap = {
             );
             console.log("[Background] Image saved to IndexedDB:", imageAssetId);
 
-            mediaAssets = [
-              { ...mediaAssets[0], assetId: imageAssetId },
-              ...mediaAssets.slice(1),
-            ];
+            mediaAssets = [{ ...mediaAssets[0], assetId: imageAssetId }, ...mediaAssets.slice(1)];
           } catch (error) {
             console.warn("[Background] Failed to save image to IndexedDB:", error);
           }
@@ -154,7 +154,7 @@ export const clipsHandlers: HandlerMap = {
           textContent: clipData.textContent as string,
           markdownContent: clipData.markdownContent as string,
           structuredData: clipData.structuredData as Record<string, unknown>,
-          mediaAssets: mediaAssets as ElementClip["mediaAssets"],
+          mediaAssets: mediaAssets as unknown as ElementClip["mediaAssets"],
           elementMeta: clipData.elementMeta as ElementClip["elementMeta"],
           aiSummary: undefined,
           aiSummaryStatus: "pending" as const,

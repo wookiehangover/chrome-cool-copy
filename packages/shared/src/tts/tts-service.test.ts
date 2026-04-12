@@ -28,7 +28,7 @@ describe("TTS service", () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       blob: vi.fn().mockResolvedValue(responseBlob),
-    } as Response);
+    } as unknown as Response);
 
     const result = await generateSpeech({
       text: "Hello world",
@@ -55,7 +55,7 @@ describe("TTS service", () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       blob: vi.fn().mockResolvedValue(responseBlob),
-    } as Response);
+    } as unknown as Response);
 
     await generateSpeech({ text: "Defaults test" });
 
@@ -95,7 +95,7 @@ describe("TTS service", () => {
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
-    } as Response);
+    } as unknown as Response);
 
     await expect(generateSpeech({ text: "Hello" })).rejects.toMatchObject({
       name: "TTSError",
@@ -108,7 +108,7 @@ describe("TTS service", () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       blob: vi.fn().mockResolvedValue(new Blob()),
-    } as Response);
+    } as unknown as Response);
 
     await expect(generateSpeech({ text: "Hello" })).rejects.toMatchObject({
       name: "TTSError",
@@ -163,7 +163,7 @@ describe("TTS service", () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       blob: vi.fn().mockResolvedValue(new Blob()),
-    } as Response);
+    } as unknown as Response);
 
     await expect(generateSpeech({ text: "Hello" })).rejects.toBeInstanceOf(TTSError);
   });
