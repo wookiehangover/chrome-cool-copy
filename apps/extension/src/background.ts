@@ -11,7 +11,7 @@ if (typeof process === "undefined") {
 import { streamText, generateText, createGateway, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
 import { createBoostTools } from "./tools/boost-tools";
-import { getBoostSystemPrompt } from "./tools/boost-system-prompt";
+import { getBoostSystemPrompt } from "@repo/shared";
 import {
   saveLocalClip,
   isUrlClipped,
