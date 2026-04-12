@@ -170,12 +170,10 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
           // Create new boost
           await sendMessage<Boost>(
             {
-              type: "saveBoost",
-              payload: {
-                ...metadata,
-                code: currentCode,
-                chatHistory: messages,
-              },
+              action: "saveBoost",
+              ...metadata,
+              code: currentCode,
+              chatHistory: messages,
             },
             { responseKey: "boost" },
           );

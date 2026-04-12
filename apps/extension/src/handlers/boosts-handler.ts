@@ -1,10 +1,12 @@
 import {
   getBoosts,
+  saveBoost as persistBoost,
   toggleBoost,
   deleteBoost,
   updateBoost,
   getBoostsForDomain,
 } from "../services/boosts";
+import type { Boost } from "@repo/shared";
 import type { HandlerMap } from "./types";
 
 /**
@@ -157,6 +159,27 @@ export const boostsHandlers: HandlerMap = {
         sendResponse({ success: true, data: boosts });
       } catch (error) {
         console.error("[Boosts] Error in getBoosts handler:", error);
+        sendResponse({
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    })();
+    return true;
+  },
+
+  saveBoost: (message, _sender, sendResponse) => {
+    (async () => {
+      try {
+        const { action: _action, ...payload } = message as { action?: string } & Omit<
+          Boost,
+          "id" | "createdAt" | "updatedAt"
+        >;
+        const boost = await persistBoost(payload);
+        console.log("[Boosts] Boost saved successfully:", boost.id);
+        sendResponse({ success: true, boost });
+      } catch (error) {
+        console.error("[Boosts] Error saving boost:", error);
         sendResponse({
           success: false,
           error: error instanceof Error ? error.message : String(error),

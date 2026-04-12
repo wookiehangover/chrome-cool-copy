@@ -12,7 +12,6 @@ import { streamText, createGateway, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
 import { createBoostTools } from "./tools/boost-tools";
 import { getBoostSystemPrompt } from "@repo/shared";
-import { saveBoost } from "./services/boosts";
 import type { StreamTextRequest, StreamMessageType } from "@repo/shared";
 import {
   clipsHandlers,
@@ -269,28 +268,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
     }
-  }
-});
-
-// =============================================================================
-// Save Boost (separate listener for saveBoost action)
-// =============================================================================
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if ((message.action === "saveBoost" || message.type === "saveBoost") && message.payload) {
-    saveBoost(message.payload)
-      .then((boost) => {
-        console.log("[Boosts] Boost saved successfully:", boost.id);
-        sendResponse({ success: true, boost });
-      })
-      .catch((error) => {
-        console.error("[Boosts] Error saving boost:", error);
-        sendResponse({
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      });
-    return true;
   }
 });
 
