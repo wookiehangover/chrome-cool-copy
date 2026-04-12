@@ -4,11 +4,7 @@
  */
 
 import { initializeDatabase, getWebpages } from "../../services/database";
-import {
-  SUPPORTED_MODELS,
-  MODELS_BY_PROVIDER,
-  type AgentDBConfig,
-} from "@repo/shared";
+import { SUPPORTED_MODELS, MODELS_BY_PROVIDER, type AgentDBConfig } from "@repo/shared";
 
 export {};
 

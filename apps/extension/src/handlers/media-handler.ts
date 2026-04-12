@@ -191,10 +191,7 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
 
 export const mediaHandlers: HandlerMap = {
   captureElement: (message, _sender, sendResponse) => {
-    captureAndCropImage(
-      message.bounds as ElementBounds,
-      (message.devicePixelRatio as number) || 1,
-    )
+    captureAndCropImage(message.bounds as ElementBounds, (message.devicePixelRatio as number) || 1)
       .then((imageData) => {
         sendResponse({ success: true, imageData });
       })

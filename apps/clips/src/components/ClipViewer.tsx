@@ -266,7 +266,10 @@ export function ClipViewer() {
       return;
     }
 
-    sendMessage<string>({ action: "getClipAsset", assetId: elementClip.screenshotAssetId }, { responseKey: "dataUrl" })
+    sendMessage<string>(
+      { action: "getClipAsset", assetId: elementClip.screenshotAssetId },
+      { responseKey: "dataUrl" },
+    )
       .then((dataUrl) => {
         if (dataUrl) {
           setScreenshotUrl(dataUrl);
@@ -513,7 +516,10 @@ export function ClipViewer() {
     buttons.forEach((btn) => (btn.disabled = true));
 
     try {
-      const data = await sendMessage<string>({ action: "tidyContent", domContent: chunkHtml }, { responseKey: "data" });
+      const data = await sendMessage<string>(
+        { action: "tidyContent", domContent: chunkHtml },
+        { responseKey: "data" },
+      );
 
       if (data) {
         contentEl.innerHTML = data;
@@ -652,7 +658,11 @@ export function ClipViewer() {
 
       // Update the clip with new content
       if (clip) {
-        await sendMessage({ action: "updateLocalClip", clipId: clip.id, updates: { dom_content: finalHtml } });
+        await sendMessage({
+          action: "updateLocalClip",
+          clipId: clip.id,
+          updates: { dom_content: finalHtml },
+        });
       }
 
       // Update local state

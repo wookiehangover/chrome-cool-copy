@@ -53,11 +53,14 @@ export function useHighlights(): UseHighlightsReturn {
       highlight: Omit<Highlight, "id" | "created_at">,
     ): Promise<Highlight | null> => {
       try {
-        const result = await sendMessage<Highlight>({
-          action: "addHighlight",
-          clipId,
-          highlight,
-        }, { responseKey: "highlight" });
+        const result = await sendMessage<Highlight>(
+          {
+            action: "addHighlight",
+            clipId,
+            highlight,
+          },
+          { responseKey: "highlight" },
+        );
         if (result) {
           return result;
         }

@@ -60,7 +60,10 @@ export function useClips(): UseClipsReturn {
 
   const getClip = useCallback(async (id: string): Promise<Clip | null> => {
     try {
-      const data = await sendMessage<Clip | null>({ action: "getLocalClip", clipId: id }, { responseKey: "data" });
+      const data = await sendMessage<Clip | null>(
+        { action: "getLocalClip", clipId: id },
+        { responseKey: "data" },
+      );
       return data || null;
     } catch (err) {
       console.error("Failed to get clip:", err);
@@ -83,7 +86,10 @@ export function useClips(): UseClipsReturn {
 
   const syncClips = useCallback(async (): Promise<SyncResult> => {
     try {
-      const data = await sendMessage<SyncResult>({ action: "syncFromAgentDB" }, { responseKey: "data" });
+      const data = await sendMessage<SyncResult>(
+        { action: "syncFromAgentDB" },
+        { responseKey: "data" },
+      );
       // Reload clips after sync completes
       await loadClips();
       return data || { imported: 0, skipped: 0, failed: 0, total: 0 };

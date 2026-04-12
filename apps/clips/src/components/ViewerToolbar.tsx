@@ -134,7 +134,10 @@ export function ViewerToolbar({
     setIsSharing(true);
     try {
       // Always sync the clip to ensure highlights are up to date
-      const data = await sendMessage<{ share_id?: string }>({ action: "syncSingleClip", clipId: clip.id }, { responseKey: "data" });
+      const data = await sendMessage<{ share_id?: string }>(
+        { action: "syncSingleClip", clipId: clip.id },
+        { responseKey: "data" },
+      );
 
       if (!data?.share_id) {
         throw new Error("Failed to sync clip. Is AgentDB configured?");

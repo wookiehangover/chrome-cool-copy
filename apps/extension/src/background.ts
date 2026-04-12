@@ -357,16 +357,35 @@ chrome.runtime.onConnect.addListener((port) => {
             sendMessage({ type: "tool-input-start", toolCallId: part.id, toolName: part.toolName });
             break;
           case "tool-input-delta":
-            sendMessage({ type: "tool-input-delta", toolCallId: part.id, inputTextDelta: part.delta });
+            sendMessage({
+              type: "tool-input-delta",
+              toolCallId: part.id,
+              inputTextDelta: part.delta,
+            });
             break;
           case "tool-call":
-            sendMessage({ type: "tool-call", toolCallId: part.toolCallId, toolName: part.toolName, input: part.input });
+            sendMessage({
+              type: "tool-call",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              input: part.input,
+            });
             break;
           case "tool-result":
-            sendMessage({ type: "tool-result", toolCallId: part.toolCallId, toolName: part.toolName, output: part.output });
+            sendMessage({
+              type: "tool-result",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              output: part.output,
+            });
             break;
           case "tool-error":
-            sendMessage({ type: "tool-error", toolCallId: part.toolCallId, toolName: part.toolName, errorText: part.error instanceof Error ? part.error.message : String(part.error) });
+            sendMessage({
+              type: "tool-error",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              errorText: part.error instanceof Error ? part.error.message : String(part.error),
+            });
             break;
           case "text-delta":
             sendMessage({ type: "chunk", content: part.text });
@@ -403,7 +422,10 @@ chrome.runtime.onConnect.addListener((port) => {
       const tabId = activeTab?.id;
 
       if (!tabId) {
-        sendMessage({ type: "error", error: "No active tab found. Please ensure a tab is active." });
+        sendMessage({
+          type: "error",
+          error: "No active tab found. Please ensure a tab is active.",
+        });
         return;
       }
 
@@ -472,16 +494,35 @@ chrome.runtime.onConnect.addListener((port) => {
             sendMessage({ type: "tool-input-start", toolCallId: part.id, toolName: part.toolName });
             break;
           case "tool-input-delta":
-            sendMessage({ type: "tool-input-delta", toolCallId: part.id, inputTextDelta: part.delta });
+            sendMessage({
+              type: "tool-input-delta",
+              toolCallId: part.id,
+              inputTextDelta: part.delta,
+            });
             break;
           case "tool-call":
-            sendMessage({ type: "tool-call", toolCallId: part.toolCallId, toolName: part.toolName, input: part.input });
+            sendMessage({
+              type: "tool-call",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              input: part.input,
+            });
             break;
           case "tool-result":
-            sendMessage({ type: "tool-result", toolCallId: part.toolCallId, toolName: part.toolName, output: part.output });
+            sendMessage({
+              type: "tool-result",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              output: part.output,
+            });
             break;
           case "tool-error":
-            sendMessage({ type: "tool-error", toolCallId: part.toolCallId, toolName: part.toolName, errorText: part.error instanceof Error ? part.error.message : String(part.error) });
+            sendMessage({
+              type: "tool-error",
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              errorText: part.error instanceof Error ? part.error.message : String(part.error),
+            });
             break;
           case "text-delta":
             sendMessage({ type: "chunk", content: part.text });

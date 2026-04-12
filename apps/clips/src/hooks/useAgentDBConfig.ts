@@ -18,7 +18,10 @@ export function useAgentDBConfig(): UseAgentDBConfigReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await sendMessage<boolean>({ action: "isAgentDBConfigured" }, { responseKey: "data" });
+      const data = await sendMessage<boolean>(
+        { action: "isAgentDBConfigured" },
+        { responseKey: "data" },
+      );
       setIsConfigured(data ?? false);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to check AgentDB configuration";
