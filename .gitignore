@@ -97,3 +97,4 @@ apps/share/.env.local
 .env*.local
 
 .pnpm-store
+.intent/
