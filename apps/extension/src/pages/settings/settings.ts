@@ -4,17 +4,13 @@
  */
 
 import { initializeDatabase, getWebpages } from "../../services/database";
-import { SUPPORTED_MODELS, MODELS_BY_PROVIDER } from "@repo/shared";
+import {
+  SUPPORTED_MODELS,
+  MODELS_BY_PROVIDER,
+  type AgentDBConfig,
+} from "@repo/shared";
 
 export {};
-
-interface AgentDBConfig {
-  baseUrl: string;
-  apiKey: string;
-  token: string;
-  dbName: string;
-  dbType: "sqlite" | "duckdb";
-}
 
 interface VercelAIGatewayConfig {
   apiKey: string;

@@ -2,24 +2,10 @@
  * Type declarations for dynamically imported database module
  */
 
-export interface AgentDBConfig {
-  baseUrl: string;
-  apiKey: string;
-  token: string;
-  dbName: string;
-  dbType: string;
-}
+import type { AgentDBConfig, Webpage, WebpageRow } from "@repo/shared";
 
-export interface Webpage {
-  id: string;
-  title?: string;
-  url: string;
-  text_content?: string;
-  highlights?: string; // JSON string containing serialized Highlight objects
-  created_at?: string;
-  share_id?: string;
-}
+export type { AgentDBConfig, Webpage, WebpageRow } from "@repo/shared";
 
 export function initializeDatabase(config: AgentDBConfig): Promise<void>;
-export function getWebpages(): Promise<Webpage[]>;
+export function getWebpages(): Promise<WebpageRow[]>;
 export function deleteWebpage(id: string): Promise<void>;

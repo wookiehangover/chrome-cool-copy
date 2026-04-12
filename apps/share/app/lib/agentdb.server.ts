@@ -5,27 +5,17 @@
 
 import { DatabaseService, DatabaseConnection } from "@agentdb/sdk";
 import { nanoid } from "nanoid";
+import type { AgentDBConfig, WebpageRow } from "@repo/shared";
 
 /**
- * Shared clip interface matching the webpages table schema
+ * Shared clip type for share app rendering and lookup
  */
-export interface SharedClip {
+export type SharedClip = WebpageRow & {
   id: number;
   share_id: string;
-  url: string;
-  title: string;
   dom_content: string;
-  text_content: string;
-  metadata?: string;
-  highlights?: string; // JSON string containing serialized Highlight objects
   captured_at: string;
-  status_code?: number;
-  content_type?: string;
-  content_length?: number;
-  last_modified?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+};
 
 /**
  * Lightweight clip interface for list operations
@@ -39,16 +29,7 @@ export interface LightweightClip {
   captured_at: string;
 }
 
-/**
- * Database configuration interface
- */
-interface DatabaseConfig {
-  baseUrl: string;
-  apiKey: string;
-  token: string;
-  dbName: string;
-  dbType?: "sqlite" | "duckdb";
-}
+type DatabaseConfig = AgentDBConfig;
 
 let dbService: DatabaseService | null = null;
 let dbConnection: DatabaseConnection | null = null;
