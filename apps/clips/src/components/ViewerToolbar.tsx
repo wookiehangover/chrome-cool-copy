@@ -4,6 +4,7 @@ import { useClips } from "@/hooks/useClips";
 import { useShareUrl } from "@/hooks/useShareUrl";
 import { useTtsUrl } from "@/hooks/useTtsUrl";
 import { getCachedAudio, cacheAudio } from "@/hooks/useTTSCache";
+import { sendMessage } from "@repo/shared";
 import type { LocalClip } from "@repo/shared";
 import {
   startStreamingTTS,
@@ -36,15 +37,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@repo/ui";
 
 interface ViewerToolbarProps {
   clip: LocalClip;
@@ -120,16 +119,9 @@ export function ViewerToolbar({
   const handleFetchContent = async () => {
     setIsFetching(true);
     try {
-      const response = await chrome.runtime.sendMessage({
-        action: "fetchClipContent",
-        clipId: clip.id,
-      });
-      if (response?.success) {
-        showToast("Content updated");
-        window.location.reload();
-      } else {
-        showToast(response?.error || "Failed to fetch content");
-      }
+      await sendMessage({ action: "fetchClipContent", clipId: clip.id });
+      showToast("Content updated");
+      window.location.reload();
     } catch (err) {
       console.error("Failed to fetch content:", err);
       showToast(err instanceof Error ? err.message : "Failed to fetch content");
@@ -142,17 +134,16 @@ export function ViewerToolbar({
     setIsSharing(true);
     try {
       // Always sync the clip to ensure highlights are up to date
-      const response = await chrome.runtime.sendMessage({
-        action: "syncSingleClip",
-        clipId: clip.id,
-      });
+      const data = await sendMessage<{ share_id?: string }>(
+        { action: "syncSingleClip", clipId: clip.id },
+        { responseKey: "data" },
+      );
 
-      if (!response?.success || !response?.data?.share_id) {
-        const errorMsg = response?.error || "Failed to sync clip. Is AgentDB configured?";
-        throw new Error(errorMsg);
+      if (!data?.share_id) {
+        throw new Error("Failed to sync clip. Is AgentDB configured?");
       }
 
-      const shareId = response.data.share_id;
+      const shareId = data.share_id;
 
       if (!shareId) {
         throw new Error("Share ID is required");

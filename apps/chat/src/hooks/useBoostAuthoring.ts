@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
+import { sendMessage } from "@repo/shared";
 import type { Boost } from "@repo/shared";
 import { BoostTransport } from "@/lib/boost-transport";
 
@@ -81,9 +82,9 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
       return;
     }
 
-    chrome.runtime.sendMessage({ action: "getBoosts" }, (response) => {
-      if (response?.success && response?.data) {
-        const boost = response.data.find((b: Boost) => b.id === options.boostId);
+    sendMessage<Boost[]>({ action: "getBoosts" }, { responseKey: "data" })
+      .then((boosts) => {
+        const boost = boosts?.find((b: Boost) => b.id === options.boostId);
         if (boost) {
           setExistingBoost(boost);
           setCurrentCode(boost.code);
@@ -92,8 +93,10 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
             setMessages(boost.chatHistory as UIMessage[]);
           }
         }
-      }
-    });
+      })
+      .catch(() => {
+        // Silently ignore - boost may not exist
+      });
   }, [options.boostId, setMessages]);
 
   // Track code updates from file tool calls
@@ -151,51 +154,29 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
       try {
         if (isEditMode && existingBoost) {
           // Update existing boost
-          await new Promise<Boost>((resolve, reject) => {
-            chrome.runtime.sendMessage(
-              {
-                action: "updateBoost",
-                id: existingBoost.id,
-                updates: {
-                  ...metadata,
-                  code: currentCode,
-                  chatHistory: messages,
-                },
+          await sendMessage<Boost>(
+            {
+              action: "updateBoost",
+              id: existingBoost.id,
+              updates: {
+                ...metadata,
+                code: currentCode,
+                chatHistory: messages,
               },
-              (response) => {
-                if (chrome.runtime.lastError) {
-                  reject(new Error(chrome.runtime.lastError.message));
-                } else if (response?.success) {
-                  resolve(response.boost);
-                } else {
-                  reject(new Error(response?.error || "Failed to update boost"));
-                }
-              },
-            );
-          });
+            },
+            { responseKey: "boost" },
+          );
         } else {
           // Create new boost
-          await new Promise<Boost>((resolve, reject) => {
-            chrome.runtime.sendMessage(
-              {
-                type: "saveBoost",
-                payload: {
-                  ...metadata,
-                  code: currentCode,
-                  chatHistory: messages,
-                },
-              },
-              (response) => {
-                if (chrome.runtime.lastError) {
-                  reject(new Error(chrome.runtime.lastError.message));
-                } else if (response?.success) {
-                  resolve(response.boost);
-                } else {
-                  reject(new Error(response?.error || "Failed to save boost"));
-                }
-              },
-            );
-          });
+          await sendMessage<Boost>(
+            {
+              action: "saveBoost",
+              ...metadata,
+              code: currentCode,
+              chatHistory: messages,
+            },
+            { responseKey: "boost" },
+          );
         }
 
         // Clear messages after successful save

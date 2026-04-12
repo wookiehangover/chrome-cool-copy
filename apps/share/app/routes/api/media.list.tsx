@@ -1,5 +1,5 @@
 import { data } from "react-router";
-import type { Route } from "./+types/api.media.list";
+import type { Route } from "./+types/media.list";
 import { getMediaClips } from "~/lib/agentdb.server";
 
 export async function loader({ request }: Route.LoaderArgs) {

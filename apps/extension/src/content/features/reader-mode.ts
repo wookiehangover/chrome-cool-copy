@@ -1056,7 +1056,7 @@ async function createReaderModeUI(
       const originalHtml = contentWrapper.innerHTML;
 
       // Split content into chunks locally (content script has DOM access)
-      const { getHtmlChunks } = await import("../../services/html-chunk-splitter.js");
+      const { getHtmlChunks } = await import("@repo/shared");
       const chunks = getHtmlChunks(originalHtml);
 
       if (chunks.length === 0) {

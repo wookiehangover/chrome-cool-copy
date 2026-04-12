@@ -214,6 +214,60 @@ export interface Highlight {
 }
 
 /**
+ * AgentDB connection configuration
+ */
+export interface AgentDBConfig {
+  baseUrl: string;
+  apiKey: string;
+  token: string;
+  dbName: string;
+  dbType?: "sqlite" | "duckdb";
+}
+
+/**
+ * Normalized webpage payload used by extension sync/write flows
+ */
+export interface Webpage {
+  id?: string;
+  url: string;
+  title: string;
+  dom_content: string;
+  text_content: string;
+  metadata?: Record<string, unknown>;
+  highlights?: Highlight[];
+  status_code?: number;
+  content_type?: string;
+  content_length?: number;
+  last_modified?: string;
+  captured_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  share_id?: string;
+}
+
+/**
+ * Raw webpages table row shape from AgentDB queries
+ * JSON-like columns are still serialized strings here.
+ */
+export interface WebpageRow {
+  id?: string | number;
+  url: string;
+  title: string;
+  dom_content?: string;
+  text_content: string;
+  metadata?: string | null;
+  highlights?: string | null;
+  status_code?: number | null;
+  content_type?: string | null;
+  content_length?: number | null;
+  last_modified?: string | null;
+  captured_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  share_id?: string | null;
+}
+
+/**
  * Local clip data structure
  */
 export interface LocalClip {

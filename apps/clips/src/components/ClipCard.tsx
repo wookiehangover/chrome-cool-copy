@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { sendMessage } from "@repo/shared";
 import type { Clip, ElementClip, LocalClip } from "@repo/shared";
-import { Button } from "@/components/ui/button";
 import {
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@repo/ui";
 
 interface ClipCardProps {
   clip: Clip;
@@ -52,18 +53,19 @@ export function ClipCard({ clip, viewMode, onDelete }: ClipCardProps) {
   useEffect(() => {
     if (isElementClip && (clip as ElementClip).screenshotAssetId) {
       setLoadingScreenshot(true);
-      chrome.runtime.sendMessage(
-        {
-          action: "getClipAsset",
-          assetId: (clip as ElementClip).screenshotAssetId,
-        },
-        (response) => {
+      sendMessage<string>(
+        { action: "getClipAsset", assetId: (clip as ElementClip).screenshotAssetId },
+        { responseKey: "dataUrl" },
+      )
+        .then((dataUrl) => {
           setLoadingScreenshot(false);
-          if (response?.success && response?.dataUrl) {
-            setScreenshotUrl(response.dataUrl);
+          if (dataUrl) {
+            setScreenshotUrl(dataUrl);
           }
-        },
-      );
+        })
+        .catch(() => {
+          setLoadingScreenshot(false);
+        });
     }
   }, [isElementClip, clip]);
 

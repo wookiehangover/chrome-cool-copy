@@ -10,7 +10,7 @@
  */
 export async function getStorageItem<T = unknown>(key: string): Promise<T | undefined> {
   return new Promise((resolve) => {
-    chrome.storage.local.get([key], (result) => {
+    chrome.storage.local.get([key], (result: Record<string, unknown>) => {
       resolve((result[key] as T) || undefined);
     });
   });
@@ -48,7 +48,7 @@ export async function removeStorageItem(key: string): Promise<void> {
  */
 export async function getStorageItems<T = Record<string, unknown>>(keys: string[]): Promise<T> {
   return new Promise((resolve) => {
-    chrome.storage.local.get(keys, (result) => {
+    chrome.storage.local.get(keys, (result: Record<string, unknown>) => {
       resolve((result as T) || ({} as T));
     });
   });

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { getHtmlChunks, HtmlChunk } from "./html-chunk-splitter.js";
+import { getHtmlChunks, HtmlChunk } from "@repo/shared";
 
 describe("HTML Chunk Splitter", () => {
   describe("getHtmlChunks()", () => {

@@ -4,49 +4,19 @@
  */
 
 import { DatabaseService, DatabaseConnection, ExecuteResult } from "@agentdb/sdk";
-import type { Highlight } from "@repo/shared";
+import type { AgentDBConfig, Webpage, WebpageRow } from "@repo/shared";
 
-/**
- * Webpage data interface matching the database schema
- */
-export interface Webpage {
-  id?: string;
-  url: string;
-  title: string;
-  dom_content: string;
-  text_content: string;
-  metadata?: Record<string, unknown>;
-  highlights?: Highlight[];
-  status_code?: number;
-  content_type?: string;
-  content_length?: number;
-  last_modified?: string;
-  captured_at?: string;
-  created_at?: string;
-  updated_at?: string;
-  share_id?: string;
-}
-
-/**
- * Database service configuration
- */
-interface DatabaseConfig {
-  baseUrl: string;
-  apiKey: string;
-  token: string;
-  dbName: string;
-  dbType?: "sqlite" | "duckdb";
-}
+export type { Webpage, WebpageRow };
 
 let dbService: DatabaseService | null = null;
 let dbConnection: DatabaseConnection | null = null;
-let config: DatabaseConfig | null = null;
+let config: AgentDBConfig | null = null;
 
 /**
  * Initialize the database connection
  * @param configuration - Database configuration with baseUrl, apiKey, token, and dbName
  */
-export async function initializeDatabase(configuration: DatabaseConfig): Promise<void> {
+export async function initializeDatabase(configuration: AgentDBConfig): Promise<void> {
   try {
     config = {
       ...configuration,
@@ -115,7 +85,7 @@ export async function saveWebpage(webpage: Webpage): Promise<ExecuteResult> {
  * Get all webpages from the database
  * @returns Array of all webpages
  */
-export async function getWebpages(): Promise<Webpage[]> {
+export async function getWebpages(): Promise<WebpageRow[]> {
   const connection = ensureInitialized();
 
   try {
@@ -126,7 +96,7 @@ export async function getWebpages(): Promise<Webpage[]> {
 
     const rows = result.results[0]?.rows || [];
     console.log("[Database] Retrieved", rows.length, "webpages");
-    return rows as Webpage[];
+    return rows as WebpageRow[];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to retrieve webpages: ${message}`);
@@ -139,7 +109,7 @@ export async function getWebpages(): Promise<Webpage[]> {
  * @param limit - Maximum number of rows to return
  * @returns Array of webpages for the given page
  */
-export async function getWebpagesBatch(offset: number, limit: number): Promise<Webpage[]> {
+export async function getWebpagesBatch(offset: number, limit: number): Promise<WebpageRow[]> {
   const connection = ensureInitialized();
 
   try {
@@ -158,7 +128,7 @@ export async function getWebpagesBatch(offset: number, limit: number): Promise<W
       limit,
       ")",
     );
-    return rows as Webpage[];
+    return rows as WebpageRow[];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to retrieve webpages batch: ${message}`);
@@ -193,7 +163,7 @@ export async function getWebpagesCount(): Promise<number> {
  * @param id - The webpage ID
  * @returns The webpage or null if not found
  */
-export async function getWebpage(id: string): Promise<Webpage | null> {
+export async function getWebpage(id: string): Promise<WebpageRow | null> {
   const connection = ensureInitialized();
 
   try {
@@ -209,7 +179,7 @@ export async function getWebpage(id: string): Promise<Webpage | null> {
     }
 
     console.log("[Database] Retrieved webpage:", id);
-    return rows[0] as Webpage;
+    return rows[0] as WebpageRow;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to retrieve webpage: ${message}`);
@@ -305,7 +275,7 @@ export async function updateWebpageByShareId(
  * @param shareId - The share_id to query
  * @returns The webpage or null if not found
  */
-export async function getWebpageByShareId(shareId: string): Promise<Webpage | null> {
+export async function getWebpageByShareId(shareId: string): Promise<WebpageRow | null> {
   const connection = ensureInitialized();
 
   try {
@@ -321,7 +291,7 @@ export async function getWebpageByShareId(shareId: string): Promise<Webpage | nu
     }
 
     console.log("[Database] Retrieved webpage by share_id:", shareId);
-    return rows[0] as Webpage;
+    return rows[0] as WebpageRow;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to retrieve webpage by share_id: ${message}`);

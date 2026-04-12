@@ -7,3 +7,4 @@ export * from "./html.js";
 export * from "./html-chunk-splitter.js";
 export * from "./id.js";
 export * from "./storage.js";
+export * from "./chrome-messaging.js";

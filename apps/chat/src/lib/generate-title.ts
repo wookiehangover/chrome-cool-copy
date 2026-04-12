@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import { sendMessage } from "@repo/shared";
 import type { GenerateTextRequest, GenerateTextResponse } from "@repo/shared";
 
 /**
@@ -52,7 +53,7 @@ Respond with ONLY the title, no quotes, no explanation, no punctuation at the en
         },
       ],
     };
-    const response: GenerateTextResponse = await chrome.runtime.sendMessage(request);
+    const response = await sendMessage<GenerateTextResponse>(request);
 
     console.log("[Title Generation] Response:", response);
 

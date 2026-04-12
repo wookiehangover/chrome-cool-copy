@@ -4,7 +4,7 @@
  */
 
 import { nanoid } from "nanoid";
-import type { LocalClip } from "@repo/shared";
+import type { AgentDBConfig, LocalClip } from "@repo/shared";
 import { generateClipId } from "@repo/shared/utils";
 import {
   getPendingClips,
@@ -24,17 +24,6 @@ import {
   getWebpagesCount,
 } from "./database";
 import { deleteClipAssets } from "./asset-store";
-
-/**
- * AgentDB configuration interface
- */
-export interface AgentDBConfig {
-  baseUrl: string;
-  apiKey: string;
-  token: string;
-  dbName: string;
-  dbType?: "sqlite" | "duckdb";
-}
 
 /**
  * Check if AgentDB is configured
@@ -329,7 +318,7 @@ export async function syncFromAgentDB(): Promise<{
               metadata,
               highlights: highlights as any,
               sync_status: "synced",
-              share_id: webpage.share_id,
+              share_id: webpage.share_id ?? undefined,
               created_at: webpage.created_at || webpage.captured_at || new Date().toISOString(),
               updated_at: new Date().toISOString(),
             };

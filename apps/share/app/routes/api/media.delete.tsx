@@ -1,5 +1,5 @@
 import { data } from "react-router";
-import type { Route } from "./+types/api.media.delete";
+import type { Route } from "./+types/media.delete";
 import { deleteMediaClip } from "~/lib/agentdb.server";
 import { isAuthenticated } from "~/lib/auth.server";
 

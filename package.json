@@ -15,7 +15,7 @@
     "lint": "oxlint apps/extension/src apps/chat/src apps/clips/src apps/share/app packages/shared/src",
     "format": "oxfmt apps/extension/src apps/chat/src apps/clips/src apps/share/app packages/shared/src",
     "clean": "rm -rf apps/extension/dist",
-    "test": "pnpm -F @repo/extension test",
+    "test": "pnpm -F @repo/extension test && pnpm -F @repo/chat test && pnpm -F @repo/clips test",
     "typecheck": "pnpm -F @repo/extension typecheck"
   },
   "devDependencies": {

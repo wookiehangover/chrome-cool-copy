@@ -1,5 +1,5 @@
 import { data } from "react-router";
-import type { Route } from "./+types/api.media.upload-url";
+import type { Route } from "./+types/media.upload";
 import { uploadImageToBlob } from "~/lib/blob.server";
 import { saveMediaClip } from "~/lib/agentdb.server";
 import { queueAIDescriptionGeneration } from "~/lib/ai-description.server";
