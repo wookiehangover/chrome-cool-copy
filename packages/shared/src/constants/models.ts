@@ -12,10 +12,6 @@ export type ModelId =
   | "anthropic/claude-sonnet-4.6"
   | "anthropic/claude-haiku-4.5"
   // OpenAI models
-  | "openai/gpt-4o"
-  | "openai/gpt-4o-mini"
-  | "openai/o1"
-  | "openai/o3-mini"
   | "openai/gpt-5.5"
   // Google models
   | "google/gemini-2.5-pro"
@@ -64,26 +60,6 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
   {
     id: "openai/gpt-5.5",
     displayName: "GPT-5.5",
-    provider: "OpenAI",
-  },
-  {
-    id: "openai/gpt-4o",
-    displayName: "GPT-4o",
-    provider: "OpenAI",
-  },
-  {
-    id: "openai/gpt-4o-mini",
-    displayName: "GPT-4o Mini",
-    provider: "OpenAI",
-  },
-  {
-    id: "openai/o1",
-    displayName: "o1",
-    provider: "OpenAI",
-  },
-  {
-    id: "openai/o3-mini",
-    displayName: "o3-mini",
     provider: "OpenAI",
   },
   // Google models
