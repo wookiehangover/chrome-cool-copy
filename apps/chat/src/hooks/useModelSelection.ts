@@ -33,7 +33,7 @@ function migrateModelId(modelId: string): ModelId {
   }
 
   // Check if model is currently supported
-  const isSupported = SUPPORTED_MODELS.some(m => m.id === modelId);
+  const isSupported = SUPPORTED_MODELS.some((m) => m.id === modelId);
   if (isSupported) {
     return modelId as ModelId;
   }
