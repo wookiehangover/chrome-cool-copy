@@ -16,9 +16,9 @@ export type ModelId =
   | "openai/gpt-5.4"
   | "openai/gpt-5.4-mini"
   // Google models
-  | "google/gemini-2.5-pro"
+  | "google/gemini-3.5-flash"
+  | "google/gemini-3-pro-preview"
   | "google/gemini-2.5-flash"
-  | "google/gemini-2.0-flash"
   // xAI models
   | "xai/grok-4.20-reasoning"
   | "xai/grok-4.20-non-reasoning"
@@ -76,18 +76,18 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
   },
   // Google models
   {
-    id: "google/gemini-2.5-pro",
-    displayName: "Gemini 2.5 Pro",
+    id: "google/gemini-3.5-flash",
+    displayName: "Gemini 3.5 Flash",
+    provider: "Google",
+  },
+  {
+    id: "google/gemini-3-pro-preview",
+    displayName: "Gemini 3 Pro Preview",
     provider: "Google",
   },
   {
     id: "google/gemini-2.5-flash",
     displayName: "Gemini 2.5 Flash",
-    provider: "Google",
-  },
-  {
-    id: "google/gemini-2.0-flash",
-    displayName: "Gemini 2.0 Flash",
     provider: "Google",
   },
   // xAI models
