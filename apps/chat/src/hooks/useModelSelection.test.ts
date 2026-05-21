@@ -18,8 +18,8 @@ describe("useModelSelection", () => {
   });
 
   it("loads stored model and sends update message when model changes", async () => {
-    const storedModel: ModelId = "openai/gpt-5.2";
-    const nextModel: ModelId = "google/gemini-3-flash";
+    const storedModel: ModelId = "openai/gpt-5.5";
+    const nextModel: ModelId = "google/gemini-3.5-flash";
 
     mockStorage.sync.get.mockImplementation((_keys, callback) => {
       callback({ aiGatewayConfig: { model: storedModel } });

@@ -53,7 +53,7 @@ export async function generateElementSummary(clip: ElementClip): Promise<string>
     const prompt = buildSummaryPrompt(clip);
 
     const result = await generateText({
-      model: gateway("google/gemini-3-flash"),
+      model: gateway(config.model),
       messages: [
         {
           role: "user",

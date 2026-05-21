@@ -57,10 +57,10 @@ export async function generateElementTitleAndDescription(
     });
 
     // Run title and description generation in parallel
-    console.log("[Element AI Service] Sending API requests to Gemini 3 Flash...");
+    console.log("[Element AI Service] Sending API requests to configured model...");
     const [titleResult, descriptionResult] = await Promise.all([
       generateText({
-        model: gateway("google/gemini-3-flash"),
+        model: gateway(config.model),
         messages: [
           {
             role: "user",
@@ -73,7 +73,7 @@ export async function generateElementTitleAndDescription(
         temperature: 0.7,
       }),
       generateText({
-        model: gateway("google/gemini-3-flash"),
+        model: gateway(config.model),
         messages: [
           {
             role: "user",
