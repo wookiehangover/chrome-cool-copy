@@ -7,17 +7,22 @@
  * Unique identifier for a model
  */
 export type ModelId =
-  | "xai/grok-code-fast-1"
-  | "anthropic/claude-sonnet-4.5"
+  // Anthropic models
+  | "anthropic/claude-opus-4.7"
   | "anthropic/claude-sonnet-4.6"
-  | "google/gemini-3-flash"
-  | "openai/gpt-5.2"
-  | "anthropic/claude-opus-4.5"
-  | "anthropic/claude-opus-4.6"
   | "anthropic/claude-haiku-4.5"
+  // OpenAI models
+  | "openai/gpt-5.5"
+  | "openai/gpt-5.4"
+  | "openai/gpt-5.4-mini"
+  // Google models
+  | "google/gemini-3.5-flash"
   | "google/gemini-3-pro-preview"
-  | "xai/grok-4.1-fast-non-reasoning"
-  | "xai/grok-4.1-fast-reasoning";
+  | "google/gemini-2.5-flash"
+  // xAI models
+  | "xai/grok-4.20-reasoning"
+  | "xai/grok-4.20-non-reasoning"
+  | "xai/grok-4.3";
 
 /**
  * AI provider identifier
@@ -39,23 +44,13 @@ export interface ModelDefinition {
 export const SUPPORTED_MODELS: ModelDefinition[] = [
   // Anthropic models
   {
-    id: "anthropic/claude-opus-4.6",
-    displayName: "Claude Opus 4.6",
+    id: "anthropic/claude-opus-4.7",
+    displayName: "Claude Opus 4.7",
     provider: "Anthropic",
   },
   {
     id: "anthropic/claude-sonnet-4.6",
     displayName: "Claude Sonnet 4.6",
-    provider: "Anthropic",
-  },
-  {
-    id: "anthropic/claude-sonnet-4.5",
-    displayName: "Claude Sonnet 4.5",
-    provider: "Anthropic",
-  },
-  {
-    id: "anthropic/claude-opus-4.5",
-    displayName: "Claude Opus 4.5",
     provider: "Anthropic",
   },
   {
@@ -65,14 +60,24 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
   },
   // OpenAI models
   {
-    id: "openai/gpt-5.2",
-    displayName: "GPT-5.2",
+    id: "openai/gpt-5.5",
+    displayName: "GPT-5.5",
+    provider: "OpenAI",
+  },
+  {
+    id: "openai/gpt-5.4",
+    displayName: "GPT-5.4",
+    provider: "OpenAI",
+  },
+  {
+    id: "openai/gpt-5.4-mini",
+    displayName: "GPT-5.4 Mini",
     provider: "OpenAI",
   },
   // Google models
   {
-    id: "google/gemini-3-flash",
-    displayName: "Gemini 3 Flash",
+    id: "google/gemini-3.5-flash",
+    displayName: "Gemini 3.5 Flash",
     provider: "Google",
   },
   {
@@ -80,20 +85,25 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
     displayName: "Gemini 3 Pro Preview",
     provider: "Google",
   },
-  // X.AI models
   {
-    id: "xai/grok-code-fast-1",
-    displayName: "Grok Code Fast 1",
+    id: "google/gemini-2.5-flash",
+    displayName: "Gemini 2.5 Flash",
+    provider: "Google",
+  },
+  // xAI models
+  {
+    id: "xai/grok-4.20-reasoning",
+    displayName: "Grok 4.20 Reasoning",
     provider: "X.AI",
   },
   {
-    id: "xai/grok-4.1-fast-non-reasoning",
-    displayName: "Grok 4.1 Fast (Non-Reasoning)",
+    id: "xai/grok-4.20-non-reasoning",
+    displayName: "Grok 4.20 Non-Reasoning",
     provider: "X.AI",
   },
   {
-    id: "xai/grok-4.1-fast-reasoning",
-    displayName: "Grok 4.1 Fast (Reasoning)",
+    id: "xai/grok-4.3",
+    displayName: "Grok 4.3",
     provider: "X.AI",
   },
 ];
