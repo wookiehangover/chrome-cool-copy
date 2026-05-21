@@ -13,6 +13,8 @@ export type ModelId =
   | "anthropic/claude-haiku-4.5"
   // OpenAI models
   | "openai/gpt-5.5"
+  | "openai/gpt-5.4"
+  | "openai/gpt-5.4-mini"
   // Google models
   | "google/gemini-2.5-pro"
   | "google/gemini-2.5-flash"
@@ -60,6 +62,16 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
   {
     id: "openai/gpt-5.5",
     displayName: "GPT-5.5",
+    provider: "OpenAI",
+  },
+  {
+    id: "openai/gpt-5.4",
+    displayName: "GPT-5.4",
+    provider: "OpenAI",
+  },
+  {
+    id: "openai/gpt-5.4-mini",
+    displayName: "GPT-5.4 Mini",
     provider: "OpenAI",
   },
   // Google models
