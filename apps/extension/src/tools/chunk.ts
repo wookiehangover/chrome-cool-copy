@@ -23,6 +23,37 @@ function splitByPattern(text: string, pattern: RegExp): string[] {
 }
 
 /**
+ * Append sentences to the current chunk, flushing completed chunks to `chunks`.
+ * Never drops text: sentences that don't fit start a new chunk, and sentences
+ * longer than maxChars are hard-split into maxChars-sized pieces.
+ * Returns the new current chunk.
+ */
+function appendSentences(
+  sentences: string[],
+  currentChunk: string,
+  chunks: string[],
+  maxChars: number,
+): string {
+  for (const sentence of sentences) {
+    const separator = currentChunk ? 1 : 0;
+    if (currentChunk.length + sentence.length + separator <= maxChars) {
+      currentChunk = currentChunk ? `${currentChunk} ${sentence}` : sentence;
+    } else {
+      if (currentChunk.length > 0) {
+        chunks.push(currentChunk);
+      }
+      let remaining = sentence;
+      while (remaining.length > maxChars) {
+        chunks.push(remaining.slice(0, maxChars));
+        remaining = remaining.slice(maxChars);
+      }
+      currentChunk = remaining;
+    }
+  }
+  return currentChunk;
+}
+
+/**
  * Split text into smart chunks based on paragraph and sentence boundaries
  */
 export function getSmartChunks(text: string, options?: ChunkOptions): ContentChunk[] {
@@ -50,29 +81,13 @@ export function getSmartChunks(text: string, options?: ChunkOptions): ContentChu
         currentChunk = "";
       }
       const sentences = splitByPattern(paragraph, /(?<=[.!?])\s+/);
-      for (const sentence of sentences) {
-        if (currentChunk.length + sentence.length + 1 <= maxChars) {
-          currentChunk = currentChunk ? `${currentChunk} ${sentence}` : sentence;
-        } else {
-          if (currentChunk.length >= minChars) {
-            chunks.push(currentChunk);
-          }
-          currentChunk = sentence.length > maxChars ? sentence.slice(0, maxChars) : sentence;
-        }
-      }
+      currentChunk = appendSentences(sentences, currentChunk, chunks, maxChars);
     } else if (currentChunk.length >= minChars) {
       chunks.push(currentChunk);
       currentChunk = paragraph;
     } else {
       const sentences = splitByPattern(paragraph, /(?<=[.!?])\s+/);
-      for (const sentence of sentences) {
-        if (currentChunk.length + sentence.length + 1 <= maxChars) {
-          currentChunk = currentChunk ? `${currentChunk} ${sentence}` : sentence;
-        } else if (currentChunk.length >= minChars) {
-          chunks.push(currentChunk);
-          currentChunk = sentence;
-        }
-      }
+      currentChunk = appendSentences(sentences, currentChunk, chunks, maxChars);
     }
   }
 

@@ -61,40 +61,68 @@ function findMainContent(): Element {
   return document.body;
 }
 
+// Selectors that are always safe to remove (page chrome, scripts, ads)
+const CHROME_SELECTORS = [
+  "script",
+  "style",
+  "noscript",
+  "iframe",
+  "nav",
+  "footer",
+  "header",
+  "aside",
+  '[role="navigation"]',
+  '[role="banner"]',
+  '[role="contentinfo"]',
+  ".sidebar",
+  ".nav",
+  ".menu",
+  ".advertisement",
+  ".ad",
+  ".ads",
+  ".social-share",
+  ".related-posts",
+];
+
+// Comment sections are only removed when they are NOT the bulk of the page.
+// On discussion sites (e.g. lobste.rs, Hacker News mirrors, forums) the
+// comment thread IS the main content and must be preserved.
+const COMMENT_SELECTORS = [".comments", ".comment-section", "#comments"];
+
+// Minimum fraction of text that must survive comment removal for it to apply
+const COMMENT_REMOVAL_RETAIN_RATIO = 0.5;
+
+// Thresholds for falling back to <body> when a main-content candidate is too sparse
+const MIN_CANDIDATE_CHARS = 500;
+const MIN_CANDIDATE_BODY_RATIO = 0.2;
+
+/**
+ * Get normalized text length of an element
+ */
+function getTextLength(element: Element): number {
+  return (element.textContent || "").replace(/\s+/g, " ").trim().length;
+}
+
 /**
  * Clone element and remove non-content elements
  */
 function cleanContent(element: Element): Element {
   const clone = element.cloneNode(true) as Element;
 
-  // Remove non-content elements
-  const selectorsToRemove = [
-    "script",
-    "style",
-    "noscript",
-    "iframe",
-    "nav",
-    "footer",
-    "header",
-    "aside",
-    '[role="navigation"]',
-    '[role="banner"]',
-    '[role="contentinfo"]',
-    ".sidebar",
-    ".nav",
-    ".menu",
-    ".advertisement",
-    ".ad",
-    ".ads",
-    ".comments",
-    ".comment-section",
-    ".social-share",
-    ".related-posts",
-  ];
-
-  selectorsToRemove.forEach((selector) => {
+  CHROME_SELECTORS.forEach((selector) => {
     clone.querySelectorAll(selector).forEach((el) => el.remove());
   });
+
+  // Only strip comment sections when most of the content remains afterwards.
+  const withoutComments = clone.cloneNode(true) as Element;
+  COMMENT_SELECTORS.forEach((selector) => {
+    withoutComments.querySelectorAll(selector).forEach((el) => el.remove());
+  });
+
+  const totalLength = getTextLength(clone);
+  if (totalLength === 0 || getTextLength(withoutComments) / totalLength >= COMMENT_REMOVAL_RETAIN_RATIO) {
+    return withoutComments;
+  }
 
   return clone;
 }
@@ -105,7 +133,24 @@ function cleanContent(element: Element): Element {
 export function scrapePage(): ScrapedPage {
   const metadata = extractMetadata();
   const mainContent = findMainContent();
-  const cleanedContent = cleanContent(mainContent);
+  let cleanedContent = cleanContent(mainContent);
+
+  // If the candidate yields too little text compared to the full page,
+  // the heuristic picked the wrong container - fall back to <body>.
+  if (mainContent !== document.body) {
+    const cleanedBody = cleanContent(document.body);
+    const candidateLength = getTextLength(cleanedContent);
+    const bodyLength = getTextLength(cleanedBody);
+
+    if (
+      bodyLength > candidateLength &&
+      (candidateLength < MIN_CANDIDATE_CHARS ||
+        candidateLength < bodyLength * MIN_CANDIDATE_BODY_RATIO)
+    ) {
+      console.log("[Page Scraper] Main content candidate too sparse, falling back to body");
+      cleanedContent = cleanedBody;
+    }
+  }
 
   // Convert to markdown using Turndown
   let markdown = "";
@@ -114,8 +159,8 @@ export function scrapePage(): ScrapedPage {
     markdown = turndownService.turndown(cleanedContent.innerHTML);
   } catch (error) {
     console.error("[Page Scraper] Error converting to markdown:", error);
-    // Fallback to plain text
-    markdown = (cleanedContent as HTMLElement).innerText || cleanedContent.textContent || "";
+    // Fallback to plain text (innerText is unreliable on detached clones)
+    markdown = cleanedContent.textContent || "";
   }
 
   // Clean up excessive whitespace
