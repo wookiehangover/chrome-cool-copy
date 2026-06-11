@@ -1,6 +1,7 @@
 import { data } from "react-router";
 import type { Route } from "./+types/share.$shareId";
 import { getClipByShareId } from "~/lib/agentdb.server";
+import { sanitizeClipHtml } from "~/lib/sanitize.server";
 import { ShareViewer } from "~/components/ShareViewer";
 
 /**
@@ -18,6 +19,10 @@ export async function loader({ params }: Route.LoaderArgs) {
   if (!clip) {
     throw data({ message: `Clip not found for share ID: ${shareId}` }, { status: 404 });
   }
+
+  // Sanitize stored HTML before it is rendered via dangerouslySetInnerHTML on
+  // this public origin (prevents stored XSS from captured page content).
+  clip.dom_content = sanitizeClipHtml(clip.dom_content);
 
   return { clip };
 }
