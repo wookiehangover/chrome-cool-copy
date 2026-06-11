@@ -5,9 +5,13 @@ import { mockStorage } from "../test/setup";
 
 const mockSendMessage = vi.fn();
 
-vi.mock("@repo/shared", () => ({
-  sendMessage: (...args: unknown[]) => mockSendMessage(...args),
-}));
+vi.mock("@repo/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@repo/shared")>();
+  return {
+    ...actual,
+    sendMessage: (...args: unknown[]) => mockSendMessage(...args),
+  };
+});
 
 import { useModelSelection } from "./useModelSelection";
 
@@ -42,5 +46,37 @@ describe("useModelSelection", () => {
       action: "updateAIGatewayConfig",
       config: { model: nextModel },
     });
+  });
+
+  it("migrates a deprecated stored model to its replacement and persists it", async () => {
+    mockStorage.sync.get.mockImplementation((_keys, callback) => {
+      callback({ aiGatewayConfig: { model: "anthropic/claude-opus-4.7" } });
+    });
+
+    const { result } = renderHook(() => useModelSelection());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.selectedModel).toBe("anthropic/claude-opus-4.8");
+    expect(mockSendMessage).toHaveBeenCalledWith({
+      action: "updateAIGatewayConfig",
+      config: { model: "anthropic/claude-opus-4.8" },
+    });
+  });
+
+  it("falls back to the default model for unknown stored model IDs", async () => {
+    mockStorage.sync.get.mockImplementation((_keys, callback) => {
+      callback({ aiGatewayConfig: { model: "acme/legacy-model" } });
+    });
+
+    const { result } = renderHook(() => useModelSelection());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.selectedModel).toBe("anthropic/claude-opus-4.8");
   });
 });
