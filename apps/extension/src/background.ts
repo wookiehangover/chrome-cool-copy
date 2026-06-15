@@ -25,6 +25,39 @@ import {
 import type { HandlerMap } from "./handlers";
 
 // =============================================================================
+// Anthropic thinking mode helpers
+// =============================================================================
+
+/**
+ * Models that require adaptive thinking (thinking.type: "adaptive" + output_config.effort)
+ * instead of the legacy enabled thinking (thinking.type: "enabled" + budgetTokens).
+ */
+const ADAPTIVE_THINKING_MODELS = ["anthropic/claude-fable-5", "anthropic/claude-opus-4.8"];
+
+/**
+ * Returns default provider options with the correct thinking configuration
+ * based on the model being used.
+ */
+function getDefaultProviderOptions(modelId: string) {
+  const isAdaptive = ADAPTIVE_THINKING_MODELS.some((m) => modelId.includes(m));
+
+  if (isAdaptive) {
+    return {
+      anthropic: {
+        thinking: { type: "adaptive" as const },
+        output_config: { effort: "high" as const },
+      },
+    };
+  }
+
+  return {
+    anthropic: {
+      thinking: { type: "enabled" as const, budgetTokens: 10000 },
+    },
+  };
+}
+
+// =============================================================================
 // Message Router
 // =============================================================================
 
@@ -311,11 +344,7 @@ chrome.runtime.onConnect.addListener((port) => {
       const enableTools = request.enableTools !== false;
       const modelToUse = request.model || config.model;
 
-      const defaultProviderOptions = {
-        anthropic: {
-          thinking: { type: "enabled" as const, budgetTokens: 10000 },
-        },
-      };
+      const defaultProviderOptions = getDefaultProviderOptions(modelToUse);
 
       const result = streamText({
         model: gateway(modelToUse),
@@ -448,11 +477,7 @@ chrome.runtime.onConnect.addListener((port) => {
       const enableTools = request.enableTools !== false;
       const modelToUse = request.model || config.model;
 
-      const defaultProviderOptions = {
-        anthropic: {
-          thinking: { type: "enabled" as const, budgetTokens: 10000 },
-        },
-      };
+      const defaultProviderOptions = getDefaultProviderOptions(modelToUse);
 
       const result = streamText({
         model: gateway(modelToUse),
