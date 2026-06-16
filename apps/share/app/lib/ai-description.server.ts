@@ -6,7 +6,7 @@
 import { generateText, createGateway } from "ai";
 import { updateMediaClipAIDescription } from "./agentdb.server";
 
-const AI_MODEL = "google/gemini-2.5-flash";
+const AI_MODEL = "google/gemini-3.5-flash";
 const DESCRIPTION_PROMPT =
   "Describe this image in 1-2 sentences. Focus on the main subject and visual content.";
 

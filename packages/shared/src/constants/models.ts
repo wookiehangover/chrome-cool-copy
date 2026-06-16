@@ -8,17 +8,18 @@
  */
 export type ModelId =
   // Anthropic models
-  | "anthropic/claude-opus-4.7"
+  | "anthropic/claude-fable-5"
+  | "anthropic/claude-opus-4.8"
   | "anthropic/claude-sonnet-4.6"
   | "anthropic/claude-haiku-4.5"
   // OpenAI models
   | "openai/gpt-5.5"
+  | "openai/gpt-5.5-pro"
   | "openai/gpt-5.4"
   | "openai/gpt-5.4-mini"
   // Google models
   | "google/gemini-3.5-flash"
-  | "google/gemini-3-pro-preview"
-  | "google/gemini-2.5-flash"
+  | "google/gemini-3.1-pro-preview"
   // xAI models
   | "xai/grok-4.20-reasoning"
   | "xai/grok-4.20-non-reasoning"
@@ -44,8 +45,13 @@ export interface ModelDefinition {
 export const SUPPORTED_MODELS: ModelDefinition[] = [
   // Anthropic models
   {
-    id: "anthropic/claude-opus-4.7",
-    displayName: "Claude Opus 4.7",
+    id: "anthropic/claude-fable-5",
+    displayName: "Claude Fable 5",
+    provider: "Anthropic",
+  },
+  {
+    id: "anthropic/claude-opus-4.8",
+    displayName: "Claude Opus 4.8",
     provider: "Anthropic",
   },
   {
@@ -65,6 +71,11 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
     provider: "OpenAI",
   },
   {
+    id: "openai/gpt-5.5-pro",
+    displayName: "GPT-5.5 Pro",
+    provider: "OpenAI",
+  },
+  {
     id: "openai/gpt-5.4",
     displayName: "GPT-5.4",
     provider: "OpenAI",
@@ -81,13 +92,8 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
     provider: "Google",
   },
   {
-    id: "google/gemini-3-pro-preview",
-    displayName: "Gemini 3 Pro Preview",
-    provider: "Google",
-  },
-  {
-    id: "google/gemini-2.5-flash",
-    displayName: "Gemini 2.5 Flash",
+    id: "google/gemini-3.1-pro-preview",
+    displayName: "Gemini 3.1 Pro Preview",
     provider: "Google",
   },
   // xAI models

@@ -85,7 +85,7 @@ export const aiHandlers: HandlerMap = {
         const { gateway } = await getAIGateway();
 
         const result = await generateText({
-          model: gateway("google/gemini-2.5-flash"),
+          model: gateway("google/gemini-3.5-flash"),
           messages: [{ role: "user", content: domContent }],
           system: HTML_CLEANING_SYSTEM_PROMPT,
           maxOutputTokens: 20_000,
@@ -130,7 +130,7 @@ export const aiHandlers: HandlerMap = {
         const processChunk = async (chunk: { id: string; html: string }) => {
           try {
             const result = await generateText({
-              model: gateway("google/gemini-2.5-flash"),
+              model: gateway("google/gemini-3.5-flash"),
               messages: [{ role: "user", content: chunk.html }],
               system: HTML_CLEANING_SYSTEM_PROMPT_STRICT,
               maxOutputTokens: 20_000,
