@@ -2,9 +2,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sendMessage } from "./chrome-messaging.js";
 
 describe("sendMessage", () => {
-  const runtime = {
-    sendMessage: vi.fn(),
-    lastError: null as { message: string } | null,
+  type RuntimeMessage = Parameters<typeof sendMessage>[0];
+  type RuntimeResponse = {
+    success: boolean;
+    error?: string;
+    data?: { id: string };
+  };
+  interface RuntimeMock {
+    sendMessage: ReturnType<
+      typeof vi.fn<(message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => void>
+    >;
+    lastError: { message: string } | null;
+  }
+
+  const runtime: RuntimeMock = {
+    sendMessage:
+      vi.fn<(message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => void>(),
+    lastError: null,
   };
 
   beforeEach(() => {
@@ -20,7 +34,7 @@ describe("sendMessage", () => {
   it("resolves with the full response on success", async () => {
     const response = { success: true, data: { id: "clip-1" } };
     runtime.sendMessage.mockImplementation(
-      (_message: unknown, callback: (result: Record<string, unknown>) => void) => {
+      (_message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => {
         callback(response);
       },
     );
@@ -30,7 +44,7 @@ describe("sendMessage", () => {
 
   it("rejects when response.success is false with explicit error", async () => {
     runtime.sendMessage.mockImplementation(
-      (_message: unknown, callback: (result: Record<string, unknown>) => void) => {
+      (_message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => {
         callback({ success: false, error: "Bad request" });
       },
     );
@@ -40,7 +54,7 @@ describe("sendMessage", () => {
 
   it("rejects with fallback message when response.success is false without error", async () => {
     runtime.sendMessage.mockImplementation(
-      (_message: unknown, callback: (result: Record<string, unknown>) => void) => {
+      (_message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => {
         callback({ success: false });
       },
     );
@@ -52,7 +66,7 @@ describe("sendMessage", () => {
 
   it("rejects when chrome.runtime.lastError is set", async () => {
     runtime.sendMessage.mockImplementation(
-      (_message: unknown, callback: (result: Record<string, unknown>) => void) => {
+      (_message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => {
         runtime.lastError = { message: "The message port closed before a response was received." };
         callback({ success: true });
       },
@@ -65,7 +79,7 @@ describe("sendMessage", () => {
 
   it("extracts response data using responseKey", async () => {
     runtime.sendMessage.mockImplementation(
-      (_message: unknown, callback: (result: Record<string, unknown>) => void) => {
+      (_message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => {
         callback({ success: true, data: { id: "clip-2" } });
       },
     );

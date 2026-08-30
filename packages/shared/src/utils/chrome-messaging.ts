@@ -19,30 +19,42 @@
  * // Fire-and-forget (still checks for errors)
  * await sendMessage({ action: "deleteClip", clipId: id });
  */
-export function sendMessage<T = unknown>(
-  message: Record<string, unknown> | object,
+type RuntimeResponse<T, ResponseKey extends string> = {
+  success?: boolean;
+  error?: string;
+} & { [Key in ResponseKey]?: T };
+
+export function sendMessage<
+  T = unknown,
+  Message extends object = object,
+  ResponseKey extends string = string,
+>(
+  message: Message,
   options?: {
     /**
      * Key to extract from the response object.
      * If set, returns `response[responseKey]` on success.
      * If not set, returns the full response object.
      */
-    responseKey?: string;
+    responseKey?: ResponseKey;
   },
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response: Record<string, unknown>) => {
+    chrome.runtime.sendMessage<Message, RuntimeResponse<T, ResponseKey>>(message, (response) => {
       if (chrome.runtime.lastError) {
         reject(new Error(chrome.runtime.lastError.message));
         return;
       }
       if (response?.success === false) {
-        reject(new Error((response?.error as string) || "Chrome runtime message failed"));
+        reject(new Error(response.error || "Chrome runtime message failed"));
         return;
       }
       if (options?.responseKey) {
-        resolve(response?.[options.responseKey] as T);
+        const value = response[options.responseKey];
+        // SAFETY: T is the caller-declared contract for the selected field, including optionality.
+        resolve(value as T);
       } else {
+        // SAFETY: T is the caller-declared contract for the complete runtime response.
         resolve(response as T);
       }
     });

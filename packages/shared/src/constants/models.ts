@@ -113,9 +113,9 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
 /**
  * Models grouped by provider for dropdown UI
  */
-export const MODELS_BY_PROVIDER: Record<ModelProvider, ModelDefinition[]> = {
+export const MODELS_BY_PROVIDER = {
   Anthropic: SUPPORTED_MODELS.filter((m) => m.provider === "Anthropic"),
   OpenAI: SUPPORTED_MODELS.filter((m) => m.provider === "OpenAI"),
   Google: SUPPORTED_MODELS.filter((m) => m.provider === "Google"),
   "X.AI": SUPPORTED_MODELS.filter((m) => m.provider === "X.AI"),
-};
+} satisfies Record<ModelProvider, ModelDefinition[]>;

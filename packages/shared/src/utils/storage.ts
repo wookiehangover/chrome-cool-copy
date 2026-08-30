@@ -10,8 +10,9 @@
  */
 export async function getStorageItem<T = unknown>(key: string): Promise<T | undefined> {
   return new Promise((resolve) => {
-    chrome.storage.local.get([key], (result: Record<string, unknown>) => {
-      resolve((result[key] as T) || undefined);
+    chrome.storage.local.get([key], (result) => {
+      // SAFETY: T is the caller-declared contract for the value stored under this key.
+      resolve(result[key] === undefined ? undefined : (result[key] as T));
     });
   });
 }
@@ -46,10 +47,11 @@ export async function removeStorageItem(key: string): Promise<void> {
  * @param keys - Array of storage keys to retrieve
  * @returns Promise resolving to an object with key-value pairs
  */
-export async function getStorageItems<T = Record<string, unknown>>(keys: string[]): Promise<T> {
+export async function getStorageItems<T extends object = object>(keys: string[]): Promise<T> {
   return new Promise((resolve) => {
-    chrome.storage.local.get(keys, (result: Record<string, unknown>) => {
-      resolve((result as T) || ({} as T));
+    chrome.storage.local.get(keys, (result) => {
+      // SAFETY: Chrome returns only requested keys, and T is the caller-declared result contract.
+      resolve((result ?? {}) as T);
     });
   });
 }

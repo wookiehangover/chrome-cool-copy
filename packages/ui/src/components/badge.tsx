@@ -24,22 +24,23 @@ const badgeVariants = cva(
   },
 );
 
+type BadgeRenderProps = React.ComponentProps<"span"> & { "data-slot": string };
+
 function Badge({
   className,
   variant,
   render,
   ...props
 }: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
+  const badgeProps: BadgeRenderProps = {
+    "data-slot": "badge",
+    className: cn(badgeVariants({ variant }), className),
+  };
+
   return useRender({
     defaultTagName: "span",
     render,
-    props: mergeProps<"span">(
-      {
-        "data-slot": "badge",
-        className: cn(badgeVariants({ variant }), className),
-      } as React.ComponentProps<"span">,
-      props,
-    ),
+    props: mergeProps<"span">(badgeProps, props),
   });
 }
 

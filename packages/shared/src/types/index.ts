@@ -15,6 +15,9 @@ export type JSONValue =
   | { [key: string]: JSONValue | undefined }
   | JSONValue[];
 
+/** JSON-shaped metadata parsed by its owning boundary. */
+export type JSONObject = object;
+
 /**
  * Provider-specific options for AI requests
  * This is a simplified version of ProviderOptions from @ai-sdk/provider-utils
@@ -233,7 +236,7 @@ export interface Webpage {
   title: string;
   dom_content: string;
   text_content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JSONObject;
   highlights?: Highlight[];
   status_code?: number;
   content_type?: string;
@@ -276,7 +279,7 @@ export interface LocalClip {
   title: string;
   dom_content: string;
   text_content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JSONObject;
   highlights?: Highlight[]; // User highlights and annotations
   created_at: string;
   updated_at: string;
@@ -292,7 +295,7 @@ export interface LocalClip {
  */
 export interface StructuredData {
   /** Parsed JSON-LD objects from script[type="application/ld+json"] tags */
-  jsonLd?: Record<string, unknown>[];
+  jsonLd?: JSONObject[];
   /** Microdata items extracted from elements with itemscope/itemprop */
   microdata?: Array<{
     itemtype?: string;
@@ -400,7 +403,7 @@ export interface ClipInput {
   title: string;
   dom_content: string;
   text_content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JSONObject;
 }
 
 /**
