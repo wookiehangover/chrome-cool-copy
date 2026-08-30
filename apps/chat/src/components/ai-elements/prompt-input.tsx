@@ -498,10 +498,9 @@ export const PromptInput = ({
       }
 
       setItems((prev) => {
-        const capacity =
-          typeof maxFiles === "number" ? Math.max(0, maxFiles - prev.length) : undefined;
-        const capped = typeof capacity === "number" ? sized.slice(0, capacity) : sized;
-        if (typeof capacity === "number" && sized.length > capacity) {
+        const capacity = maxFiles === undefined ? undefined : Math.max(0, maxFiles - prev.length);
+        const capped = capacity === undefined ? sized : sized.slice(0, capacity);
+        if (capacity !== undefined && sized.length > capacity) {
           onError?.({
             code: "max_files",
             message: "Too many files. Some were not added.",
@@ -646,7 +645,12 @@ export const PromptInput = ({
       const blob = await response.blob();
       return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
+        reader.onloadend = () => {
+          const result = reader.result;
+          resolve(
+            Object.prototype.toString.call(result) === "[object String]" ? String(result) : null,
+          );
+        };
         reader.onerror = () => resolve(null);
         reader.readAsDataURL(blob);
       });
@@ -675,7 +679,8 @@ export const PromptInput = ({
       ? controller.textInput.value
       : (() => {
           const formData = new FormData(form);
-          return (formData.get("message") as string) || "";
+          const message = formData.get("message");
+          return message instanceof File ? "" : (message ?? "");
         })();
 
     // Reset form immediately after capturing text to avoid race condition
@@ -786,7 +791,7 @@ export const PromptInputTextarea = ({
 
       // Check if the submit button is disabled before submitting
       const form = e.currentTarget.form;
-      const submitButton = form?.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+      const submitButton = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
       if (submitButton?.disabled) {
         return;
       }
@@ -1039,8 +1044,8 @@ export const PromptInputSpeechButton = ({
 
   useEffect(() => {
     if (
-      typeof window !== "undefined" &&
-      ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
+      globalThis.window &&
+      ("SpeechRecognition" in globalThis.window || "webkitSpeechRecognition" in globalThis.window)
     ) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const speechRecognition = new SpeechRecognition();

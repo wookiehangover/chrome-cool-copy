@@ -53,6 +53,7 @@ export function useMediaClips(): UseMediaClipsReturn {
 
       // Get server config from chrome.storage.sync (matches settings page storage format)
       const result = await chrome.storage.sync.get(["clipsServerConfig"]);
+      // SAFETY: The extension settings page owns and validates this storage shape.
       const clipsServerConfig = result.clipsServerConfig as
         | { baseUrl: string; apiToken: string }
         | undefined;
@@ -64,9 +65,9 @@ export function useMediaClips(): UseMediaClipsReturn {
       }
 
       // Fetch media clips from server
-      const headers: Record<string, string> = {};
+      const headers = new Headers();
       if (clipsServerConfig.apiToken) {
-        headers["Authorization"] = `Bearer ${clipsServerConfig.apiToken}`;
+        headers.set("Authorization", `Bearer ${clipsServerConfig.apiToken}`);
       }
 
       const response = await fetch(`${clipsServerConfig.baseUrl}/api/media/list?limit=50`, {
@@ -77,6 +78,7 @@ export function useMediaClips(): UseMediaClipsReturn {
         throw new Error(`Failed to fetch media clips: ${response.statusText}`);
       }
 
+      // SAFETY: This endpoint is the matching clips server MediaClipsResponse boundary.
       const data = (await response.json()) as MediaClipsResponse;
       setMediaClips(data.clips || []);
     } catch (err) {
@@ -101,6 +103,7 @@ export function useMediaClips(): UseMediaClipsReturn {
   const deleteMediaClip = useCallback(
     async (id: string) => {
       const result = await chrome.storage.sync.get(["clipsServerConfig"]);
+      // SAFETY: The extension settings page owns and validates this storage shape.
       const clipsServerConfig = result.clipsServerConfig as
         | { baseUrl: string; apiToken: string }
         | undefined;
@@ -109,11 +112,9 @@ export function useMediaClips(): UseMediaClipsReturn {
         throw new Error("Server not configured");
       }
 
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
+      const headers = new Headers({ "Content-Type": "application/json" });
       if (clipsServerConfig.apiToken) {
-        headers["Authorization"] = `Bearer ${clipsServerConfig.apiToken}`;
+        headers.set("Authorization", `Bearer ${clipsServerConfig.apiToken}`);
       }
 
       const response = await fetch(`${clipsServerConfig.baseUrl}/api/media/delete`, {

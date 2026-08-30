@@ -1,11 +1,20 @@
 import { beforeEach, vi } from "vitest";
 
-type StorageData = Record<string, unknown>;
+type StorageValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | { model?: string }
+  | { aiGatewayConfig?: { model?: string } };
+type StorageData = Record<string, StorageValue>;
 
 const storageData: StorageData = {};
 
 export const mockRuntime = {
   sendMessage: vi.fn(),
+  // SAFETY: Tests mutate this field only with Chrome-compatible last-error values.
   lastError: null as chrome.runtime.LastError | null,
   onMessage: {
     addListener: vi.fn(),
@@ -25,7 +34,7 @@ export const mockStorage = {
       const items: StorageData = {};
 
       for (const key of keyList) {
-        if (typeof key === "string" && key in storageData) {
+        if (key in storageData) {
           items[key] = storageData[key];
         }
       }
@@ -48,7 +57,7 @@ export const mockChrome = {
   storage: mockStorage,
 };
 
-vi.stubGlobal("chrome", mockChrome as unknown as typeof chrome);
+vi.stubGlobal("chrome", mockChrome);
 
 export function resetChromeMocks() {
   vi.clearAllMocks();

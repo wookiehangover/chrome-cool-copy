@@ -5,14 +5,6 @@ import { mockStorage } from "../test/setup";
 
 const mockSendMessage = vi.fn();
 
-vi.mock("@repo/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@repo/shared")>();
-  return {
-    ...actual,
-    sendMessage: (...args: unknown[]) => mockSendMessage(...args),
-  };
-});
-
 import { useModelSelection } from "./useModelSelection";
 
 describe("useModelSelection", () => {
@@ -29,7 +21,7 @@ describe("useModelSelection", () => {
       callback({ aiGatewayConfig: { model: storedModel } });
     });
 
-    const { result } = renderHook(() => useModelSelection());
+    const { result } = renderHook(() => useModelSelection(mockSendMessage));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -53,7 +45,7 @@ describe("useModelSelection", () => {
       callback({ aiGatewayConfig: { model: "openai/gpt-5.5" } });
     });
 
-    const { result } = renderHook(() => useModelSelection());
+    const { result } = renderHook(() => useModelSelection(mockSendMessage));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -71,7 +63,7 @@ describe("useModelSelection", () => {
       callback({ aiGatewayConfig: { model: "acme/legacy-model" } });
     });
 
-    const { result } = renderHook(() => useModelSelection());
+    const { result } = renderHook(() => useModelSelection(mockSendMessage));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);

@@ -107,6 +107,7 @@ export async function getClipByShareId(shareId: string): Promise<SharedClip | nu
     }
 
     console.log("[AgentDB] Clip retrieved for share_id:", shareId);
+    // SAFETY: The query selects the complete webpages row owned by SharedClip.
     return rows[0] as SharedClip;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -134,6 +135,7 @@ export async function getAllClips(): Promise<LightweightClip[]> {
     const rows = result.results[0]?.rows || [];
 
     console.log("[AgentDB] Retrieved", rows.length, "clips");
+    // SAFETY: The selected columns exactly match LightweightClip.
     return rows as LightweightClip[];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -172,6 +174,7 @@ export async function shareClip(identifier: number): Promise<string | null> {
       return null;
     }
 
+    // SAFETY: The query selects the complete webpages row owned by SharedClip.
     const clip = rows[0] as SharedClip;
 
     // If clip already has a share_id, return it
@@ -296,6 +299,7 @@ export async function getMediaClips(options: {
     sql: "SELECT COUNT(*) as count FROM media_clips",
     params: [],
   });
+  // SAFETY: COUNT(*) aliases its numeric result as count.
   const total = (countResult.results[0]?.rows?.[0] as { count: number } | undefined)?.count || 0;
 
   // Get paginated clips
@@ -307,6 +311,7 @@ export async function getMediaClips(options: {
   });
 
   return {
+    // SAFETY: The selected columns exactly match MediaClip.
     clips: (result.results[0]?.rows || []) as MediaClip[],
     total,
   };
@@ -340,6 +345,7 @@ export async function getMediaClipById(id: string): Promise<MediaClip | null> {
     }
 
     console.log("[AgentDB] Media clip retrieved for id:", id);
+    // SAFETY: The selected columns exactly match MediaClip.
     return rows[0] as MediaClip;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

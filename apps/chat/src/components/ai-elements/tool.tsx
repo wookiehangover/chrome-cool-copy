@@ -30,7 +30,7 @@ export type ToolHeaderProps = {
 };
 
 const getStatusBadge = (status: ToolUIPart["state"]) => {
-  const labels: Record<ToolUIPart["state"], string> = {
+  const labels = {
     "input-streaming": "Pending",
     "input-available": "Running",
     "approval-requested": "Awaiting Approval",
@@ -38,9 +38,9 @@ const getStatusBadge = (status: ToolUIPart["state"]) => {
     "output-available": "Completed",
     "output-error": "Error",
     "output-denied": "Denied",
-  };
+  } satisfies Record<ToolUIPart["state"], string>;
 
-  const icons: Record<ToolUIPart["state"], ReactNode> = {
+  const icons = {
     "input-streaming": <CircleIcon className="size-4" />,
     "input-available": <ClockIcon className="size-4 animate-pulse" />,
     "approval-requested": <ClockIcon className="size-4 text-yellow-600" />,
@@ -48,7 +48,7 @@ const getStatusBadge = (status: ToolUIPart["state"]) => {
     "output-available": <CheckCircleIcon className="size-4 text-green-600" />,
     "output-error": <XCircleIcon className="size-4 text-red-600" />,
     "output-denied": <XCircleIcon className="size-4 text-orange-600" />,
-  };
+  } satisfies Record<ToolUIPart["state"], ReactNode>;
 
   return (
     <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
@@ -109,12 +109,13 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
     return null;
   }
 
+  // SAFETY: ToolUIPart output is renderable after the structured cases below.
   let Output = <div>{output as ReactNode}</div>;
 
-  if (typeof output === "object" && !isValidElement(output)) {
+  if (output !== null && Object(output) === output && !isValidElement(output)) {
     Output = <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />;
-  } else if (typeof output === "string") {
-    Output = <CodeBlock code={output} language="json" />;
+  } else if (Object.prototype.toString.call(output) === "[object String]") {
+    Output = <CodeBlock code={String(output)} language="json" />;
   }
 
   return (

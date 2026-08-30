@@ -22,12 +22,14 @@ export async function action({ request }: Route.ActionArgs) {
 
   // 2. Parse multipart form data
   const formData = await request.formData();
-  const imageFile = formData.get("image") as File | null;
-  const metadataStr = formData.get("metadata") as string | null;
+  const imageEntry = formData.get("image");
+  const metadataEntry = formData.get("metadata");
 
-  if (!imageFile) {
+  if (!(imageEntry instanceof File)) {
     return data({ error: "No image provided" }, { status: 400 });
   }
+  const imageFile = imageEntry;
+  const metadataStr = metadataEntry instanceof File ? null : metadataEntry;
 
   // 3. Validate file
   if (!ALLOWED_MIMETYPES.includes(imageFile.type)) {
@@ -38,10 +40,32 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   // 4. Parse metadata
-  let metadata: Record<string, unknown> = {};
+  let width: number | undefined;
+  let height: number | undefined;
+  let altText: string | undefined;
+  let pageUrl = "";
+  let pageTitle: string | undefined;
   if (metadataStr) {
     try {
-      metadata = JSON.parse(metadataStr);
+      const metadata = JSON.parse(metadataStr);
+      if (metadata !== null && Object(metadata) === metadata) {
+        const read = (key: string) => Object.getOwnPropertyDescriptor(metadata, key)?.value;
+        const rawWidth = read("width");
+        const rawHeight = read("height");
+        const rawAltText = read("altText");
+        const rawPageUrl = read("pageUrl");
+        const rawPageTitle = read("pageTitle");
+        if (Object.prototype.toString.call(rawWidth) === "[object Number]")
+          width = Number(rawWidth);
+        if (Object.prototype.toString.call(rawHeight) === "[object Number]")
+          height = Number(rawHeight);
+        if (Object.prototype.toString.call(rawAltText) === "[object String]")
+          altText = String(rawAltText);
+        if (Object.prototype.toString.call(rawPageUrl) === "[object String]")
+          pageUrl = String(rawPageUrl);
+        if (Object.prototype.toString.call(rawPageTitle) === "[object String]")
+          pageTitle = String(rawPageTitle);
+      }
     } catch {
       return data({ error: "Invalid metadata JSON" }, { status: 400 });
     }
@@ -59,11 +83,11 @@ export async function action({ request }: Route.ActionArgs) {
       original_filename: imageFile.name,
       mimetype: imageFile.type,
       file_size: imageFile.size,
-      width: metadata.width as number | undefined,
-      height: metadata.height as number | undefined,
-      alt_text: metadata.altText as string | undefined,
-      page_url: (metadata.pageUrl as string) || "",
-      page_title: metadata.pageTitle as string | undefined,
+      width,
+      height,
+      alt_text: altText,
+      page_url: pageUrl,
+      page_title: pageTitle,
     });
 
     // 7. Queue AI description generation (fire-and-forget)

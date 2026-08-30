@@ -21,7 +21,10 @@ export type ModelPickerProps = Omit<ComponentProps<typeof Select>, "value" | "on
 export const ModelPicker = ({ value, onValueChange, ...props }: ModelPickerProps) => (
   <Select
     value={value}
-    onValueChange={(model) => model !== null && onValueChange(model as ModelId)}
+    onValueChange={(model) => {
+      const selected = SUPPORTED_MODELS.find((candidate) => candidate.id === model);
+      if (selected) onValueChange(selected.id);
+    }}
     {...props}
   >
     <ModelPickerTrigger value={value} />

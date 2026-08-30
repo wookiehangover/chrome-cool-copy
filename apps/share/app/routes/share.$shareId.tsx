@@ -1,4 +1,4 @@
-import { data } from "react-router";
+import { data, isRouteErrorResponse } from "react-router";
 import type { Route } from "./+types/share.$shareId";
 import { getClipByShareId } from "~/lib/agentdb.server";
 import { sanitizeClipHtml } from "~/lib/sanitize.server";
@@ -69,17 +69,15 @@ export default function SharePage({ loaderData }: Route.ComponentProps) {
  */
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   // Handle 404 errors
-  if (error && typeof error === "object" && "status" in error) {
-    const routeError = error as { status: number; data?: { message?: string } };
-
-    if (routeError.status === 404) {
+  if (isRouteErrorResponse(error)) {
+    if (error.status === 404) {
       return (
         <div className="flex h-screen w-full flex-col bg-background text-foreground">
           <div className="flex items-center justify-center flex-1">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-4">Clip Not Found</h1>
               <p className="text-muted-foreground">
-                {routeError.data?.message || "The shared clip does not exist."}
+                {error.data?.message || "The shared clip does not exist."}
               </p>
               <p className="text-sm text-muted-foreground mt-4">
                 Please check the share link and try again.
@@ -90,15 +88,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       );
     }
 
-    if (routeError.status === 400) {
+    if (error.status === 400) {
       return (
         <div className="flex h-screen w-full flex-col bg-background text-foreground">
           <div className="flex items-center justify-center flex-1">
             <div className="text-center">
               <h1 className="text-3xl font-bold mb-4 text-destructive">Bad Request</h1>
-              <p className="text-muted-foreground">
-                {routeError.data?.message || "Invalid request."}
-              </p>
+              <p className="text-muted-foreground">{error.data?.message || "Invalid request."}</p>
             </div>
           </div>
         </div>

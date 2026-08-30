@@ -21,7 +21,7 @@ export interface UseClipsReturn {
   refresh: () => Promise<void>;
 }
 
-export function useClips(): UseClipsReturn {
+export function useClips(messageSender: typeof sendMessage = sendMessage): UseClipsReturn {
   const [clips, setClips] = useState<Clip[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,10 @@ export function useClips(): UseClipsReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await sendMessage<Clip[]>({ action: "getLocalClips" }, { responseKey: "data" });
+      const data = await messageSender<Clip[]>(
+        { action: "getLocalClips" },
+        { responseKey: "data" },
+      );
       setClips(data || []);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Failed to load clips";
@@ -41,7 +44,7 @@ export function useClips(): UseClipsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [messageSender]);
 
   // Initial load
   useEffect(() => {
@@ -50,43 +53,49 @@ export function useClips(): UseClipsReturn {
 
   const getClips = useCallback(async (): Promise<Clip[]> => {
     try {
-      const data = await sendMessage<Clip[]>({ action: "getLocalClips" }, { responseKey: "data" });
+      const data = await messageSender<Clip[]>(
+        { action: "getLocalClips" },
+        { responseKey: "data" },
+      );
       return data || [];
     } catch (err) {
       console.error("Failed to get clips:", err);
       return [];
     }
-  }, []);
+  }, [messageSender]);
 
-  const getClip = useCallback(async (id: string): Promise<Clip | null> => {
-    try {
-      const data = await sendMessage<Clip | null>(
-        { action: "getLocalClip", clipId: id },
-        { responseKey: "data" },
-      );
-      return data || null;
-    } catch (err) {
-      console.error("Failed to get clip:", err);
-      return null;
-    }
-  }, []);
+  const getClip = useCallback(
+    async (id: string): Promise<Clip | null> => {
+      try {
+        const data = await messageSender<Clip | null>(
+          { action: "getLocalClip", clipId: id },
+          { responseKey: "data" },
+        );
+        return data || null;
+      } catch (err) {
+        console.error("Failed to get clip:", err);
+        return null;
+      }
+    },
+    [messageSender],
+  );
 
   const deleteClip = useCallback(
     async (id: string) => {
       try {
-        await sendMessage({ action: "deleteClipWithSync", clipId: id });
+        await messageSender({ action: "deleteClipWithSync", clipId: id });
         await loadClips();
       } catch (err) {
         console.error("Failed to delete clip:", err);
         throw err;
       }
     },
-    [loadClips],
+    [loadClips, messageSender],
   );
 
   const syncClips = useCallback(async (): Promise<SyncResult> => {
     try {
-      const data = await sendMessage<SyncResult>(
+      const data = await messageSender<SyncResult>(
         { action: "syncFromAgentDB" },
         { responseKey: "data" },
       );
@@ -97,19 +106,19 @@ export function useClips(): UseClipsReturn {
       console.error("Failed to sync clips:", err);
       return { imported: 0, skipped: 0, failed: 0, total: 0 };
     }
-  }, [loadClips]);
+  }, [loadClips, messageSender]);
 
   const updateClip = useCallback(
     async (id: string, updates: Partial<LocalClip>) => {
       try {
-        await sendMessage({ action: "updateLocalClip", clipId: id, updates });
+        await messageSender({ action: "updateLocalClip", clipId: id, updates });
         await loadClips();
       } catch (err) {
         console.error("Failed to update clip:", err);
         throw err;
       }
     },
-    [loadClips],
+    [loadClips, messageSender],
   );
 
   const refresh = useCallback(async () => {

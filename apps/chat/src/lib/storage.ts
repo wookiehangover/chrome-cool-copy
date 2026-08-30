@@ -31,6 +31,7 @@ export { generateSessionId } from "@repo/shared/utils";
 export async function getAllSessions(): Promise<ConversationSession[]> {
   return new Promise((resolve) => {
     chrome.storage.local.get([STORAGE_KEY], (result) => {
+      // SAFETY: This key is written only by saveSession with ConversationSession[].
       const sessions = (result[STORAGE_KEY] as ConversationSession[]) || [];
       // Sort by updatedAt descending (most recent first)
       sessions.sort((a, b) => b.updatedAt - a.updatedAt);
@@ -87,6 +88,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
 export async function getCurrentSessionId(): Promise<string | null> {
   return new Promise((resolve) => {
     chrome.storage.local.get([CURRENT_SESSION_KEY], (result) => {
+      // SAFETY: This key is written only by setCurrentSessionId with a string.
       resolve((result[CURRENT_SESSION_KEY] as string) || null);
     });
   });

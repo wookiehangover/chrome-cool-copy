@@ -90,6 +90,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
           setCurrentCode(boost.code);
           // Load chat history if available
           if (boost.chatHistory && Array.isArray(boost.chatHistory)) {
+            // SAFETY: Boost.chatHistory is persisted from this hook's UIMessage array.
             setMessages(boost.chatHistory as UIMessage[]);
           }
         }
@@ -108,7 +109,7 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
         // Find file tool part - can be typed (tool-file) or dynamic (dynamic-tool)
         const filePart = msg.parts.find((part) => {
           const partType = part.type;
-          const toolName = (part as any).toolName;
+          const toolName = "toolName" in part ? part.toolName : undefined;
 
           // Check for dynamic-tool type with toolName "file"
           if (partType === "dynamic-tool" && toolName === "file") {
@@ -125,10 +126,11 @@ export function useBoostAuthoring(options: UseBoostAuthoringOptions): UseBoostAu
           return false;
         });
 
-        if (filePart && (filePart as any).input) {
-          const input = (filePart as any).input;
-          if (input.content && typeof input.content === "string") {
-            setCurrentCode(input.content);
+        if (filePart && "input" in filePart) {
+          const input = filePart.input;
+          const content = Object.getOwnPropertyDescriptor(Object(input), "content")?.value;
+          if (Object.prototype.toString.call(content) === "[object String]") {
+            setCurrentCode(String(content));
             return;
           }
         }

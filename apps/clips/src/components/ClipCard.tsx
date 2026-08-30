@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { sendMessage } from "@repo/shared";
-import type { Clip, ElementClip, LocalClip } from "@repo/shared";
+import type { Clip, LocalClip } from "@repo/shared";
 import {
   Button,
   Dialog,
@@ -47,14 +47,17 @@ export function ClipCard({ clip, viewMode, onDelete }: ClipCardProps) {
 
   // Handle both LocalClip and ElementClip
   // ElementClip has type: 'element', LocalClip has no type field
-  const isElementClip = "type" in clip && clip.type === "element";
+  const elementClip = "type" in clip && clip.type === "element" ? clip : null;
+  // SAFETY: Clip's non-element union member is LocalClip.
+  const localClip = elementClip ? null : (clip as LocalClip);
+  const isElementClip = elementClip !== null;
 
   // Load screenshot for element clips (all view modes)
   useEffect(() => {
-    if (isElementClip && (clip as ElementClip).screenshotAssetId) {
+    if (elementClip?.screenshotAssetId) {
       setLoadingScreenshot(true);
       sendMessage<string>(
-        { action: "getClipAsset", assetId: (clip as ElementClip).screenshotAssetId },
+        { action: "getClipAsset", assetId: elementClip.screenshotAssetId },
         { responseKey: "dataUrl" },
       )
         .then((dataUrl) => {
@@ -67,12 +70,10 @@ export function ClipCard({ clip, viewMode, onDelete }: ClipCardProps) {
           setLoadingScreenshot(false);
         });
     }
-  }, [isElementClip, clip]);
+  }, [elementClip]);
 
   // Format date - handle different timestamp field names
-  const timestamp = isElementClip
-    ? (clip as ElementClip).createdAt
-    : (clip as LocalClip).created_at;
+  const timestamp = elementClip ? elementClip.createdAt : localClip!.created_at;
   const date = new Date(timestamp).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -83,19 +84,16 @@ export function ClipCard({ clip, viewMode, onDelete }: ClipCardProps) {
   const hostname = new URL(clip.url).hostname;
 
   // Get preview text (first 120 chars) - handle different field names
-  const textContent = isElementClip
-    ? (clip as ElementClip).textContent
-    : (clip as LocalClip).text_content;
+  const textContent = elementClip ? elementClip.textContent : localClip!.text_content;
   const preview = (textContent || "").substring(0, 120);
 
   // Get title - handle different field names for element clips
-  const title = isElementClip
-    ? (clip as ElementClip).aiTitle ||
-      `Element: ${(clip as ElementClip).elementMeta?.tagName || "Unknown"}`
-    : (clip as LocalClip).title;
+  const title = elementClip
+    ? elementClip.aiTitle || `Element: ${elementClip.elementMeta?.tagName || "Unknown"}`
+    : localClip!.title;
 
   // Debug logging when fallback is used
-  if (isElementClip && !(clip as ElementClip).aiTitle) {
+  if (elementClip && !elementClip.aiTitle) {
     console.log("[ClipCard] No aiTitle, using fallback for clip:", clip.id);
   }
 

@@ -43,6 +43,7 @@ function ButtonGroupText({ className, render, ...props }: useRender.ComponentPro
     defaultTagName: "div",
     render,
     props: mergeProps<"div">(
+      // SAFETY: Base UI mergeProps accepts data attributes supported by the DOM.
       {
         "data-slot": "button-group-text",
         className: cn(

@@ -4,6 +4,10 @@ const TTS_URL_STORAGE_KEY = "tts_url";
 const LEGACY_TTS_URL_STORAGE_KEY = "clips-tts-url";
 export const DEFAULT_TTS_URL = "http://localhost:8000";
 
+function storedString(value: chrome.storage.StorageChange["newValue"]): string | undefined {
+  return Object.prototype.toString.call(value) === "[object String]" ? String(value) : undefined;
+}
+
 export interface UseTtsUrlReturn {
   ttsUrl: string;
   setTtsUrl: (url: string) => Promise<void>;
@@ -23,7 +27,7 @@ export function useTtsUrl(): UseTtsUrlReturn {
     const loadTtsUrl = async () => {
       try {
         const syncResult = await chrome.storage.sync.get([TTS_URL_STORAGE_KEY]);
-        let storedUrl = syncResult[TTS_URL_STORAGE_KEY] as string | undefined;
+        let storedUrl = storedString(syncResult[TTS_URL_STORAGE_KEY]);
 
         if (!storedUrl) {
           const localResult = await chrome.storage.local.get([
@@ -31,8 +35,8 @@ export function useTtsUrl(): UseTtsUrlReturn {
             LEGACY_TTS_URL_STORAGE_KEY,
           ]);
           storedUrl =
-            (localResult[TTS_URL_STORAGE_KEY] as string | undefined) ||
-            (localResult[LEGACY_TTS_URL_STORAGE_KEY] as string | undefined);
+            storedString(localResult[TTS_URL_STORAGE_KEY]) ||
+            storedString(localResult[LEGACY_TTS_URL_STORAGE_KEY]);
 
           if (storedUrl) {
             await chrome.storage.sync.set({ [TTS_URL_STORAGE_KEY]: storedUrl });
@@ -62,7 +66,7 @@ export function useTtsUrl(): UseTtsUrlReturn {
         return;
       }
 
-      const newValue = changes[TTS_URL_STORAGE_KEY].newValue as string | undefined;
+      const newValue = storedString(changes[TTS_URL_STORAGE_KEY].newValue);
       if (newValue !== undefined) {
         setTtsUrlState(newValue);
       }
@@ -97,7 +101,7 @@ export function useTtsUrl(): UseTtsUrlReturn {
 export async function getTtsUrl(): Promise<string> {
   try {
     const syncResult = await chrome.storage.sync.get([TTS_URL_STORAGE_KEY]);
-    let storedUrl = syncResult[TTS_URL_STORAGE_KEY] as string | undefined;
+    let storedUrl = storedString(syncResult[TTS_URL_STORAGE_KEY]);
 
     if (!storedUrl) {
       const localResult = await chrome.storage.local.get([
@@ -105,8 +109,8 @@ export async function getTtsUrl(): Promise<string> {
         LEGACY_TTS_URL_STORAGE_KEY,
       ]);
       storedUrl =
-        (localResult[TTS_URL_STORAGE_KEY] as string | undefined) ||
-        (localResult[LEGACY_TTS_URL_STORAGE_KEY] as string | undefined);
+        storedString(localResult[TTS_URL_STORAGE_KEY]) ||
+        storedString(localResult[LEGACY_TTS_URL_STORAGE_KEY]);
     }
 
     return storedUrl || DEFAULT_TTS_URL;

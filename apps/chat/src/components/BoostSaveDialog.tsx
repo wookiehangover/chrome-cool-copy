@@ -133,7 +133,7 @@ export function BoostSaveDialog({
                   name="runMode"
                   value="auto"
                   checked={runMode === "auto"}
-                  onChange={(e) => setRunMode(e.target.value as "auto" | "manual")}
+                  onChange={() => setRunMode("auto")}
                   disabled={isLoading}
                 />
                 <span className="text-sm">Run on page load</span>
@@ -144,7 +144,7 @@ export function BoostSaveDialog({
                   name="runMode"
                   value="manual"
                   checked={runMode === "manual"}
-                  onChange={(e) => setRunMode(e.target.value as "auto" | "manual")}
+                  onChange={() => setRunMode("manual")}
                   disabled={isLoading}
                 />
                 <span className="text-sm">Run from command palette</span>

@@ -3,7 +3,7 @@ import { DEFAULT_MODEL, sendMessage, SUPPORTED_MODELS } from "@repo/shared";
 import type { ModelId } from "@repo/shared";
 
 // Migration map for old model IDs to new ones
-const MODEL_MIGRATION_MAP: Record<string, ModelId> = {
+const MODEL_MIGRATION_MAP = {
   "anthropic/claude-opus-4.7": "anthropic/claude-opus-4.8",
   "anthropic/claude-opus-4.6": "anthropic/claude-opus-4.8",
   "anthropic/claude-opus-4.5": "anthropic/claude-opus-4.8",
@@ -26,21 +26,22 @@ const MODEL_MIGRATION_MAP: Record<string, ModelId> = {
   "xai/grok-code-fast-1": "xai/grok-4.3",
   "xai/grok-4.1-fast-non-reasoning": "xai/grok-4.20-non-reasoning",
   "xai/grok-4.1-fast-reasoning": "xai/grok-4.20-reasoning",
-};
+} satisfies Record<string, ModelId>;
 
 /**
  * Migrate old model ID to new one if needed
  */
 function migrateModelId(modelId: string): ModelId {
   // Check if model needs migration
-  if (modelId in MODEL_MIGRATION_MAP) {
-    return MODEL_MIGRATION_MAP[modelId];
-  }
+  const migratedModel = Object.entries(MODEL_MIGRATION_MAP).find(
+    ([legacyModel]) => legacyModel === modelId,
+  )?.[1];
+  if (migratedModel) return migratedModel;
 
   // Check if model is currently supported
   const isSupported = SUPPORTED_MODELS.some((m) => m.id === modelId);
   if (isSupported) {
-    return modelId as ModelId;
+    return SUPPORTED_MODELS.find((model) => model.id === modelId)?.id ?? DEFAULT_MODEL;
   }
 
   // Default to the default model if unknown
@@ -51,7 +52,7 @@ function migrateModelId(modelId: string): ModelId {
  * Hook for managing model selection with chrome.storage.sync
  * Loads initial model from storage and syncs changes back
  */
-export function useModelSelection() {
+export function useModelSelection(messageSender: typeof sendMessage = sendMessage) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -73,7 +74,7 @@ export function useModelSelection() {
           // If model was migrated, save the new one
           if (migratedModel !== model) {
             console.log(`[useModelSelection] Migrated model from ${model} to ${migratedModel}`);
-            sendMessage({
+            messageSender({
               action: "updateAIGatewayConfig",
               config: { model: migratedModel },
             }).catch((err) => {
@@ -89,24 +90,27 @@ export function useModelSelection() {
     };
 
     loadModel();
-  }, []);
+  }, [messageSender]);
 
   // Save model to storage when it changes
-  const handleModelChange = useCallback((model: ModelId) => {
-    setSelectedModel(model);
+  const handleModelChange = useCallback(
+    (model: ModelId) => {
+      setSelectedModel(model);
 
-    // Save to chrome.storage.sync
-    sendMessage({
-      action: "updateAIGatewayConfig",
-      config: { model },
-    })
-      .then(() => {
-        console.log("[useModelSelection] Model saved successfully:", model);
+      // Save to chrome.storage.sync
+      messageSender({
+        action: "updateAIGatewayConfig",
+        config: { model },
       })
-      .catch((err) => {
-        console.error("[useModelSelection] Failed to save model:", err);
-      });
-  }, []);
+        .then(() => {
+          console.log("[useModelSelection] Model saved successfully:", model);
+        })
+        .catch((err) => {
+          console.error("[useModelSelection] Failed to save model:", err);
+        });
+    },
+    [messageSender],
+  );
 
   return {
     selectedModel,
