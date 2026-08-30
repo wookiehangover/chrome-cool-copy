@@ -1,5 +1,6 @@
-import type { UIMessage } from "ai";
+import { safeValidateUIMessages, type UIMessage } from "ai";
 import { generateSessionId } from "@repo/shared/utils";
+import { z } from "zod";
 
 /**
  * Conversation session stored in chrome.storage.local
@@ -19,6 +20,15 @@ export interface ConversationSession {
 const STORAGE_KEY = "chat_sessions";
 const CURRENT_SESSION_KEY = "current_session_id";
 
+const storedSessionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  messages: z.array(z.unknown()),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  messageCount: z.number().int().nonnegative(),
+});
+
 /**
  * Generate a unique session ID
  * Re-exported from @repo/shared/utils for convenience
@@ -30,9 +40,18 @@ export { generateSessionId } from "@repo/shared/utils";
  */
 export async function getAllSessions(): Promise<ConversationSession[]> {
   return new Promise((resolve) => {
-    chrome.storage.local.get([STORAGE_KEY], (result) => {
-      // SAFETY: This key is written only by saveSession with ConversationSession[].
-      const sessions = (result[STORAGE_KEY] as ConversationSession[]) || [];
+    chrome.storage.local.get([STORAGE_KEY], async (result) => {
+      const parsed = z.array(storedSessionSchema).safeParse(result[STORAGE_KEY]);
+      const sessions = parsed.success
+        ? (
+            await Promise.all(
+              parsed.data.map(async (session) => {
+                const messages = await safeValidateUIMessages({ messages: session.messages });
+                return messages.success ? { ...session, messages: messages.data } : null;
+              }),
+            )
+          ).filter((session) => session !== null)
+        : [];
       // Sort by updatedAt descending (most recent first)
       sessions.sort((a, b) => b.updatedAt - a.updatedAt);
       resolve(sessions);
@@ -88,8 +107,8 @@ export async function deleteSession(sessionId: string): Promise<void> {
 export async function getCurrentSessionId(): Promise<string | null> {
   return new Promise((resolve) => {
     chrome.storage.local.get([CURRENT_SESSION_KEY], (result) => {
-      // SAFETY: This key is written only by setCurrentSessionId with a string.
-      resolve((result[CURRENT_SESSION_KEY] as string) || null);
+      const currentSessionId = z.string().safeParse(result[CURRENT_SESSION_KEY]);
+      resolve(currentSessionId.success ? currentSessionId.data : null);
     });
   });
 }

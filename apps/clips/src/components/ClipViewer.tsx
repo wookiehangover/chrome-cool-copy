@@ -11,6 +11,17 @@ import { HighlightPopover, type HighlightPopoverHandle } from "./HighlightPopove
 import { cn } from "@/lib/utils";
 import { showToast } from "@/lib/toast";
 
+export type HighlightClickTarget =
+  | { kind: "highlight"; element: HTMLElement }
+  | { kind: "outside" }
+  | { kind: "ignored" };
+
+export function classifyHighlightClick(target: EventTarget | null): HighlightClickTarget {
+  if (!(target instanceof HTMLElement)) return { kind: "ignored" };
+  const element = target.closest<HTMLElement>(".viewer-highlight");
+  return element ? { kind: "highlight", element } : { kind: "outside" };
+}
+
 export function ClipViewer() {
   const { clipId } = useParams<{ clipId: string }>();
   const { getClip } = useClips();
@@ -405,18 +416,16 @@ export function ClipViewer() {
 
   // Handle click on content - show popover for highlights, hide for clicks outside
   const handleContentClick = (e: React.MouseEvent) => {
-    if (!(e.target instanceof HTMLElement)) return;
-    const target = e.target;
-    const mark = target.closest<HTMLElement>(".viewer-highlight");
-    if (!mark) return;
-
-    if (!mark) {
+    const clickTarget = classifyHighlightClick(e.target);
+    if (clickTarget.kind === "ignored") return;
+    if (clickTarget.kind === "outside") {
       // Clicked outside highlight - save and hide
       if (activeHighlightIdRef.current) {
         handleSaveNote();
       }
       return;
     }
+    const mark = clickTarget.element;
 
     const highlightId = mark.dataset.highlightId;
     if (!highlightId) return;

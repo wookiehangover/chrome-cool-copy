@@ -109,13 +109,15 @@ export const ToolOutput = ({ className, output, errorText, ...props }: ToolOutpu
     return null;
   }
 
-  // SAFETY: ToolUIPart output is renderable after the structured cases below.
-  let Output = <div>{output as ReactNode}</div>;
-
-  if (output !== null && Object(output) === output && !isValidElement(output)) {
-    Output = <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />;
+  let Output: ReactNode;
+  if (isValidElement(output)) {
+    Output = output;
   } else if (Object.prototype.toString.call(output) === "[object String]") {
     Output = <CodeBlock code={String(output)} language="json" />;
+  } else if (output !== null && Object(output) === output) {
+    Output = <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />;
+  } else {
+    Output = <div>{String(output)}</div>;
   }
 
   return (
