@@ -293,10 +293,10 @@ export function ViewerToolbar({
           </>
         ) : (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className={toolbarBtnClass} title="More options">
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
+            <DropdownMenuTrigger
+              render={<button className={toolbarBtnClass} title="More options" />}
+            >
+              <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onSettingsClick}>

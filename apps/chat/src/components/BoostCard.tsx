@@ -58,10 +58,17 @@ export function BoostCard({ boost, onDelete, onRun, isLoading = false }: BoostCa
         </div>
         {/* Overflow menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={isLoading}>
-              <MoreHorizontalIcon className="h-4 w-4" />
-            </Button>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                disabled={isLoading}
+              />
+            }
+          >
+            <MoreHorizontalIcon className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {boost.runMode === "manual" && (

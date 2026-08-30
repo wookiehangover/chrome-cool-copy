@@ -23,15 +23,17 @@ export function BoostCodePreview({ code, className }: BoostCodePreviewProps) {
       onOpenChange={setIsOpen}
       className={cn("border-b border-border", className)}
     >
-      <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-between rounded-none px-4 py-3 text-sm font-medium hover:bg-accent"
-        >
-          <span>Boost Code Preview</span>
-          <ChevronDownIcon className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-        </Button>
+      <CollapsibleTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-between rounded-none px-4 py-3 text-sm font-medium hover:bg-accent"
+          />
+        }
+      >
+        <span>Boost Code Preview</span>
+        <ChevronDownIcon className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
       </CollapsibleTrigger>
       <CollapsibleContent className="border-t border-border bg-muted/30 p-4">
         <CodeBlock code={code} language="javascript" showLineNumbers />

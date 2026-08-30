@@ -13,13 +13,17 @@ import {
 import { cn } from "@/lib/utils";
 import type { ComponentProps } from "react";
 
-export type ModelPickerProps = ComponentProps<typeof Select> & {
+export type ModelPickerProps = Omit<ComponentProps<typeof Select>, "value" | "onValueChange"> & {
   value: ModelId;
   onValueChange: (model: ModelId) => void;
 };
 
 export const ModelPicker = ({ value, onValueChange, ...props }: ModelPickerProps) => (
-  <Select value={value} onValueChange={onValueChange} {...props}>
+  <Select
+    value={value}
+    onValueChange={(model) => model !== null && onValueChange(model as ModelId)}
+    {...props}
+  >
     <ModelPickerTrigger value={value} />
     <ModelPickerContent />
   </Select>
