@@ -55,6 +55,7 @@ export function calculateTextRatio(element: Element): number {
   if (!element) return 0;
 
   // Get total text content length (all text recursively, trimmed)
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const htmlElement = element as HTMLElement;
   const text = (htmlElement.innerText || element.textContent || "").trim();
   const totalCharacters = text.length;

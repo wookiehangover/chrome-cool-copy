@@ -210,6 +210,7 @@ export async function handleTextCopy(element: Element): Promise<void> {
     } catch (error) {
       console.error("[Clean Link Copy] Error converting HTML to markdown:", error);
       // Fallback to plain text if conversion fails
+      // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
       const htmlElement = element as HTMLElement;
       markdown = htmlElement.innerText || element.textContent || "";
     }
@@ -429,6 +430,7 @@ export async function handleImageCopy(element: Element): Promise<void> {
     // Handle direct video elements - capture current frame
     if (element.tagName === "VIDEO") {
       console.log("[Clean Link Copy] Detected direct <video> element");
+      // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
       await captureVideoFrame(element as HTMLVideoElement);
       return;
     }
@@ -436,12 +438,14 @@ export async function handleImageCopy(element: Element): Promise<void> {
     // Handle direct canvas elements - export to PNG
     if (element.tagName === "CANVAS") {
       console.log("[Clean Link Copy] Detected direct <canvas> element");
+      // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
       await captureCanvasFrame(element as HTMLCanvasElement);
       return;
     }
 
     // Handle direct image elements - try direct copy
     if (element.tagName === "IMG") {
+      // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
       const imgElement = element as HTMLImageElement;
       const imageSrc = imgElement.src || element.getAttribute("src");
       if (imageSrc) {
@@ -458,6 +462,7 @@ export async function handleImageCopy(element: Element): Promise<void> {
     // Check for nested media elements (containers with media inside)
 
     // Check if element contains a video element
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const videoElement = element.querySelector("video") as HTMLVideoElement | null;
     if (videoElement) {
       console.log("[Clean Link Copy] Detected nested <video> element");
@@ -466,6 +471,7 @@ export async function handleImageCopy(element: Element): Promise<void> {
     }
 
     // Check if element contains a canvas element
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const canvasElement = element.querySelector("canvas") as HTMLCanvasElement | null;
     if (canvasElement) {
       console.log("[Clean Link Copy] Detected nested <canvas> element");

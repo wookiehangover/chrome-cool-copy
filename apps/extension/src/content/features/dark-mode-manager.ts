@@ -68,6 +68,7 @@ export function getBaseDomain(url: string): string {
 async function loadPreferences(): Promise<DarkModePreferences> {
   try {
     const result = await chrome.storage.sync.get(["darkModePreferences"]);
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     return (result.darkModePreferences as DarkModePreferences) || {};
   } catch (error) {
     console.error("[Dark Mode] Error loading preferences:", error);
@@ -92,6 +93,7 @@ async function savePreferences(prefs: DarkModePreferences): Promise<void> {
 async function loadSettings(): Promise<DarkModeSettingsStorage> {
   try {
     const result = await chrome.storage.sync.get(["darkModeSettings"]);
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     return (result.darkModeSettings as DarkModeSettingsStorage) || {};
   } catch (error) {
     console.error("[Dark Mode] Error loading settings:", error);

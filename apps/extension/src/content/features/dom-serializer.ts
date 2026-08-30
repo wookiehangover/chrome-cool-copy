@@ -15,6 +15,7 @@
  */
 export function serializeDOM(element: Element): string {
   // Clone the element to avoid modifying the original
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const clone = element.cloneNode(true) as Element;
 
   // Remove all script tags

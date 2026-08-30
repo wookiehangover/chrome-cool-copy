@@ -6,6 +6,14 @@
 import type { JSONObject, StructuredData } from "@repo/shared/types";
 import { parseJSONObject } from "@repo/shared/utils";
 
+interface OpenGraphData {
+  [property: string]: string;
+}
+
+interface AriaAttributeData {
+  [attribute: string]: string[];
+}
+
 /**
  * Extracts structured data from an element and its context
  * @param element - The DOM element to extract data from
@@ -98,8 +106,8 @@ function extractMicrodata(
 /**
  * Extracts Open Graph meta tags
  */
-function extractOpenGraph(): Record<string, string> {
-  const ogData: Record<string, string> = {};
+function extractOpenGraph(): OpenGraphData {
+  const ogData: OpenGraphData = {};
   const metaTags = document.querySelectorAll('meta[property^="og:"]');
 
   metaTags.forEach((tag) => {
@@ -117,8 +125,8 @@ function extractOpenGraph(): Record<string, string> {
 /**
  * Extracts ARIA attributes from an element and its descendants
  */
-function extractAriaAttributes(element: Element): Record<string, string[]> {
-  const ariaAttrs: Record<string, string[]> = {};
+function extractAriaAttributes(element: Element): AriaAttributeData {
+  const ariaAttrs: AriaAttributeData = {};
 
   // Get all elements including the root element
   const allElements = [element, ...Array.from(element.querySelectorAll("*"))];

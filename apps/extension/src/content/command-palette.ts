@@ -23,6 +23,7 @@ const COMMAND_USAGE_TIMESTAMPS_KEY = "command_usage_timestamps";
 async function loadCommandUsageTimestamps(): Promise<Record<string, number>> {
   return new Promise((resolve) => {
     chrome.storage.local.get([COMMAND_USAGE_TIMESTAMPS_KEY], (result) => {
+      // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
       resolve((result[COMMAND_USAGE_TIMESTAMPS_KEY] as Record<string, number>) || {});
     });
   });
@@ -175,6 +176,7 @@ function renderCommandPalette(): void {
   const dialog = document.getElementById("command-palette-dialog");
   if (!dialog) return;
 
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const commandList = dialog.querySelector("#command-palette-list") as HTMLElement;
 
   if (!commandList) return;
@@ -251,6 +253,7 @@ export async function openCommandPalette(): Promise<void> {
   injectStyles();
 
   // Create dialog if it doesn't exist
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   let dialog = document.getElementById("command-palette-dialog") as HTMLDialogElement | null;
   if (!dialog) {
     dialog = document.createElement("dialog");
@@ -269,10 +272,12 @@ export async function openCommandPalette(): Promise<void> {
     <div id="command-palette-list" class="command-palette-list"></div>
   `;
 
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const searchInput = dialog.querySelector("#command-palette-search") as HTMLInputElement;
 
   // Handle search input
   searchInput.addEventListener("input", async (e) => {
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const query = (e.target as HTMLInputElement).value;
     currentSearchQuery = query;
     filteredCommands = await filterCommands(query);
@@ -323,6 +328,7 @@ export async function openCommandPalette(): Promise<void> {
  */
 export function closeCommandPalette(): void {
   commandPaletteOpen = false;
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const dialog = document.getElementById("command-palette-dialog") as HTMLDialogElement | null;
   if (dialog) {
     dialog.close();

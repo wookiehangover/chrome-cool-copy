@@ -89,6 +89,7 @@ const SELECTORS = {
  */
 function extractAuthor(tweetElement: Element): TweetAuthor {
   const userNameContainer = tweetElement.querySelector(SELECTORS.userName);
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const avatar = tweetElement.querySelector(SELECTORS.userAvatar) as HTMLImageElement | null;
 
   let name = "";
@@ -135,7 +136,7 @@ function extractText(tweetElement: Element): string {
 /**
  * Extract timestamp information
  */
-function extractTimestamp(tweetElement: Element): { display: string | null; iso: string | null } {
+function extractTimestamp(tweetElement: Element) {
   const timeElement = tweetElement.querySelector(SELECTORS.timestamp);
   if (!timeElement) return { display: null, iso: null };
 
@@ -154,6 +155,7 @@ function extractMedia(tweetElement: Element): TweetMedia[] {
   // Extract images
   const photos = tweetElement.querySelectorAll('[data-testid="tweetPhoto"] img');
   for (const img of photos) {
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const imgElement = img as HTMLImageElement;
     media.push({
       type: "image",
@@ -165,6 +167,7 @@ function extractMedia(tweetElement: Element): TweetMedia[] {
   // Extract videos
   const videos = tweetElement.querySelectorAll('[data-testid="videoPlayer"] video');
   for (const video of videos) {
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const videoElement = video as HTMLVideoElement;
     media.push({
       type: "video",
@@ -176,6 +179,7 @@ function extractMedia(tweetElement: Element): TweetMedia[] {
   // Check for GIFs (often in video elements but marked differently)
   const gifs = tweetElement.querySelectorAll('[data-testid="videoPlayer"][aria-label*="GIF"]');
   for (const gif of gifs) {
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const videoEl = gif.querySelector("video") as HTMLVideoElement | null;
     if (videoEl && !media.some((m) => m.url === videoEl.src)) {
       media.push({

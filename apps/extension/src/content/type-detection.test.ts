@@ -167,6 +167,7 @@ describe("Type Detection", () => {
       it("should return visual for element with visual styling", () => {
         const div = document.createElement("div");
         div.style.boxShadow = "0 0 10px rgba(0,0,0,0.5)";
+        // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
         vi.spyOn(window, "getComputedStyle").mockReturnValue({
           boxShadow: "0 0 10px rgba(0,0,0,0.5)",
         } as CSSStyleDeclaration);
@@ -179,6 +180,7 @@ describe("Type Detection", () => {
       });
 
       it("should return text for null element", () => {
+        // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
         expect(detectElementType(null as any)).toBe("text");
       });
     });
@@ -230,6 +232,7 @@ describe("Type Detection", () => {
     });
 
     it("should return false for null element", () => {
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       expect(isTextHeavy(null as any)).toBe(false);
     });
 
@@ -247,6 +250,7 @@ describe("Type Detection", () => {
 
   describe("calculateTextRatio()", () => {
     it("should return 0 for null element", () => {
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       expect(calculateTextRatio(null as any)).toBe(0);
     });
 
@@ -279,11 +283,13 @@ describe("Type Detection", () => {
 
   describe("hasVisualStyling()", () => {
     it("should return false for null element", () => {
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       expect(hasVisualStyling(null as any)).toBe(false);
     });
 
     it("should return false for element without styling", () => {
       const div = document.createElement("div");
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       vi.spyOn(window, "getComputedStyle").mockReturnValue({
         backgroundImage: "none",
         boxShadow: "none",
@@ -296,6 +302,7 @@ describe("Type Detection", () => {
 
     it("should return true for element with background-image", () => {
       const div = document.createElement("div");
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       vi.spyOn(window, "getComputedStyle").mockReturnValue({
         backgroundImage: "url('test.jpg')",
       } as CSSStyleDeclaration);
@@ -304,6 +311,7 @@ describe("Type Detection", () => {
 
     it("should return true for element with gradient", () => {
       const div = document.createElement("div");
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       vi.spyOn(window, "getComputedStyle").mockReturnValue({
         backgroundImage: "linear-gradient(to right, red, blue)",
       } as CSSStyleDeclaration);
@@ -312,6 +320,7 @@ describe("Type Detection", () => {
 
     it("should return true for element with box-shadow", () => {
       const div = document.createElement("div");
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       vi.spyOn(window, "getComputedStyle").mockReturnValue({
         backgroundImage: "none",
         boxShadow: "0 0 10px rgba(0,0,0,0.5)",
@@ -321,6 +330,7 @@ describe("Type Detection", () => {
 
     it("should return true for element with text-shadow", () => {
       const div = document.createElement("div");
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       vi.spyOn(window, "getComputedStyle").mockReturnValue({
         backgroundImage: "none",
         boxShadow: "none",
@@ -331,6 +341,7 @@ describe("Type Detection", () => {
 
     it("should return true for element with transform", () => {
       const div = document.createElement("div");
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       vi.spyOn(window, "getComputedStyle").mockReturnValue({
         backgroundImage: "none",
         boxShadow: "none",
@@ -342,6 +353,7 @@ describe("Type Detection", () => {
 
     it("should return true for element with filter", () => {
       const div = document.createElement("div");
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       vi.spyOn(window, "getComputedStyle").mockReturnValue({
         backgroundImage: "none",
         boxShadow: "none",

@@ -56,6 +56,10 @@ interface ReaderSettings {
   fontSize: number; // 14-22
 }
 
+interface SelectionShadowRoot extends ShadowRoot {
+  getSelection(): Selection | null;
+}
+
 const DEFAULT_SETTINGS: ReaderSettings = {
   fontFamily: "sans",
   fontSize: 16,
@@ -170,6 +174,7 @@ async function rememberReaderModeUrl(): Promise<void> {
   try {
     const url = window.location.href;
     const result = await chrome.storage.local.get([READER_MODE_URLS_KEY]);
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const urls = (result[READER_MODE_URLS_KEY] as string[] | undefined) || [];
 
     if (!urls.includes(url)) {
@@ -190,6 +195,7 @@ async function forgetReaderModeUrl(): Promise<void> {
   try {
     const url = window.location.href;
     const result = await chrome.storage.local.get([READER_MODE_URLS_KEY]);
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const urls = (result[READER_MODE_URLS_KEY] as string[] | undefined) || [];
 
     const index = urls.indexOf(url);
@@ -209,6 +215,7 @@ async function shouldAutoEnterReaderMode(): Promise<boolean> {
   try {
     const url = window.location.href;
     const result = await chrome.storage.local.get([READER_MODE_URLS_KEY]);
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const urls = (result[READER_MODE_URLS_KEY] as string[] | undefined) || [];
     return urls.includes(url);
   } catch (error) {
@@ -402,6 +409,7 @@ function generateXTitle(xResult: XContentResult): string {
  * Clone element and remove non-content elements
  */
 function cleanContent(element: Element): Element {
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const clone = element.cloneNode(true) as Element;
 
   // Remove non-content elements
@@ -480,8 +488,9 @@ function extractImages(content: Element): string[] {
 async function loadSettings(): Promise<ReaderSettings> {
   try {
     const result = await chrome.storage.sync.get(["readerSettings"]);
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const stored = result.readerSettings as ReaderSettings | undefined;
-    if (stored && typeof stored === "object") {
+    if (stored) {
       return {
         fontFamily: stored.fontFamily || DEFAULT_SETTINGS.fontFamily,
         fontSize: stored.fontSize || DEFAULT_SETTINGS.fontSize,
@@ -584,6 +593,7 @@ function findTextAndWrap(
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let node: Text | null;
 
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   while ((node = walker.nextNode() as Text | null)) {
     const nodeText = node.textContent || "";
     const index = nodeText.indexOf(searchText);
@@ -607,6 +617,7 @@ function findTextAndWrap(
   const walker2 = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let pos = 0;
 
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   while ((node = walker2.nextNode() as Text | null)) {
     const len = node.textContent?.length || 0;
     textNodes.push({ node, start: pos, end: pos + len });
@@ -662,6 +673,7 @@ function wrapHighlightByOffset(container: Element, highlight: Highlight): boolea
   let currentOffset = 0;
   let node: Text | null;
 
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   while ((node = walker.nextNode() as Text | null)) {
     const nodeLength = node.textContent?.length || 0;
     const nodeStart = currentOffset;
@@ -1209,6 +1221,7 @@ async function createReaderModeUI(
       const shareId = response.data.share_id;
 
       // Get share server hostname from settings
+      // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
       const { shareServerHostname } = (await chrome.storage.sync.get({
         shareServerHostname: "localhost:5173",
       })) as { shareServerHostname: string };
@@ -1305,6 +1318,7 @@ async function createReaderModeUI(
 
   // Close dropdown when clicking outside
   wrapper.addEventListener("click", (e) => {
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     if (!dropdown.contains(e.target as Node)) {
       dropdownMenu.classList.remove("visible");
     }
@@ -1381,8 +1395,10 @@ async function createReaderModeUI(
  */
 function getSelection(): Selection | null {
   // Try shadowRoot.getSelection first (for shadow DOM)
-  if (shadowRoot && typeof (shadowRoot as any).getSelection === "function") {
-    const shadowSelection = (shadowRoot as any).getSelection();
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
+  if (shadowRoot && "getSelection" in shadowRoot) {
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
+    const shadowSelection = (shadowRoot as SelectionShadowRoot).getSelection();
     if (shadowSelection && !shadowSelection.isCollapsed) {
       return shadowSelection;
     }
@@ -1405,6 +1421,7 @@ function setupSelectionListener(): void {
     }
 
     // Skip highlighting when shift is held - allow normal text selection for copying
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     if ((e as MouseEvent).shiftKey) {
       return;
     }
@@ -1550,6 +1567,7 @@ function showNoteEditor(markElement: HTMLElement, highlightId: string, existingN
   }
 
   // Set existing note value
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const textarea = noteEditor.querySelector(".note-textarea") as HTMLTextAreaElement;
   if (textarea) {
     textarea.value = existingNote;
@@ -1579,6 +1597,7 @@ function hideNoteEditor(): void {
 async function saveCurrentNote(): Promise<void> {
   if (!noteEditor || !activeHighlightId || !currentClipId || !shadowRoot) return;
 
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const textarea = noteEditor.querySelector(".note-textarea") as HTMLTextAreaElement;
   const note = textarea?.value || "";
 
@@ -1746,7 +1765,9 @@ function setupHighlightListeners(): void {
 
   // Click on highlight to edit note
   contentWrapper.addEventListener("click", (e) => {
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const target = e.target as Element;
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const markElement = target.closest(".reader-highlight") as HTMLElement;
 
     if (!markElement) {

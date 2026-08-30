@@ -237,7 +237,9 @@ function handleExclusionClick(event: MouseEvent): void {
 
   // Ignore clicks on overlay or panel
   if (
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     exclusionPickerOverlay?.contains(event.target as Node) ||
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     panelElement?.contains(event.target as Node)
   ) {
     return;

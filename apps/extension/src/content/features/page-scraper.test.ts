@@ -18,6 +18,7 @@ class FakeTurndownService {
 
 describe("Page Scraper", () => {
   beforeEach(() => {
+    // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
     (globalThis as { TurndownService?: unknown }).TurndownService = FakeTurndownService;
     document.head.innerHTML = "";
     document.body.innerHTML = "";

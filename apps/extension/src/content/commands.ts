@@ -125,7 +125,7 @@ export const commandRegistry: Command[] = [
           throw new Error(response.error || "Failed to clip page");
         }
       } catch (error) {
-        handleClipError(error);
+        handleClipError(error instanceof Error ? error : new Error(String(error)));
         throw error;
       }
     },

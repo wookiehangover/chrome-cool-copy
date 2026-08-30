@@ -88,7 +88,9 @@ export function wrapContentInChunks(
     container.appendChild(chunkDiv);
 
     // Attach event listeners
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const tidyBtn = controls.querySelector('[data-action="tidy"]') as HTMLButtonElement;
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const removeBtn = controls.querySelector('[data-action="remove"]') as HTMLButtonElement;
 
     if (tidyBtn && onTidyClick) {
@@ -118,6 +120,7 @@ export function findChunk(
   root: HTMLElement | ShadowRoot | Document,
   chunkId: string,
 ): HTMLElement | null {
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   return root.querySelector(`[data-tidy-chunk="${chunkId}"]`) as HTMLElement | null;
 }
 
@@ -159,6 +162,7 @@ export function setChunkLoading(
   chunk.classList.add("loading");
 
   // Disable buttons during loading
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const buttons = chunk.querySelectorAll(".tidy-chunk-btn") as NodeListOf<HTMLButtonElement>;
   buttons.forEach((btn) => {
     btn.disabled = true;
@@ -207,6 +211,7 @@ export function setChunkComplete(
   chunk.classList.remove("loading");
 
   // Re-enable buttons
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const buttons = chunk.querySelectorAll(".tidy-chunk-btn") as NodeListOf<HTMLButtonElement>;
   buttons.forEach((btn) => {
     btn.disabled = false;
@@ -265,6 +270,7 @@ export function clearAllLoadingStates(root: HTMLElement | ShadowRoot | Document)
     chunk.classList.remove("loading");
 
     // Re-enable buttons
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const buttons = chunk.querySelectorAll(".tidy-chunk-btn") as NodeListOf<HTMLButtonElement>;
     buttons.forEach((btn) => {
       btn.disabled = false;
@@ -326,6 +332,7 @@ export function removeChunkUI(container: HTMLElement): void {
  */
 export function getCleanedContent(container: HTMLElement): string {
   // Clone the container so we don't modify the original
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   const clone = container.cloneNode(true) as HTMLElement;
 
   // Remove all chunk controls

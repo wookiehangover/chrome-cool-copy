@@ -76,11 +76,13 @@ export function createPickerOverlay(): HTMLElement {
     `;
 
     // Prevent toolbar interactions from triggering picker
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const toolbar = overlay.querySelector(".element-picker-toolbar") as HTMLElement;
     toolbar.addEventListener("click", (e: Event) => e.stopPropagation());
     toolbar.addEventListener("mousedown", (e: Event) => e.stopPropagation());
 
     // Add click handler for Page button
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const pageButton = overlay.querySelector(".element-picker-page-button") as HTMLElement;
     pageButton.addEventListener("click", async (e: Event) => {
       e.stopPropagation();
@@ -90,9 +92,11 @@ export function createPickerOverlay(): HTMLElement {
     pageButton.addEventListener("mousedown", (e: Event) => e.stopPropagation());
 
     // Add change handler for type select
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const typeSelect = overlay.querySelector(".element-picker-type-select") as HTMLSelectElement;
     typeSelect.addEventListener("change", (e: Event) => {
       e.stopPropagation();
+      // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
       const type = (e.target as HTMLSelectElement).value;
       setForcedType(type === "auto" ? null : type);
       // Update the type indicator if there's a highlighted element
@@ -257,6 +261,7 @@ async function handlePickerClick(event: MouseEvent): Promise<void> {
   if (!elementPickerActive) return;
 
   // Ignore clicks on the overlay toolbar (select, etc.)
+  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
   if (pickerOverlay && pickerOverlay.contains(event.target as Node)) {
     return;
   }

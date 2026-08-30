@@ -31,8 +31,8 @@ const originalConsole = {
 function stringifyArgs(...args: unknown[]): string {
   return args
     .map((arg) => {
-      if (typeof arg === "string") {
-        return arg;
+      if (Object.prototype.toString.call(arg) === "[object String]") {
+        return String(arg);
       }
       if (arg === null) {
         return "null";

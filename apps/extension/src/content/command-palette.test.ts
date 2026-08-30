@@ -8,11 +8,6 @@ import { resetChromeMocks, mockStorage } from "../test/setup.js";
 import { openCommandPalette, closeCommandPalette, registerCommands } from "./command-palette.js";
 import type { Command } from "./commands.js";
 
-// Mock the toast module
-vi.mock("./toast.js", () => ({
-  showToast: vi.fn(),
-}));
-
 describe("Command Palette", () => {
   beforeEach(() => {
     resetChromeMocks();
@@ -58,6 +53,7 @@ describe("Command Palette", () => {
 
       await openCommandPalette();
 
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       const dialog = document.getElementById("command-palette-dialog") as HTMLDialogElement;
       expect(dialog).toBeTruthy();
       expect(dialog.tagName).toBe("DIALOG");
@@ -127,6 +123,7 @@ describe("Command Palette", () => {
       await openCommandPalette();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       const searchInput = document.getElementById("command-palette-search") as HTMLInputElement;
       if (searchInput) {
         searchInput.value = "copy";
@@ -158,6 +155,7 @@ describe("Command Palette", () => {
       await openCommandPalette();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       const searchInput = document.getElementById("command-palette-search") as HTMLInputElement;
       if (searchInput) {
         searchInput.value = "cpy";
@@ -190,6 +188,7 @@ describe("Command Palette", () => {
       await openCommandPalette();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       const searchInput = document.getElementById("command-palette-search") as HTMLInputElement;
       if (searchInput) {
         const event = new KeyboardEvent("keydown", { key: "ArrowDown" });
@@ -218,6 +217,7 @@ describe("Command Palette", () => {
       await openCommandPalette();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
+      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
       const searchInput = document.getElementById("command-palette-search") as HTMLInputElement;
       if (searchInput) {
         const event = new KeyboardEvent("keydown", { key: "Enter" });

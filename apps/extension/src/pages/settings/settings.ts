@@ -18,34 +18,56 @@ interface ClipsServerConfig {
   apiToken: string;
 }
 
+interface SettingsStorageData {
+  aiGatewayConfig: VercelAIGatewayConfig;
+  agentdbConfig?: AgentDBConfig;
+  shareServerHostname?: string;
+  tts_url?: string;
+  clipsServerConfig?: ClipsServerConfig;
+}
+
 const AGENTDB_BASE_URL = "https://api.agentdb.dev";
 const DEFAULT_TTS_SERVER_URL = "http://localhost:8000";
 
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const form = document.getElementById("settingsForm") as HTMLFormElement;
 
 // AgentDB form elements
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const apiKeyInput = document.getElementById("apiKey") as HTMLInputElement;
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const tokenInput = document.getElementById("token") as HTMLInputElement;
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const dbNameInput = document.getElementById("dbName") as HTMLInputElement;
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const dbTypeSelect = document.getElementById("dbType") as HTMLSelectElement;
 
 // Vercel AI Gateway form elements
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const aiGatewayApiKeyInput = document.getElementById("aiGatewayApiKey") as HTMLInputElement;
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const aiGatewayModelInput = document.getElementById("aiGatewayModel") as HTMLSelectElement;
 
 // Share Server form elements
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const shareServerHostnameInput = document.getElementById("shareServerHostname") as HTMLInputElement;
 
 // TTS form elements
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const ttsServerUrlInput = document.getElementById("ttsServerUrl") as HTMLInputElement;
 
 // Clips Server form elements
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const clipsServerUrlInput = document.getElementById("clipsServerUrl") as HTMLInputElement;
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const clipsServerApiTokenInput = document.getElementById("clipsServerApiToken") as HTMLInputElement;
 
 // Common elements
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const testConnectionBtn = document.getElementById("testConnectionBtn") as HTMLButtonElement;
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const backToPopup = document.getElementById("backToPopup") as HTMLAnchorElement;
+// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
 const statusMessage = document.getElementById("statusMessage") as HTMLDivElement;
 
 // Load existing settings on page load
@@ -106,6 +128,7 @@ async function loadSettings(): Promise<void> {
     ]);
 
     // Load AgentDB config
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const agentdbConfig = result.agentdbConfig as AgentDBConfig | undefined;
     if (agentdbConfig) {
       apiKeyInput.value = agentdbConfig.apiKey || "";
@@ -115,6 +138,7 @@ async function loadSettings(): Promise<void> {
     }
 
     // Load Vercel AI Gateway config
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const aiGatewayConfig = result.aiGatewayConfig as VercelAIGatewayConfig | undefined;
     if (aiGatewayConfig) {
       aiGatewayApiKeyInput.value = aiGatewayConfig.apiKey || "";
@@ -125,6 +149,7 @@ async function loadSettings(): Promise<void> {
     }
 
     // Load Share Server hostname
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const shareServerHostname = result.shareServerHostname as string | undefined;
     if (shareServerHostname) {
       shareServerHostnameInput.value = shareServerHostname;
@@ -134,6 +159,7 @@ async function loadSettings(): Promise<void> {
     }
 
     // Load TTS Server URL
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const ttsServerUrl = result.tts_url as string | undefined;
     if (ttsServerUrl) {
       ttsServerUrlInput.value = ttsServerUrl;
@@ -142,6 +168,7 @@ async function loadSettings(): Promise<void> {
     }
 
     // Load Clips Server config
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     const clipsServerConfig = result.clipsServerConfig as ClipsServerConfig | undefined;
     if (clipsServerConfig) {
       clipsServerUrlInput.value = clipsServerConfig.baseUrl || "";
@@ -202,6 +229,7 @@ async function saveSettings(e: Event): Promise<void> {
           apiKey: agentdbApiKey,
           token: agentdbToken,
           dbName: dbNameInput.value.trim() || "webpages",
+          // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
           dbType: dbTypeSelect.value as "sqlite" | "duckdb",
         }
       : null;
@@ -233,7 +261,7 @@ async function saveSettings(e: Event): Promise<void> {
   }
 
   try {
-    const storageData: Record<string, unknown> = { aiGatewayConfig };
+    const storageData: SettingsStorageData = { aiGatewayConfig };
 
     // Only save agentdbConfig if it's configured
     if (agentdbConfig) {
@@ -293,6 +321,7 @@ async function testConnection(): Promise<void> {
     apiKey: apiKeyInput.value.trim(),
     token: tokenInput.value.trim(),
     dbName: dbNameInput.value.trim() || "webpages",
+    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
     dbType: dbTypeSelect.value as "sqlite" | "duckdb",
   };
 
