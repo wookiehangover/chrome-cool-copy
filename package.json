@@ -12,9 +12,9 @@
     "dev": "pnpm build:extension && pnpm watch:chat",
     "watch:chat": "pnpm -F @repo/chat watch",
     "watch:extension": "pnpm -F @repo/extension watch",
-    "lint": "oxlint apps/*/src apps/*/app packages/*/src",
-    "format": "oxfmt --write 'apps/**/{src,app}/**/*' 'packages/**/src/**/*'",
-    "format:check": "oxfmt --check 'apps/**/{src,app}/**/*' 'packages/**/src/**/*'",
+    "lint": "oxlint apps packages",
+    "format": "oxfmt --write AGENTS.md package.json .oxfmtrc.json .oxlintrc.json apps packages",
+    "format:check": "oxfmt --check AGENTS.md package.json .oxfmtrc.json .oxlintrc.json apps packages",
     "clean": "rm -rf apps/extension/dist",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck"
