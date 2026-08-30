@@ -4,9 +4,10 @@
  */
 
 import { generateText, createGateway } from "ai";
+import { DEFAULT_MODEL } from "@repo/shared";
 import { updateMediaClipAIDescription } from "./agentdb.server";
 
-const AI_MODEL = "google/gemini-3.5-flash";
+const AI_MODEL = DEFAULT_MODEL;
 const DESCRIPTION_PROMPT =
   "Describe this image in 1-2 sentences. Focus on the main subject and visual content.";
 

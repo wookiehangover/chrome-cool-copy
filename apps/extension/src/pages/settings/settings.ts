@@ -4,7 +4,7 @@
  */
 
 import { initializeDatabase, getWebpages } from "../../services/database";
-import { SUPPORTED_MODELS, MODELS_BY_PROVIDER, type AgentDBConfig } from "@repo/shared";
+import { DEFAULT_MODEL, MODELS_BY_PROVIDER, type AgentDBConfig } from "@repo/shared";
 
 export {};
 
@@ -19,7 +19,6 @@ interface ClipsServerConfig {
 }
 
 const AGENTDB_BASE_URL = "https://api.agentdb.dev";
-const DEFAULT_MODEL = SUPPORTED_MODELS[0].id; // Use first model as default
 const DEFAULT_TTS_SERVER_URL = "http://localhost:8000";
 
 const form = document.getElementById("settingsForm") as HTMLFormElement;

@@ -13,10 +13,9 @@ export type ModelId =
   | "anthropic/claude-sonnet-4.6"
   | "anthropic/claude-haiku-4.5"
   // OpenAI models
-  | "openai/gpt-5.5"
-  | "openai/gpt-5.5-pro"
-  | "openai/gpt-5.4"
-  | "openai/gpt-5.4-mini"
+  | "openai/gpt-5.6-sol"
+  | "openai/gpt-5.6-terra"
+  | "openai/gpt-5.6-luna"
   // Google models
   | "google/gemini-3.5-flash"
   | "google/gemini-3.1-pro-preview"
@@ -38,6 +37,8 @@ export interface ModelDefinition {
   displayName: string;
   provider: ModelProvider;
 }
+
+export const DEFAULT_MODEL: ModelId = "openai/gpt-5.6-sol";
 
 /**
  * All supported models
@@ -66,23 +67,18 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
   },
   // OpenAI models
   {
-    id: "openai/gpt-5.5",
-    displayName: "GPT-5.5",
+    id: "openai/gpt-5.6-sol",
+    displayName: "GPT-5.6 Sol",
     provider: "OpenAI",
   },
   {
-    id: "openai/gpt-5.5-pro",
-    displayName: "GPT-5.5 Pro",
+    id: "openai/gpt-5.6-terra",
+    displayName: "GPT-5.6 Terra",
     provider: "OpenAI",
   },
   {
-    id: "openai/gpt-5.4",
-    displayName: "GPT-5.4",
-    provider: "OpenAI",
-  },
-  {
-    id: "openai/gpt-5.4-mini",
-    displayName: "GPT-5.4 Mini",
+    id: "openai/gpt-5.6-luna",
+    displayName: "GPT-5.6 Luna",
     provider: "OpenAI",
   },
   // Google models

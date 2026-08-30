@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { sendMessage, SUPPORTED_MODELS } from "@repo/shared";
+import { DEFAULT_MODEL, sendMessage, SUPPORTED_MODELS } from "@repo/shared";
 import type { ModelId } from "@repo/shared";
-
-const DEFAULT_MODEL: ModelId = "anthropic/claude-opus-4.8";
 
 // Migration map for old model IDs to new ones
 const MODEL_MIGRATION_MAP: Record<string, ModelId> = {
@@ -10,12 +8,16 @@ const MODEL_MIGRATION_MAP: Record<string, ModelId> = {
   "anthropic/claude-opus-4.6": "anthropic/claude-opus-4.8",
   "anthropic/claude-opus-4.5": "anthropic/claude-opus-4.8",
   "anthropic/claude-sonnet-4.5": "anthropic/claude-sonnet-4.6",
-  "openai/gpt-5.2": "openai/gpt-5.5",
-  "openai/gpt-4o": "openai/gpt-5.5",
-  "openai/gpt-4o-mini": "openai/gpt-5.4-mini",
-  "openai/o1": "openai/gpt-5.5",
-  "openai/o3": "openai/gpt-5.5",
-  "openai/o3-mini": "openai/gpt-5.4-mini",
+  "openai/gpt-5.5": DEFAULT_MODEL,
+  "openai/gpt-5.5-pro": DEFAULT_MODEL,
+  "openai/gpt-5.4": "openai/gpt-5.6-terra",
+  "openai/gpt-5.4-mini": "openai/gpt-5.6-luna",
+  "openai/gpt-5.2": DEFAULT_MODEL,
+  "openai/gpt-4o": DEFAULT_MODEL,
+  "openai/gpt-4o-mini": "openai/gpt-5.6-luna",
+  "openai/o1": DEFAULT_MODEL,
+  "openai/o3": DEFAULT_MODEL,
+  "openai/o3-mini": "openai/gpt-5.6-luna",
   "google/gemini-3-flash": "google/gemini-3.5-flash",
   "google/gemini-2.5-flash": "google/gemini-3.5-flash",
   "google/gemini-2.0-flash": "google/gemini-3.5-flash",
@@ -57,7 +59,7 @@ export function useModelSelection() {
   useEffect(() => {
     const loadModel = async () => {
       try {
-        const result = await new Promise<{ aiGatewayConfig?: { model?: ModelId } }>((resolve) => {
+        const result = await new Promise<{ aiGatewayConfig?: { model?: string } }>((resolve) => {
           chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
             resolve(result);
           });

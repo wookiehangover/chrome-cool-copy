@@ -22,7 +22,7 @@ describe("useModelSelection", () => {
   });
 
   it("loads stored model and sends update message when model changes", async () => {
-    const storedModel: ModelId = "openai/gpt-5.5";
+    const storedModel: ModelId = "anthropic/claude-sonnet-4.6";
     const nextModel: ModelId = "google/gemini-3.5-flash";
 
     mockStorage.sync.get.mockImplementation((_keys, callback) => {
@@ -50,7 +50,7 @@ describe("useModelSelection", () => {
 
   it("migrates a deprecated stored model to its replacement and persists it", async () => {
     mockStorage.sync.get.mockImplementation((_keys, callback) => {
-      callback({ aiGatewayConfig: { model: "anthropic/claude-opus-4.7" } });
+      callback({ aiGatewayConfig: { model: "openai/gpt-5.5" } });
     });
 
     const { result } = renderHook(() => useModelSelection());
@@ -59,10 +59,10 @@ describe("useModelSelection", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.selectedModel).toBe("anthropic/claude-opus-4.8");
+    expect(result.current.selectedModel).toBe("openai/gpt-5.6-sol");
     expect(mockSendMessage).toHaveBeenCalledWith({
       action: "updateAIGatewayConfig",
-      config: { model: "anthropic/claude-opus-4.8" },
+      config: { model: "openai/gpt-5.6-sol" },
     });
   });
 
@@ -77,6 +77,10 @@ describe("useModelSelection", () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.selectedModel).toBe("anthropic/claude-opus-4.8");
+    expect(result.current.selectedModel).toBe("openai/gpt-5.6-sol");
+    expect(mockSendMessage).toHaveBeenCalledWith({
+      action: "updateAIGatewayConfig",
+      config: { model: "openai/gpt-5.6-sol" },
+    });
   });
 });
