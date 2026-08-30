@@ -6,17 +6,23 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { captureElementClip } from "./element-clipper.js";
 
-// Mock TurndownService global
-// SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-(globalThis as any).TurndownService = class {
+class FakeTurndownService {
   turndown(html: string): string {
     return `# Markdown\n\n${html}`;
   }
-};
+}
+
+class FakeImage {
+  src = "";
+  crossOrigin = "";
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+}
+
+vi.stubGlobal("TurndownService", FakeTurndownService);
 
 // Mock fetch and Image for image download tests
 let fetchMock: ReturnType<typeof vi.fn>;
-let imageMock: any;
 
 beforeEach(() => {
   // Mock fetch to return a blob
@@ -24,18 +30,8 @@ beforeEach(() => {
     ok: true,
     blob: vi.fn().mockResolvedValue(new Blob(["fake image data"], { type: "image/png" })),
   });
-  // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-  (globalThis as any).fetch = fetchMock;
-
-  // Mock Image constructor
-  imageMock = vi.fn(function (this: any) {
-    this.src = "";
-    this.crossOrigin = "";
-    this.onload = null;
-    this.onerror = null;
-  });
-  // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-  (globalThis as any).Image = imageMock;
+  vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal("Image", FakeImage);
 });
 
 afterEach(() => {

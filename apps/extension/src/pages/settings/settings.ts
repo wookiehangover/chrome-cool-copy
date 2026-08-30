@@ -4,7 +4,14 @@
  */
 
 import { initializeDatabase, getWebpages } from "../../services/database";
-import { DEFAULT_MODEL, MODELS_BY_PROVIDER, type AgentDBConfig } from "@repo/shared";
+import {
+  DEFAULT_MODEL,
+  MODELS_BY_PROVIDER,
+  parseJSONObject,
+  type AgentDBConfig,
+  type JSONObject,
+  type JSONValue,
+} from "@repo/shared";
 
 export {};
 
@@ -29,46 +36,89 @@ interface SettingsStorageData {
 const AGENTDB_BASE_URL = "https://api.agentdb.dev";
 const DEFAULT_TTS_SERVER_URL = "http://localhost:8000";
 
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const form = document.getElementById("settingsForm") as HTMLFormElement;
+interface ElementConstructor<T extends HTMLElement> {
+  new (): T;
+}
+
+function getRequiredElement<T extends HTMLElement>(
+  id: string,
+  constructor: ElementConstructor<T>,
+): T {
+  const element = document.getElementById(id);
+  if (!(element instanceof constructor)) {
+    throw new Error(`Expected #${id} to be a ${constructor.name}`);
+  }
+  return element;
+}
+
+function readStoredString(value: JSONValue | undefined): string | undefined {
+  return Object.prototype.toString.call(value) === "[object String]" ? String(value) : undefined;
+}
+
+function parseAgentDBConfig(stored: JSONObject | undefined): AgentDBConfig | undefined {
+  if (!stored) return undefined;
+
+  const apiKey = readStoredString(stored.apiKey);
+  const token = readStoredString(stored.token);
+  if (!apiKey || !token) return undefined;
+
+  const dbTypeValue = readStoredString(stored.dbType);
+  const dbType = dbTypeValue === "duckdb" ? "duckdb" : "sqlite";
+  return {
+    baseUrl: readStoredString(stored.baseUrl) || AGENTDB_BASE_URL,
+    apiKey,
+    token,
+    dbName: readStoredString(stored.dbName) || "webpages",
+    dbType,
+  };
+}
+
+function parseAIGatewayConfig(stored: JSONObject | undefined): VercelAIGatewayConfig | undefined {
+  if (!stored) return undefined;
+
+  const apiKey = readStoredString(stored.apiKey);
+  const model = readStoredString(stored.model);
+  return apiKey && model ? { apiKey, model } : undefined;
+}
+
+function parseClipsServerConfig(stored: JSONObject | undefined): ClipsServerConfig | undefined {
+  if (!stored) return undefined;
+
+  const baseUrl = readStoredString(stored.baseUrl);
+  const apiToken = readStoredString(stored.apiToken);
+  return baseUrl && apiToken !== undefined ? { baseUrl, apiToken } : undefined;
+}
+
+function readDatabaseType(value: string): AgentDBConfig["dbType"] {
+  return value === "duckdb" ? "duckdb" : "sqlite";
+}
+
+const form = getRequiredElement("settingsForm", HTMLFormElement);
 
 // AgentDB form elements
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const apiKeyInput = document.getElementById("apiKey") as HTMLInputElement;
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const tokenInput = document.getElementById("token") as HTMLInputElement;
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const dbNameInput = document.getElementById("dbName") as HTMLInputElement;
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const dbTypeSelect = document.getElementById("dbType") as HTMLSelectElement;
+const apiKeyInput = getRequiredElement("apiKey", HTMLInputElement);
+const tokenInput = getRequiredElement("token", HTMLInputElement);
+const dbNameInput = getRequiredElement("dbName", HTMLInputElement);
+const dbTypeSelect = getRequiredElement("dbType", HTMLSelectElement);
 
 // Vercel AI Gateway form elements
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const aiGatewayApiKeyInput = document.getElementById("aiGatewayApiKey") as HTMLInputElement;
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const aiGatewayModelInput = document.getElementById("aiGatewayModel") as HTMLSelectElement;
+const aiGatewayApiKeyInput = getRequiredElement("aiGatewayApiKey", HTMLInputElement);
+const aiGatewayModelInput = getRequiredElement("aiGatewayModel", HTMLSelectElement);
 
 // Share Server form elements
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const shareServerHostnameInput = document.getElementById("shareServerHostname") as HTMLInputElement;
+const shareServerHostnameInput = getRequiredElement("shareServerHostname", HTMLInputElement);
 
 // TTS form elements
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const ttsServerUrlInput = document.getElementById("ttsServerUrl") as HTMLInputElement;
+const ttsServerUrlInput = getRequiredElement("ttsServerUrl", HTMLInputElement);
 
 // Clips Server form elements
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const clipsServerUrlInput = document.getElementById("clipsServerUrl") as HTMLInputElement;
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const clipsServerApiTokenInput = document.getElementById("clipsServerApiToken") as HTMLInputElement;
+const clipsServerUrlInput = getRequiredElement("clipsServerUrl", HTMLInputElement);
+const clipsServerApiTokenInput = getRequiredElement("clipsServerApiToken", HTMLInputElement);
 
 // Common elements
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const testConnectionBtn = document.getElementById("testConnectionBtn") as HTMLButtonElement;
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const backToPopup = document.getElementById("backToPopup") as HTMLAnchorElement;
-// SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-const statusMessage = document.getElementById("statusMessage") as HTMLDivElement;
+const testConnectionBtn = getRequiredElement("testConnectionBtn", HTMLButtonElement);
+const backToPopup = getRequiredElement("backToPopup", HTMLAnchorElement);
+const statusMessage = getRequiredElement("statusMessage", HTMLDivElement);
 
 // Load existing settings on page load
 document.addEventListener("DOMContentLoaded", () => {
@@ -128,8 +178,10 @@ async function loadSettings(): Promise<void> {
     ]);
 
     // Load AgentDB config
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    const agentdbConfig = result.agentdbConfig as AgentDBConfig | undefined;
+    const agentdbJson = JSON.stringify(result.agentdbConfig);
+    const agentdbConfig = parseAgentDBConfig(
+      agentdbJson ? parseJSONObject(agentdbJson) : undefined,
+    );
     if (agentdbConfig) {
       apiKeyInput.value = agentdbConfig.apiKey || "";
       tokenInput.value = agentdbConfig.token || "";
@@ -138,8 +190,10 @@ async function loadSettings(): Promise<void> {
     }
 
     // Load Vercel AI Gateway config
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    const aiGatewayConfig = result.aiGatewayConfig as VercelAIGatewayConfig | undefined;
+    const aiGatewayJson = JSON.stringify(result.aiGatewayConfig);
+    const aiGatewayConfig = parseAIGatewayConfig(
+      aiGatewayJson ? parseJSONObject(aiGatewayJson) : undefined,
+    );
     if (aiGatewayConfig) {
       aiGatewayApiKeyInput.value = aiGatewayConfig.apiKey || "";
       aiGatewayModelInput.value = aiGatewayConfig.model || DEFAULT_MODEL;
@@ -149,8 +203,8 @@ async function loadSettings(): Promise<void> {
     }
 
     // Load Share Server hostname
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    const shareServerHostname = result.shareServerHostname as string | undefined;
+    const shareServerJson = parseJSONObject(JSON.stringify({ value: result.shareServerHostname }));
+    const shareServerHostname = readStoredString(shareServerJson?.value);
     if (shareServerHostname) {
       shareServerHostnameInput.value = shareServerHostname;
     } else {
@@ -159,8 +213,8 @@ async function loadSettings(): Promise<void> {
     }
 
     // Load TTS Server URL
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    const ttsServerUrl = result.tts_url as string | undefined;
+    const ttsJson = parseJSONObject(JSON.stringify({ value: result.tts_url }));
+    const ttsServerUrl = readStoredString(ttsJson?.value);
     if (ttsServerUrl) {
       ttsServerUrlInput.value = ttsServerUrl;
     } else {
@@ -168,8 +222,10 @@ async function loadSettings(): Promise<void> {
     }
 
     // Load Clips Server config
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    const clipsServerConfig = result.clipsServerConfig as ClipsServerConfig | undefined;
+    const clipsServerJson = JSON.stringify(result.clipsServerConfig);
+    const clipsServerConfig = parseClipsServerConfig(
+      clipsServerJson ? parseJSONObject(clipsServerJson) : undefined,
+    );
     if (clipsServerConfig) {
       clipsServerUrlInput.value = clipsServerConfig.baseUrl || "";
       clipsServerApiTokenInput.value = clipsServerConfig.apiToken || "";
@@ -229,8 +285,7 @@ async function saveSettings(e: Event): Promise<void> {
           apiKey: agentdbApiKey,
           token: agentdbToken,
           dbName: dbNameInput.value.trim() || "webpages",
-          // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-          dbType: dbTypeSelect.value as "sqlite" | "duckdb",
+          dbType: readDatabaseType(dbTypeSelect.value),
         }
       : null;
 
@@ -321,8 +376,7 @@ async function testConnection(): Promise<void> {
     apiKey: apiKeyInput.value.trim(),
     token: tokenInput.value.trim(),
     dbName: dbNameInput.value.trim() || "webpages",
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    dbType: dbTypeSelect.value as "sqlite" | "duckdb",
+    dbType: readDatabaseType(dbTypeSelect.value),
   };
 
   // Validate required fields

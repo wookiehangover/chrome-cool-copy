@@ -94,9 +94,8 @@ function findImageElement(element: Element | null): HTMLImageElement | null {
   if (!element) return null;
 
   // Direct img element
-  if (element.tagName === "IMG") {
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    return element as HTMLImageElement;
+  if (element instanceof HTMLImageElement) {
+    return element;
   }
 
   // Check for background-image
@@ -110,8 +109,7 @@ function findImageElement(element: Element | null): HTMLImageElement | null {
   // Check if element contains a single img
   const images = element.querySelectorAll("img");
   if (images.length === 1) {
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    return images[0] as HTMLImageElement;
+    return images.item(0);
   }
 
   return null;
@@ -148,8 +146,7 @@ async function handlePickerClick(event: MouseEvent): Promise<void> {
   if (!mediaPickerActive) return;
 
   // Ignore clicks on the overlay
-  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-  if (pickerOverlay && pickerOverlay.contains(event.target as Node)) {
+  if (pickerOverlay && event.target instanceof Node && pickerOverlay.contains(event.target)) {
     return;
   }
 

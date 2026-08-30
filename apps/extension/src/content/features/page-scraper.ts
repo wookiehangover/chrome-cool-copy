@@ -107,16 +107,16 @@ function getTextLength(element: Element): number {
  * Clone element and remove non-content elements
  */
 function cleanContent(element: Element): Element {
-  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-  const clone = element.cloneNode(true) as Element;
+  const clone = element.cloneNode(true);
+  if (!(clone instanceof Element)) throw new Error("Cloned content is not an element");
 
   CHROME_SELECTORS.forEach((selector) => {
     clone.querySelectorAll(selector).forEach((el) => el.remove());
   });
 
   // Only strip comment sections when most of the content remains afterwards.
-  // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-  const withoutComments = clone.cloneNode(true) as Element;
+  const withoutComments = clone.cloneNode(true);
+  if (!(withoutComments instanceof Element)) throw new Error("Cloned content is not an element");
   COMMENT_SELECTORS.forEach((selector) => {
     withoutComments.querySelectorAll(selector).forEach((el) => el.remove());
   });

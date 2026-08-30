@@ -4,7 +4,7 @@
  * behavior in scrapePage()
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { scrapePage } from "./page-scraper.js";
 
 // Minimal TurndownService stub: returns the text content of the given HTML
@@ -18,8 +18,7 @@ class FakeTurndownService {
 
 describe("Page Scraper", () => {
   beforeEach(() => {
-    // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-    (globalThis as { TurndownService?: unknown }).TurndownService = FakeTurndownService;
+    vi.stubGlobal("TurndownService", FakeTurndownService);
     document.head.innerHTML = "";
     document.body.innerHTML = "";
     document.title = "Test Page";

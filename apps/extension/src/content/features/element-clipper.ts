@@ -47,8 +47,8 @@ export async function captureElementClip(element: Element): Promise<ElementClipD
     const structuredData = extractStructuredData(element);
 
     // 4. Extract text content and convert to markdown
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    const textContent = (element as HTMLElement).innerText || element.textContent || "";
+    const renderedText = element instanceof HTMLElement ? element.innerText : "";
+    const textContent = renderedText || element.textContent || "";
     const markdownContent = convertToMarkdown(element.innerHTML);
 
     // 5. Collect media assets and detect single-image element
@@ -177,15 +177,13 @@ async function detectAndDownloadSingleImage(element: Element): Promise<Blob | un
     let imgElement: HTMLImageElement | null = null;
 
     // Check if element itself is an img tag
-    if (element.tagName.toLowerCase() === "img") {
-      // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-      imgElement = element as HTMLImageElement;
+    if (element instanceof HTMLImageElement) {
+      imgElement = element;
     } else {
       // Check if element contains exactly one img descendant
       const images = element.querySelectorAll("img");
       if (images.length === 1) {
-        // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-        imgElement = images[0] as HTMLImageElement;
+        imgElement = images.item(0);
       }
     }
 

@@ -5,6 +5,8 @@
  *   adjusted = (color - 0.5) * contrast + 0.5
  */
 
+import { parseJSONObject, type JSONValue } from "@repo/shared";
+
 export type DarkModePreference = "always" | "system" | "off";
 
 export interface DarkModeSettings {
@@ -65,11 +67,69 @@ export function getBaseDomain(url: string): string {
 /**
  * Load preferences from chrome.storage.sync
  */
+function parsePreference(value: JSONValue | undefined): DarkModePreference | undefined {
+  return value === "always" || value === "system" || value === "off" ? value : undefined;
+}
+
+function parsePreferences(stored: ReturnType<typeof parseJSONObject>): DarkModePreferences {
+  const preferences: DarkModePreferences = {};
+  if (!stored) return preferences;
+
+  for (const [domain, candidate] of Object.entries(stored)) {
+    const preference = parsePreference(candidate);
+    if (preference) preferences[domain] = preference;
+  }
+  return preferences;
+}
+
+function readFiniteNumber(value: JSONValue | undefined, fallback: number): number {
+  return Number.isFinite(value) ? Number(value) : fallback;
+}
+
+function readStoredString(value: JSONValue | undefined, fallback: string): string {
+  return Object.prototype.toString.call(value) === "[object String]" ? String(value) : fallback;
+}
+
+function readStoredBoolean(value: JSONValue | undefined, fallback: boolean): boolean {
+  return value === true || value === false ? value : fallback;
+}
+
+function readStoredStringArray(value: JSONValue | undefined): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => Object.prototype.toString.call(item) === "[object String]",
+  );
+}
+
+function parseSettings(stored: ReturnType<typeof parseJSONObject>): DarkModeSettingsStorage {
+  const settings: DarkModeSettingsStorage = {};
+  if (!stored) return settings;
+
+  for (const [domain, candidate] of Object.entries(stored)) {
+    const candidateSerialized = JSON.stringify(candidate);
+    const parsedCandidate = candidateSerialized ? parseJSONObject(candidateSerialized) : undefined;
+    if (!parsedCandidate) continue;
+    settings[domain] = {
+      brightness: readFiniteNumber(parsedCandidate.brightness, defaultSettings.brightness),
+      contrast: readFiniteNumber(parsedCandidate.contrast, defaultSettings.contrast),
+      sepia: readFiniteNumber(parsedCandidate.sepia, defaultSettings.sepia),
+      grayscale: readFiniteNumber(parsedCandidate.grayscale, defaultSettings.grayscale),
+      mixColor: readStoredString(parsedCandidate.mixColor, defaultSettings.mixColor),
+      preserveImages: readStoredBoolean(
+        parsedCandidate.preserveImages,
+        defaultSettings.preserveImages,
+      ),
+      excludedSelectors: readStoredStringArray(parsedCandidate.excludedSelectors),
+    };
+  }
+  return settings;
+}
+
 async function loadPreferences(): Promise<DarkModePreferences> {
   try {
     const result = await chrome.storage.sync.get(["darkModePreferences"]);
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    return (result.darkModePreferences as DarkModePreferences) || {};
+    const stored = JSON.stringify(result.darkModePreferences);
+    return parsePreferences(stored ? parseJSONObject(stored) : undefined);
   } catch (error) {
     console.error("[Dark Mode] Error loading preferences:", error);
     return {};
@@ -93,8 +153,8 @@ async function savePreferences(prefs: DarkModePreferences): Promise<void> {
 async function loadSettings(): Promise<DarkModeSettingsStorage> {
   try {
     const result = await chrome.storage.sync.get(["darkModeSettings"]);
-    // SAFETY: The extension owns this DOM/API boundary and guarantees the asserted platform shape.
-    return (result.darkModeSettings as DarkModeSettingsStorage) || {};
+    const stored = JSON.stringify(result.darkModeSettings);
+    return parseSettings(stored ? parseJSONObject(stored) : undefined);
   } catch (error) {
     console.error("[Dark Mode] Error loading settings:", error);
     return {};

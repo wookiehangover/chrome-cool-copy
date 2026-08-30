@@ -11,6 +11,12 @@ import {
   hasVisualStyling,
 } from "./type-detection.js";
 
+function mockComputedStyle(overrides: Partial<CSSStyleDeclaration>): void {
+  const declaration = window.getComputedStyle(document.documentElement);
+  Object.assign(declaration, overrides);
+  vi.spyOn(window, "getComputedStyle").mockReturnValue(declaration);
+}
+
 describe("Type Detection", () => {
   beforeEach(() => {
     // Reset DOM before each test
@@ -167,10 +173,9 @@ describe("Type Detection", () => {
       it("should return visual for element with visual styling", () => {
         const div = document.createElement("div");
         div.style.boxShadow = "0 0 10px rgba(0,0,0,0.5)";
-        // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-        vi.spyOn(window, "getComputedStyle").mockReturnValue({
+        mockComputedStyle({
           boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-        } as CSSStyleDeclaration);
+        });
         expect(detectElementType(div)).toBe("visual");
       });
 
@@ -180,8 +185,7 @@ describe("Type Detection", () => {
       });
 
       it("should return text for null element", () => {
-        // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-        expect(detectElementType(null as any)).toBe("text");
+        expect(detectElementType(null)).toBe("text");
       });
     });
 
@@ -232,8 +236,7 @@ describe("Type Detection", () => {
     });
 
     it("should return false for null element", () => {
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      expect(isTextHeavy(null as any)).toBe(false);
+      expect(isTextHeavy(null)).toBe(false);
     });
 
     it("should calculate text ratio correctly", () => {
@@ -250,8 +253,7 @@ describe("Type Detection", () => {
 
   describe("calculateTextRatio()", () => {
     it("should return 0 for null element", () => {
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      expect(calculateTextRatio(null as any)).toBe(0);
+      expect(calculateTextRatio(null)).toBe(0);
     });
 
     it("should return 100 for element with text and no children", () => {
@@ -283,84 +285,76 @@ describe("Type Detection", () => {
 
   describe("hasVisualStyling()", () => {
     it("should return false for null element", () => {
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      expect(hasVisualStyling(null as any)).toBe(false);
+      expect(hasVisualStyling(null)).toBe(false);
     });
 
     it("should return false for element without styling", () => {
       const div = document.createElement("div");
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      mockComputedStyle({
         backgroundImage: "none",
         boxShadow: "none",
         textShadow: "none",
         transform: "none",
         filter: "none",
-      } as CSSStyleDeclaration);
+      });
       expect(hasVisualStyling(div)).toBe(false);
     });
 
     it("should return true for element with background-image", () => {
       const div = document.createElement("div");
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      mockComputedStyle({
         backgroundImage: "url('test.jpg')",
-      } as CSSStyleDeclaration);
+      });
       expect(hasVisualStyling(div)).toBe(true);
     });
 
     it("should return true for element with gradient", () => {
       const div = document.createElement("div");
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      mockComputedStyle({
         backgroundImage: "linear-gradient(to right, red, blue)",
-      } as CSSStyleDeclaration);
+      });
       expect(hasVisualStyling(div)).toBe(true);
     });
 
     it("should return true for element with box-shadow", () => {
       const div = document.createElement("div");
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      mockComputedStyle({
         backgroundImage: "none",
         boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-      } as CSSStyleDeclaration);
+      });
       expect(hasVisualStyling(div)).toBe(true);
     });
 
     it("should return true for element with text-shadow", () => {
       const div = document.createElement("div");
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      mockComputedStyle({
         backgroundImage: "none",
         boxShadow: "none",
         textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
-      } as CSSStyleDeclaration);
+      });
       expect(hasVisualStyling(div)).toBe(true);
     });
 
     it("should return true for element with transform", () => {
       const div = document.createElement("div");
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      mockComputedStyle({
         backgroundImage: "none",
         boxShadow: "none",
         textShadow: "none",
         transform: "rotate(45deg)",
-      } as CSSStyleDeclaration);
+      });
       expect(hasVisualStyling(div)).toBe(true);
     });
 
     it("should return true for element with filter", () => {
       const div = document.createElement("div");
-      // SAFETY: This test fixture deliberately supplies the asserted boundary shape.
-      vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      mockComputedStyle({
         backgroundImage: "none",
         boxShadow: "none",
         textShadow: "none",
         transform: "none",
         filter: "blur(5px)",
-      } as CSSStyleDeclaration);
+      });
       expect(hasVisualStyling(div)).toBe(true);
     });
   });
