@@ -9,7 +9,7 @@ const DEFAULT_MIN_CHARS = 100;
 const DEFAULT_MAX_CHARS = 1000;
 const MAX_TOTAL_CHARS = 100000;
 
-function createCitation(): { citationUUID: string } {
+function createCitation() {
   return {
     citationUUID: crypto.randomUUID(),
   };
@@ -113,10 +113,7 @@ export function getSmartChunks(text: string, options?: ChunkOptions): ContentChu
 /**
  * Truncate text and split into chunks
  */
-export function truncateAndGetChunks(
-  text: string,
-  options?: ChunkOptions,
-): { chunks: ContentChunk[]; truncated: boolean } {
+export function truncateAndGetChunks(text: string, options?: ChunkOptions) {
   let truncated = false;
 
   if (text.length > MAX_TOTAL_CHARS) {

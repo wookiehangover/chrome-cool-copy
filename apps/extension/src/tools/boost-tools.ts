@@ -3,7 +3,7 @@
  * Tool definitions for the boost authoring agent
  */
 
-import { tool } from "ai";
+import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 import { createBashSandbox } from "./bash-sandbox";
 import { browseTool } from "./browse";
@@ -28,6 +28,16 @@ const readConsoleSchema = z.object({
   lines: z.number().optional().default(20).describe("Number of recent console entries to read"),
 });
 
+const boostExecutionResultSchema = z.object({
+  success: z.boolean(),
+  result: z.string().optional(),
+  error: z.string().optional(),
+});
+
+function emptyConsoleEntries(): ConsoleEntry[] {
+  return [];
+}
+
 /**
  * Context required for boost tool execution
  */
@@ -44,9 +54,7 @@ export interface BoostToolContext {
  * and read console output using the provided context.
  * Also initializes bash tools for text processing and code analysis.
  */
-export async function createBoostTools(
-  context: BoostToolContext,
-): Promise<Record<string, unknown>> {
+export async function createBoostTools(context: BoostToolContext): Promise<ToolSet> {
   /**
    * File tool - stores boost code in draft state
    */
@@ -103,9 +111,17 @@ export async function createBoostTools(
                       const __boostResult = (function() {
                         ${codeToExecute}
                       })();
-                      window["${resultId}"] = { success: true, result: __boostResult !== undefined ? String(__boostResult) : undefined };
+                      const resultElement = document.createElement("script");
+                      resultElement.id = "${resultId}";
+                      resultElement.type = "application/json";
+                      resultElement.textContent = JSON.stringify({ success: true, result: __boostResult !== undefined ? String(__boostResult) : undefined });
+                      document.documentElement.appendChild(resultElement);
                     } catch (error) {
-                      window["${resultId}"] = { success: false, error: error instanceof Error ? error.message : String(error) };
+                      const resultElement = document.createElement("script");
+                      resultElement.id = "${resultId}";
+                      resultElement.type = "application/json";
+                      resultElement.textContent = JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) });
+                      document.documentElement.appendChild(resultElement);
                     }
                   })();
                 `;
@@ -117,10 +133,11 @@ export async function createBoostTools(
                 script.remove();
 
                 // Retrieve the result from the window object
-                const result = (window as unknown as Record<string, unknown>)[resultId] as
-                  | { success: boolean; result?: string; error?: string }
-                  | undefined;
-                delete (window as unknown as Record<string, unknown>)[resultId];
+                const resultElement = document.getElementById(resultId);
+                const result = boostExecutionResultSchema.safeParse(
+                  JSON.parse(resultElement?.textContent || "null"),
+                ).data;
+                resultElement?.remove();
 
                 if (result) {
                   resolve(result);
@@ -192,7 +209,7 @@ export async function createBoostTools(
         if (response.error) {
           console.error("[Boosts] Error reading console:", response.error);
           return {
-            entries: [] as ConsoleEntry[],
+            entries: emptyConsoleEntries(),
             error: response.error,
           };
         }
@@ -203,7 +220,7 @@ export async function createBoostTools(
       } catch (error) {
         console.error("[Boosts] Error reading console:", error);
         return {
-          entries: [] as ConsoleEntry[],
+          entries: emptyConsoleEntries(),
           error: error instanceof Error ? error.message : String(error),
         };
       }
@@ -214,7 +231,7 @@ export async function createBoostTools(
    * Initialize bash tools for text processing and code analysis
    * Creates a sandbox with the current boost code and page HTML as files
    */
-  let bashTools: Record<string, unknown> = {};
+  let bashTools: ToolSet = {};
   try {
     const bashSandbox = await createBashSandbox({
       "boost.js": context.currentCode || "",
@@ -227,7 +244,7 @@ export async function createBoostTools(
     // Continue without bash tools if initialization fails
   }
 
-  const toolsObject: Record<string, unknown> = {
+  const toolsObject: ToolSet = {
     file: fileTool,
     execute_boost: executeBoostTool,
     read_console: readConsoleTool,
@@ -235,10 +252,10 @@ export async function createBoostTools(
   };
 
   // Add bash tools if available
-  if (bashTools && typeof bashTools === "object") {
-    if ("bash" in bashTools) toolsObject.bash = bashTools.bash;
+  if ("bash" in bashTools) {
     if ("readFile" in bashTools) toolsObject.readFile = bashTools.readFile;
     if ("writeFile" in bashTools) toolsObject.writeFile = bashTools.writeFile;
+    toolsObject.bash = bashTools.bash;
   }
 
   return toolsObject;
@@ -270,7 +287,7 @@ export const boostTools = {
       "Read recent console output from the active tab. Use this to debug your boost code and see what's happening when it runs.",
     inputSchema: readConsoleSchema,
     execute: async () => ({
-      entries: [] as ConsoleEntry[],
+      entries: emptyConsoleEntries(),
     }),
   }),
 };
