@@ -20,6 +20,7 @@ interface VercelAIGatewayConfig {
 async function getAIGatewayConfig(): Promise<VercelAIGatewayConfig | null> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
+      // SAFETY: the aiGatewayConfig storage key is exclusively written with VercelAIGatewayConfig.
       const config = result.aiGatewayConfig as VercelAIGatewayConfig | undefined;
       if (config?.apiKey && config?.model) {
         resolve(config);

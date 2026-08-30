@@ -5,33 +5,23 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetChromeMocks } from "../test/setup.js";
+import type { BrowserMessage, BrowserResponse } from "./types.js";
+import { createAIHandlers } from "./ai-handler.js";
+import { tools } from "../tools/browse.js";
 
-// Mock dependencies
 const mockGetAIGateway = vi.fn();
 const mockGenerateText = vi.fn();
-
-vi.mock("./ai-gateway", () => ({
-  getAIGateway: (...args: unknown[]) => mockGetAIGateway(...args),
-  HTML_CLEANING_SYSTEM_PROMPT: "mock system prompt",
-  HTML_CLEANING_SYSTEM_PROMPT_STRICT: "mock strict system prompt",
-  stripCodeFences: (text: string) => text.replace(/^```html?\n?/, "").replace(/\n?```$/, ""),
-}));
-
-vi.mock("ai", () => ({
-  generateText: (...args: unknown[]) => mockGenerateText(...args),
-}));
-
-vi.mock("../tools/browse", () => ({
-  tools: { mockTool: {} },
-}));
-
-import { aiHandlers } from "./ai-handler.js";
+const aiHandlers = createAIHandlers({
+  getAIGateway: mockGetAIGateway,
+  generateText: mockGenerateText,
+  tools,
+});
 
 function callHandler(
   action: string,
-  message: Record<string, unknown>,
+  message: BrowserMessage,
   sender: Partial<chrome.runtime.MessageSender> = {},
-): Promise<unknown> {
+): Promise<BrowserResponse | undefined> {
   return new Promise((resolve) => {
     const handler = aiHandlers[action];
     const fullSender: chrome.runtime.MessageSender = { id: "test-ext", ...sender };

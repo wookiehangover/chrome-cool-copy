@@ -13,14 +13,6 @@ const mockUpdateBoost = vi.fn();
 const mockGetBoostsForDomain = vi.fn();
 const mockExecuteScript = vi.fn();
 
-vi.mock("../services/boosts", () => ({
-  getBoosts: (...args: unknown[]) => mockGetBoosts(...args),
-  toggleBoost: (...args: unknown[]) => mockToggleBoost(...args),
-  deleteBoost: (...args: unknown[]) => mockDeleteBoost(...args),
-  updateBoost: (...args: unknown[]) => mockUpdateBoost(...args),
-  getBoostsForDomain: (...args: unknown[]) => mockGetBoostsForDomain(...args),
-}));
-
 // Mock chrome.scripting for executeBoostCode
 vi.stubGlobal("chrome", {
   ...globalThis.chrome,
@@ -32,13 +24,23 @@ vi.stubGlobal("chrome", {
   runtime: globalThis.chrome?.runtime,
 });
 
-import { boostsHandlers, boostDrafts } from "./boosts-handler.js";
+import { createBoostHandlers, boostDrafts } from "./boosts-handler.js";
+import type { BrowserMessage, BrowserResponse } from "./types.js";
+
+const boostsHandlers = createBoostHandlers({
+  getBoosts: mockGetBoosts,
+  saveBoost: vi.fn(),
+  toggleBoost: mockToggleBoost,
+  deleteBoost: mockDeleteBoost,
+  updateBoost: mockUpdateBoost,
+  getBoostsForDomain: mockGetBoostsForDomain,
+});
 
 function callHandler(
   action: string,
-  message: Record<string, unknown>,
+  message: BrowserMessage,
   sender: Partial<chrome.runtime.MessageSender> = {},
-): Promise<unknown> {
+): Promise<BrowserResponse | undefined> {
   return new Promise((resolve) => {
     const handler = boostsHandlers[action];
     const fullSender: chrome.runtime.MessageSender = { id: "test-ext", ...sender };
@@ -129,6 +131,7 @@ describe("Boosts Handlers", () => {
       const result = await callHandler(
         "runBoost",
         { boostId: "b1" },
+        // SAFETY: the test fixture supplies the complete browser contract used by this scenario.
         { tab: { id: 42 } as chrome.tabs.Tab },
       );
 
@@ -142,6 +145,7 @@ describe("Boosts Handlers", () => {
       const result = await callHandler(
         "runBoost",
         { boostId: "nonexistent" },
+        // SAFETY: the test fixture supplies the complete browser contract used by this scenario.
         { tab: { id: 42 } as chrome.tabs.Tab },
       );
 
@@ -150,12 +154,14 @@ describe("Boosts Handlers", () => {
 
     it("should return error when no tab ID available", async () => {
       // Mock chrome.tabs.query to return empty
+      // SAFETY: the test fixture supplies the complete browser contract used by this scenario.
       (globalThis.chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(
-        (_query: unknown, callback: (tabs: unknown[]) => void) => {
+        (_query: chrome.tabs.QueryInfo, callback: (tabs: chrome.tabs.Tab[]) => void) => {
           callback([]);
         },
       );
       // For the promise-based path
+      // SAFETY: the test fixture supplies the complete browser contract used by this scenario.
       (globalThis.chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       const result = await callHandler("runBoost", { boostId: "b1" });
@@ -164,6 +170,7 @@ describe("Boosts Handlers", () => {
     });
 
     it("should throw when boostId is missing", async () => {
+      // SAFETY: the test fixture supplies the complete browser contract used by this scenario.
       const result = await callHandler("runBoost", {}, { tab: { id: 42 } as chrome.tabs.Tab });
 
       expect(result).toEqual({ success: false, error: "Boost ID is required" });

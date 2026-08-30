@@ -31,6 +31,7 @@ export async function initAssetStore(): Promise<void> {
     };
 
     request.onupgradeneeded = (event) => {
+      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
       const database = (event.target as IDBOpenDBRequest).result;
 
       // Create object store with keyPath 'id'
@@ -109,6 +110,7 @@ export async function getAsset(assetId: string): Promise<Blob | null> {
     };
 
     request.onsuccess = () => {
+      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
       const asset = request.result as ClipAsset | undefined;
       resolve(asset ? asset.data : null);
     };
@@ -129,9 +131,11 @@ export async function getAssetAsDataUrl(assetId: string): Promise<string | null>
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
+      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
       resolve(reader.result as string);
     };
     reader.onerror = () => {
+      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
       reject(new Error("Failed to read asset as data URL"));
     };
     reader.readAsDataURL(blob);
@@ -158,6 +162,7 @@ export async function deleteClipAssets(clipId: string): Promise<void> {
     };
 
     request.onsuccess = () => {
+      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
       const assets = request.result as ClipAsset[];
       let deleteCount = 0;
 

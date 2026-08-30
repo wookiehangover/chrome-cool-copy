@@ -4,7 +4,7 @@
  * This is the primary storage mechanism - AgentDB sync is optional
  */
 
-import type { SyncStatus, Highlight, LocalClip, ClipInput } from "@repo/shared";
+import type { SyncStatus, Highlight, LocalClip, ElementClip, ClipInput } from "@repo/shared";
 import { generateClipId } from "@repo/shared/utils";
 
 export type { SyncStatus, Highlight, LocalClip, ClipInput } from "@repo/shared";
@@ -16,6 +16,7 @@ const STORAGE_KEY = "local_clips";
  */
 export async function getLocalClips(): Promise<LocalClip[]> {
   const result = await chrome.storage.local.get([STORAGE_KEY]);
+  // SAFETY: the local_clips key is exclusively written by this service as LocalClip entries.
   const clips = (result[STORAGE_KEY] as LocalClip[] | undefined) || [];
   // Sort by created_at descending (newest first)
   return clips.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -218,7 +219,7 @@ export async function isUrlClipped(url: string): Promise<LocalClip | null> {
  */
 export async function updateLocalClip(
   id: string,
-  updates: Record<string, unknown>,
+  updates: Partial<LocalClip & ElementClip>,
 ): Promise<LocalClip | null> {
   const clips = await getLocalClips();
   const index = clips.findIndex((c) => c.id === id);

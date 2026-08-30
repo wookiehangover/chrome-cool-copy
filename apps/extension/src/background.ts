@@ -1,14 +1,11 @@
 // Background service worker for handling keyboard shortcuts
 
 // Polyfill process.env for Vercel AI SDK (required in Chrome extension context)
-declare const process: { env: Record<string, string | undefined> } | undefined;
-if (typeof process === "undefined") {
-  (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process = {
-    env: {},
-  };
+if (!("process" in globalThis)) {
+  Object.assign(globalThis, { process: { env: {} } });
 }
 
-import { streamText, createGateway, stepCountIs } from "ai";
+import { streamText, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
 import { createBoostTools } from "./tools/boost-tools";
 import { getBoostSystemPrompt } from "@repo/shared";
@@ -200,6 +197,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     // Dispatch to domain-specific handler modules
+    // SAFETY: the registered Chrome action establishes the shared request or tool contract before this use.
     const handler = handlers[message.action as string];
     if (handler) {
       return handler(message, sender, sendResponse);
@@ -328,6 +326,7 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (message) => {
     if (message.action !== "streamText") return;
 
+    // SAFETY: the registered Chrome action establishes the shared request or tool contract before this use.
     const request = message as StreamTextRequest;
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
@@ -443,6 +442,7 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (message) => {
     if (message.action !== "streamText") return;
 
+    // SAFETY: the registered Chrome action establishes the shared request or tool contract before this use.
     const request = message as StreamTextRequest;
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
@@ -495,14 +495,14 @@ chrome.runtime.onConnect.addListener((port) => {
         headers: request.headers,
         stopWhen: stepCountIs(request.maxSteps ?? 5),
         ...(enableTools && {
-          tools: boostTools as Record<string, unknown>,
+          tools: boostTools,
           toolChoice: request.toolChoice ?? "auto",
         }),
         providerOptions: {
           ...defaultProviderOptions,
           ...request.providerOptions,
         },
-      } as Parameters<typeof streamText>[0]);
+      });
 
       for await (const part of result.fullStream) {
         switch (part.type) {

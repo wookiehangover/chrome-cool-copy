@@ -1,5 +1,7 @@
 import { createGateway } from "ai";
 
+type GatewayFactory = typeof createGateway;
+
 /**
  * Vercel AI Gateway configuration
  */
@@ -50,7 +52,7 @@ export const HTML_CLEANING_SYSTEM_PROMPT_STRICT = `${HTML_CLEANING_SYSTEM_PROMPT
  * Fetch the AI gateway configuration from chrome.storage.sync and create a gateway instance.
  * Throws if configuration is missing.
  */
-export async function getAIGateway(): Promise<{
+export async function getAIGateway(createGatewayInstance: GatewayFactory = createGateway): Promise<{
   gateway: ReturnType<typeof createGateway>;
   config: VercelAIGatewayConfig;
 }> {
@@ -67,7 +69,7 @@ export async function getAIGateway(): Promise<{
     throw new Error("Vercel AI Gateway configuration not found. Please configure settings.");
   }
 
-  const gateway = createGateway({
+  const gateway = createGatewayInstance({
     apiKey: config.apiKey,
   });
 

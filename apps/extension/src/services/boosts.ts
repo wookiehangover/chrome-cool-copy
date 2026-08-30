@@ -14,6 +14,7 @@ const STORAGE_KEY = "boosts";
  */
 export async function getBoosts(): Promise<Boost[]> {
   const result = await chrome.storage.local.get([STORAGE_KEY]);
+  // SAFETY: the boosts key is exclusively written by this service as Boost entries.
   const boosts = (result[STORAGE_KEY] as Boost[] | undefined) || [];
   return boosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }

@@ -12,46 +12,23 @@ const mockAddHighlight = vi.fn();
 const mockIsAgentDBConfigured = vi.fn();
 const mockSyncClipToAgentDB = vi.fn();
 
-vi.mock("../services/local-clips", () => ({
-  saveLocalClip: (...args: unknown[]) => mockSaveLocalClip(...args),
-  isUrlClipped: (...args: unknown[]) => mockIsUrlClipped(...args),
-  addHighlight: (...args: unknown[]) => mockAddHighlight(...args),
-  updateHighlightNote: vi.fn(),
-  deleteHighlight: vi.fn(),
-  updateLocalClip: vi.fn(),
-  getLocalClips: vi.fn(),
-  getLocalClip: vi.fn(),
-}));
+import { createClipsHandlers, clipsHandlerDependencies } from "./clips-handler.js";
+import type { BrowserMessage, BrowserResponse } from "./types.js";
 
-vi.mock("../services/clips-sync", () => ({
-  syncClipToAgentDB: (...args: unknown[]) => mockSyncClipToAgentDB(...args),
-  isAgentDBConfigured: (...args: unknown[]) => mockIsAgentDBConfigured(...args),
-  syncPendingClips: vi.fn(),
-  deleteClipWithSync: vi.fn(),
-  syncFromAgentDB: vi.fn(),
-}));
-
-vi.mock("../services/element-ai-summary", () => ({
-  generateElementSummary: vi.fn(),
-}));
-
-vi.mock("../services/element-ai-service", () => ({
-  generateElementTitleAndDescription: vi.fn(),
-}));
-
-vi.mock("../services/asset-store", () => ({
-  initAssetStore: vi.fn(),
-  saveAsset: vi.fn(),
-  getAssetAsDataUrl: vi.fn(),
-}));
-
-import { clipsHandlers } from "./clips-handler.js";
+const clipsHandlers = createClipsHandlers({
+  ...clipsHandlerDependencies,
+  saveLocalClip: mockSaveLocalClip,
+  isUrlClipped: mockIsUrlClipped,
+  addHighlight: mockAddHighlight,
+  syncClipToAgentDB: mockSyncClipToAgentDB,
+  isAgentDBConfigured: mockIsAgentDBConfigured,
+});
 
 function callHandler(
   action: string,
-  message: Record<string, unknown>,
+  message: BrowserMessage,
   sender: Partial<chrome.runtime.MessageSender> = {},
-): Promise<unknown> {
+): Promise<BrowserResponse> {
   return new Promise((resolve) => {
     const handler = clipsHandlers[action];
     const fullSender: chrome.runtime.MessageSender = { id: "test-ext", ...sender };

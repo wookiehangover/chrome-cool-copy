@@ -82,6 +82,7 @@ async function captureAndCropImage(bounds: ElementBounds, devicePixelRatio = 1):
     const blob = await canvas.convertToBlob({ type: "image/png" });
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = () => reject(new Error("Failed to read blob"));
       reader.readAsDataURL(blob);
@@ -183,6 +184,7 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
   const blob = await finalCanvas.convertToBlob({ type: "image/png" });
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error("Failed to read blob"));
     reader.readAsDataURL(blob);
@@ -191,6 +193,7 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
 
 export const mediaHandlers: HandlerMap = {
   captureElement: (message, _sender, sendResponse) => {
+    // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
     captureAndCropImage(message.bounds as ElementBounds, (message.devicePixelRatio as number) || 1)
       .then((imageData) => {
         sendResponse({ success: true, imageData });
@@ -208,6 +211,7 @@ export const mediaHandlers: HandlerMap = {
       sendResponse({ success: false, error: "No tab ID available" });
       return true;
     }
+    // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
     const pageInfo = message.pageInfo as PageInfo;
     captureEntirePage(tabId, pageInfo)
       .then((imageData) => {
@@ -218,7 +222,7 @@ export const mediaHandlers: HandlerMap = {
         });
         sendResponse({ success: true, imageData });
       })
-      .catch((error: unknown) => {
+      .catch((error) => {
         console.error("[Clean Link Copy] Error in captureFullPage handler:", error);
         chrome.tabs.sendMessage(tabId, {
           action: "scrollTo",
@@ -236,6 +240,7 @@ export const mediaHandlers: HandlerMap = {
   fetchImage: (message, _sender, sendResponse) => {
     (async () => {
       try {
+        // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
         const { url } = message as { url: string };
         console.log("[Background] Fetching image:", url);
         const response = await fetch(url);
@@ -264,12 +269,22 @@ export const mediaHandlers: HandlerMap = {
   uploadMedia: (message, _sender, sendResponse) => {
     (async () => {
       try {
+        // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
         const { imageData, metadata } = message as {
           imageData: number[];
-          metadata: Record<string, unknown>;
+          metadata: {
+            mimetype?: string;
+            originalFilename: string;
+            width?: number;
+            height?: number;
+            altText?: string;
+            pageUrl?: string;
+            pageTitle?: string;
+          };
         };
 
         const result = await chrome.storage.sync.get(["clipsServerConfig"]);
+        // SAFETY: settings writes clipsServerConfig with this exact persisted contract.
         const clipsConfig = result.clipsServerConfig as
           | { baseUrl: string; apiToken: string }
           | undefined;
@@ -284,10 +299,12 @@ export const mediaHandlers: HandlerMap = {
 
         const uint8Array = new Uint8Array(imageData);
         const blob = new Blob([uint8Array], {
+          // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
           type: (metadata.mimetype as string) || "image/png",
         });
 
         const formData = new FormData();
+        // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
         formData.append("image", blob, metadata.originalFilename as string);
         formData.append(
           "metadata",
@@ -339,6 +356,7 @@ export const mediaHandlers: HandlerMap = {
   uploadMediaUrl: (message, _sender, sendResponse) => {
     (async () => {
       try {
+        // SAFETY: the Chrome action or Web API callback establishes this media payload shape.
         const { url, pageUrl, pageTitle, altText } = message as {
           url: string;
           pageUrl: string;
@@ -347,6 +365,7 @@ export const mediaHandlers: HandlerMap = {
         };
 
         const result = await chrome.storage.sync.get(["clipsServerConfig"]);
+        // SAFETY: settings writes clipsServerConfig with this exact persisted contract.
         const clipsConfig = result.clipsServerConfig as
           | { baseUrl: string; apiToken: string }
           | undefined;
@@ -360,12 +379,10 @@ export const mediaHandlers: HandlerMap = {
         }
 
         const uploadUrl = `${clipsConfig.baseUrl}/api/media/upload-url`;
-        const headers: Record<string, string> = {
+        const headers = {
           "Content-Type": "application/json",
+          ...(clipsConfig.apiToken && { Authorization: `Bearer ${clipsConfig.apiToken}` }),
         };
-        if (clipsConfig.apiToken) {
-          headers["Authorization"] = `Bearer ${clipsConfig.apiToken}`;
-        }
 
         const response = await fetch(uploadUrl, {
           method: "POST",

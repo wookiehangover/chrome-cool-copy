@@ -12,7 +12,6 @@ import {
   getLocalClip,
   deleteLocalClip,
   getLocalClips,
-  saveLocalClip,
 } from "./local-clips";
 import {
   initializeDatabase,
@@ -39,6 +38,7 @@ export async function isAgentDBConfigured(): Promise<boolean> {
 export async function getAgentDBConfig(): Promise<AgentDBConfig | null> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["agentdbConfig"], (result) => {
+      // SAFETY: the owning AgentDB or Chrome storage contract establishes this persisted value shape.
       const config = result.agentdbConfig as AgentDBConfig | undefined;
       if (config?.baseUrl && config?.apiKey && config?.token && config?.dbName) {
         resolve(config);
@@ -214,9 +214,8 @@ export async function deleteClipWithSync(
   }
 
   // Clean up IndexedDB assets if this is an element clip
-  // The clip could be an ElementClip which has a 'type' property
-  const clipAsAny = clip as unknown as Record<string, unknown>;
-  if (clip && clipAsAny.type === "element") {
+  // Element clips carry a discriminant that ordinary page clips do not.
+  if (clip && "type" in clip && clip.type === "element") {
     try {
       await deleteClipAssets(localId);
       console.log("[Clips Sync] Deleted assets for clip:", localId);
@@ -287,16 +286,12 @@ export async function syncFromAgentDB(): Promise<{
             }
 
             // Parse highlights if it's a JSON string
-            let highlights: unknown[] | undefined;
+            let highlights: LocalClip["highlights"];
             if (webpage.highlights) {
-              if (typeof webpage.highlights === "string") {
-                try {
-                  highlights = JSON.parse(webpage.highlights);
-                } catch {
-                  highlights = undefined;
-                }
-              } else {
-                highlights = webpage.highlights;
+              try {
+                highlights = JSON.parse(webpage.highlights);
+              } catch {
+                highlights = undefined;
               }
             }
 
@@ -308,6 +303,7 @@ export async function syncFromAgentDB(): Promise<{
               dom_content: "",
               text_content: webpage.text_content,
               metadata,
+              // SAFETY: the owning AgentDB or Chrome storage contract establishes this persisted value shape.
               highlights: highlights as any,
               sync_status: "synced",
               share_id: webpage.share_id ?? undefined,

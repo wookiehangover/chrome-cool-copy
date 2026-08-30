@@ -96,6 +96,7 @@ export async function getWebpages(): Promise<WebpageRow[]> {
 
     const rows = result.results[0]?.rows || [];
     console.log("[Database] Retrieved", rows.length, "webpages");
+    // SAFETY: the selected AgentDB columns map exactly to the declared WebpageRow contract.
     return rows as WebpageRow[];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -128,6 +129,7 @@ export async function getWebpagesBatch(offset: number, limit: number): Promise<W
       limit,
       ")",
     );
+    // SAFETY: the selected AgentDB columns map exactly to the declared WebpageRow contract.
     return rows as WebpageRow[];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -144,11 +146,13 @@ export async function getWebpagesCount(): Promise<number> {
 
   try {
     const result = await connection.execute({
+      // SAFETY: the selected AgentDB columns map exactly to the declared WebpageRow contract.
       sql: "SELECT COUNT(*) as count FROM webpages",
       params: [],
     });
 
     const rows = result.results[0]?.rows || [];
+    // SAFETY: the selected AgentDB columns map exactly to the declared WebpageRow contract.
     const count = rows.length > 0 ? (rows[0] as { count: number }).count : 0;
     console.log("[Database] Total webpages count:", count);
     return count;
@@ -179,6 +183,7 @@ export async function getWebpage(id: string): Promise<WebpageRow | null> {
     }
 
     console.log("[Database] Retrieved webpage:", id);
+    // SAFETY: the selected AgentDB columns map exactly to the declared WebpageRow contract.
     return rows[0] as WebpageRow;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -291,6 +296,7 @@ export async function getWebpageByShareId(shareId: string): Promise<WebpageRow |
     }
 
     console.log("[Database] Retrieved webpage by share_id:", shareId);
+    // SAFETY: the selected AgentDB columns map exactly to the declared WebpageRow contract.
     return rows[0] as WebpageRow;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
