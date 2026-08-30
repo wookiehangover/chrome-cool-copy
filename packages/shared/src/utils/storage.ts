@@ -11,7 +11,8 @@
 export async function getStorageItem<T = unknown>(key: string): Promise<T | undefined> {
   return new Promise((resolve) => {
     chrome.storage.local.get([key], (result) => {
-      // SAFETY: T is the caller-declared contract for the value stored under this key.
+      // SAFETY: This wrapper's protocol makes per-key decoding the caller's responsibility;
+      // Chrome storage supplies no runtime schema for persisted extension values.
       resolve(result[key] === undefined ? undefined : (result[key] as T));
     });
   });
@@ -50,7 +51,8 @@ export async function removeStorageItem(key: string): Promise<void> {
 export async function getStorageItems<T extends object = object>(keys: string[]): Promise<T> {
   return new Promise((resolve) => {
     chrome.storage.local.get(keys, (result) => {
-      // SAFETY: Chrome returns only requested keys, and T is the caller-declared result contract.
+      // SAFETY: This wrapper's protocol makes the returned object contract the caller's
+      // responsibility; Chrome storage supplies no runtime schema for persisted values.
       resolve((result ?? {}) as T);
     });
   });

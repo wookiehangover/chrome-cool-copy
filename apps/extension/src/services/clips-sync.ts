@@ -5,7 +5,7 @@
 
 import { nanoid } from "nanoid";
 import type { AgentDBConfig, LocalClip } from "@repo/shared";
-import { generateClipId } from "@repo/shared/utils";
+import { generateClipId, parseJSONObject } from "@repo/shared/utils";
 import {
   getPendingClips,
   updateClipSyncStatus,
@@ -281,17 +281,9 @@ export async function syncFromAgentDB(): Promise<{
             }
 
             // Parse metadata if it's a JSON string
-            let metadata: Record<string, unknown> | undefined;
+            let metadata: LocalClip["metadata"];
             if (webpage.metadata) {
-              if (typeof webpage.metadata === "string") {
-                try {
-                  metadata = JSON.parse(webpage.metadata);
-                } catch {
-                  metadata = undefined;
-                }
-              } else {
-                metadata = webpage.metadata;
-              }
+              metadata = parseJSONObject(webpage.metadata);
             }
 
             // Parse highlights if it's a JSON string

@@ -3,7 +3,8 @@
  * Extracts JSON-LD, microdata, Open Graph, and ARIA attributes from a webpage
  */
 
-import type { StructuredData } from "@repo/shared/types";
+import type { JSONObject, StructuredData } from "@repo/shared/types";
+import { parseJSONObject } from "@repo/shared/utils";
 
 /**
  * Extracts structured data from an element and its context
@@ -22,16 +23,16 @@ export function extractStructuredData(element: Element): StructuredData {
 /**
  * Extracts JSON-LD data from script[type="application/ld+json"] tags
  */
-function extractJsonLd(): Record<string, unknown>[] {
+function extractJsonLd(): JSONObject[] {
   const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
-  const jsonLdData: Record<string, unknown>[] = [];
+  const jsonLdData: JSONObject[] = [];
 
   jsonLdScripts.forEach((script) => {
     try {
       const content = script.textContent;
       if (content) {
-        const parsed = JSON.parse(content);
-        jsonLdData.push(parsed);
+        const parsed = parseJSONObject(content);
+        if (parsed) jsonLdData.push(parsed);
       }
     } catch (error) {
       // Silently skip malformed JSON-LD

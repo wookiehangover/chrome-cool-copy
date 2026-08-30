@@ -10,14 +10,18 @@ describe("sendMessage", () => {
   };
   interface RuntimeMock {
     sendMessage: ReturnType<
-      typeof vi.fn<(message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => void>
+      typeof vi.fn<
+        (message: RuntimeMessage, callback: (result: RuntimeResponse | undefined) => void) => void
+      >
     >;
     lastError: { message: string } | null;
   }
 
   const runtime: RuntimeMock = {
     sendMessage:
-      vi.fn<(message: RuntimeMessage, callback: (result: RuntimeResponse) => void) => void>(),
+      vi.fn<
+        (message: RuntimeMessage, callback: (result: RuntimeResponse | undefined) => void) => void
+      >(),
     lastError: null,
   };
 
@@ -87,5 +91,15 @@ describe("sendMessage", () => {
     await expect(
       sendMessage<{ id: string }>({ action: "getClip" }, { responseKey: "data" }),
     ).resolves.toEqual({ id: "clip-2" });
+  });
+
+  it("resolves undefined when Chrome provides no response", async () => {
+    runtime.sendMessage.mockImplementation((_message, callback) => {
+      callback(undefined);
+    });
+
+    await expect(
+      sendMessage<{ id: string } | undefined>({ action: "getClip" }, { responseKey: "data" }),
+    ).resolves.toBeUndefined();
   });
 });

@@ -19,6 +19,7 @@ import { generateElementSummary } from "../services/element-ai-summary";
 import { generateElementTitleAndDescription } from "../services/element-ai-service";
 import { initAssetStore, saveAsset, getAssetAsDataUrl } from "../services/asset-store";
 import type { ElementClip } from "@repo/shared";
+import { parseJSONObject } from "@repo/shared/utils";
 import type { HandlerMap } from "./types";
 
 /**
@@ -54,12 +55,13 @@ export const clipsHandlers: HandlerMap = {
     const message = _message;
     (async () => {
       try {
+        const metadataText = JSON.stringify(message.metadata ?? {});
         const clipInput = {
           url: message.url as string,
           title: message.title as string,
           dom_content: message.domContent as string,
           text_content: message.textContent as string,
-          metadata: (message.metadata as Record<string, unknown>) || {},
+          metadata: parseJSONObject(metadataText ?? "{}") ?? {},
         };
 
         const savedClip = await saveLocalClip(clipInput);

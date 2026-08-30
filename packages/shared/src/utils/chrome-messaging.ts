@@ -40,23 +40,28 @@ export function sendMessage<
   },
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    chrome.runtime.sendMessage<Message, RuntimeResponse<T, ResponseKey>>(message, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      if (response?.success === false) {
-        reject(new Error(response.error || "Chrome runtime message failed"));
-        return;
-      }
-      if (options?.responseKey) {
-        const value = response[options.responseKey];
-        // SAFETY: T is the caller-declared contract for the selected field, including optionality.
-        resolve(value as T);
-      } else {
-        // SAFETY: T is the caller-declared contract for the complete runtime response.
-        resolve(response as T);
-      }
-    });
+    chrome.runtime.sendMessage<Message, RuntimeResponse<T, ResponseKey> | undefined>(
+      message,
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        if (response?.success === false) {
+          reject(new Error(response.error || "Chrome runtime message failed"));
+          return;
+        }
+        if (options?.responseKey) {
+          const value = response?.[options.responseKey];
+          // SAFETY: This wrapper's protocol makes the selected field's decoding the caller's
+          // responsibility; Chrome supplies no runtime schema for extension message responses.
+          resolve(value as T);
+        } else {
+          // SAFETY: This wrapper's protocol makes response decoding the caller's responsibility;
+          // Chrome supplies no runtime schema for extension message responses.
+          resolve(response as T);
+        }
+      },
+    );
   });
 }

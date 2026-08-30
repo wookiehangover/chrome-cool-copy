@@ -15,8 +15,8 @@ export type JSONValue =
   | { [key: string]: JSONValue | undefined }
   | JSONValue[];
 
-/** JSON-shaped metadata parsed by its owning boundary. */
-export type JSONObject = object;
+/** JSON object with recursively serializable property values. */
+export type JSONObject = { [key: string]: JSONValue | undefined };
 
 /**
  * Provider-specific options for AI requests
