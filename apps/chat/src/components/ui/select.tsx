@@ -98,7 +98,9 @@ function SelectItem({ className, children, ...props }: SelectPrimitive.Item.Prop
       )}
       {...props}
     >
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      <SelectPrimitive.ItemText className="cn-select-item-text shrink-0 whitespace-nowrap">
+        {children}
+      </SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator
         render={
           <span
@@ -127,7 +129,7 @@ function SelectScrollUpButton({ className, ...props }: SelectPrimitive.ScrollUpA
   return (
     <SelectPrimitive.ScrollUpArrow
       data-slot="select-scroll-up-button"
-      className={cn("flex cursor-default items-center justify-center py-1", className)}
+      className={cn("top-0 flex w-full cursor-default items-center justify-center py-1", className)}
       {...props}
     >
       <ChevronUpIcon className="size-4" />
@@ -139,7 +141,10 @@ function SelectScrollDownButton({ className, ...props }: SelectPrimitive.ScrollD
   return (
     <SelectPrimitive.ScrollDownArrow
       data-slot="select-scroll-down-button"
-      className={cn("flex cursor-default items-center justify-center py-1", className)}
+      className={cn(
+        "bottom-0 flex w-full cursor-default items-center justify-center py-1",
+        className,
+      )}
       {...props}
     >
       <ChevronDownIcon className="size-4" />

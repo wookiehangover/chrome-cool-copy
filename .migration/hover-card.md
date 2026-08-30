@@ -4,7 +4,10 @@
 
 ## Changed
 
-`apps/chat/src/components/ui/hover-card.tsx`: added Portal/Positioner/Popup composition. Attachment consumers use render and trigger-level delays. Leftover scan is clean.
+- `apps/chat/src/components/ui/hover-card.tsx:1`: replaced Radix HoverCard with Base UI PreviewCard and added Portal/Positioner/Popup composition.
+- `apps/chat/src/components/ai-elements/prompt-input.tsx:281`: converted the attachment trigger to `render`; at line 1170 moved the custom zero-delay behavior from Root to Trigger.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for these files.
 
 ## Left alone
 

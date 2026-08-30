@@ -4,7 +4,10 @@
 
 ## Changed
 
-`apps/chat/src/components/ui/tooltip.tsx`: added Portal/Positioner/Popup, render triggers, and Base arrow positioning. Provider delay remains zero. Leftover scan is clean.
+- `apps/chat/src/components/ui/tooltip.tsx:1`: replaced Radix Tooltip with Base UI Portal/Positioner/Popup, arrow positioning, and a zero-delay Provider.
+- `apps/chat/src/components/ai-elements/message.tsx:76`: converted message-action and attachment triggers from `asChild` to Base UI `render`.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for these files.
 
 ## Left alone
 

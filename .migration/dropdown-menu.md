@@ -4,7 +4,12 @@
 
 ## Changed
 
-`packages/ui/src/components/dropdown-menu.tsx`: Menu positioning, popup, indicator, label, and submenu parts now use Base UI. Chat/clips triggers use render. Leftover scan is clean.
+- `packages/ui/src/components/dropdown-menu.tsx:3`: migrated positioning, popup, indicator, label, and submenu parts to Base UI Menu.
+- `apps/chat/src/components/BoostCard.tsx:61`: converted the boost overflow trigger from `asChild` to Base UI `render`.
+- `apps/chat/src/components/ai-elements/prompt-input.tsx:917`: converted the prompt action-menu trigger from `asChild` to Base UI `render`.
+- `apps/clips/src/components/ViewerToolbar.tsx:296`: converted the viewer overflow trigger from `asChild` to Base UI `render`.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for these files.
 
 ## Left alone
 

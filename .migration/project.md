@@ -6,6 +6,8 @@
 
 Both `components.json` files now use `base-nova`; chat/shared wrappers and every chat/clips consumer use Base UI composition; manifests and lockfile use `@base-ui/react` and remove scoped Radix dependencies from the migrated packages. Frozen install, lint, format check, typechecks, tests, builds, and diff checks pass. Leftover scan reports 0 Radix wrappers in `apps/chat`, `apps/clips`, and `packages/ui`.
 
+`grep -R -n "radix-ui\|@radix-ui" apps/chat apps/clips packages/ui` returns no matches.
+
 ## Left alone
 
 `apps/share` deliberately retains its independent `radix-ui` component system because it has no shadcn configuration and is outside this task. `cmdk` is intentionally unchanged per the migration helper.

@@ -4,7 +4,9 @@
 
 ## Changed
 
-`packages/ui/src/components/button.tsx`: replaced Radix Slot/asChild with Base UI Button/render. Leftover scan is clean.
+- `packages/ui/src/components/button.tsx:1`: replaced Radix Slot/asChild with the real Base UI Button/render primitive while preserving variants.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for this file.
 
 ## Left alone
 

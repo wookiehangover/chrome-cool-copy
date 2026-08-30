@@ -4,7 +4,9 @@
 
 ## Changed
 
-`packages/ui/src/components/badge.tsx`: replaced Radix Slot/asChild with useRender/mergeProps. Leftover scan is clean.
+- `packages/ui/src/components/badge.tsx:2`: replaced Radix Slot/asChild with Base UI useRender/mergeProps while preserving variants.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for this file.
 
 ## Left alone
 

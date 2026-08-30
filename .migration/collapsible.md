@@ -4,7 +4,12 @@
 
 ## Changed
 
-`apps/chat/src/components/ui/collapsible.tsx`: Content became Panel. Reasoning/tool/code-preview consumers use Base state hooks and render composition. Leftover scan is clean.
+- `apps/chat/src/components/ui/collapsible.tsx:1`: replaced the Radix primitive with Base UI and mapped Content to Panel.
+- `apps/chat/src/components/BoostCodePreview.tsx:26`: replaced trigger `asChild` with Base UI `render` composition.
+- `apps/chat/src/components/ai-elements/reasoning.tsx:3`: replaced Radix controllable-state usage locally and converted Collapsible state selectors.
+- `apps/chat/src/components/ai-elements/tool.tsx:71`: converted Collapsible state selectors to Base UI hooks.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for these files.
 
 ## Left alone
 

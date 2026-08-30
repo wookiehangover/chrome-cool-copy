@@ -4,7 +4,10 @@
 
 ## Changed
 
-`apps/chat/src/components/ui/separator.tsx`: uses callable Base UI Separator and orientation data hooks. Leftover scan is clean.
+- `apps/chat/src/components/ui/separator.tsx:1`: replaced Radix Separator with the callable Base UI primitive and orientation hooks.
+- `apps/chat/src/components/ui/button-group.tsx:66`: converted its vertical Separator selector to the Base UI data hook.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for these files.
 
 ## Left alone
 

@@ -4,7 +4,10 @@
 
 ## Changed
 
-`packages/ui/src/components/dialog.tsx`: Overlay/Content became Backdrop/Popup and state hooks were converted. Chat and clips consumers retain controlled state. Leftover scan is clean.
+- `packages/ui/src/components/dialog.tsx:1`: replaced Radix Dialog with Base UI, mapping Overlay/Content to Backdrop/Popup and converting state hooks.
+- `apps/chat/src/components/ui/command.tsx:29`: narrowed Dialog children typing to ReactNode for the Base UI root while leaving cmdk unchanged.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for these files.
 
 ## Left alone
 

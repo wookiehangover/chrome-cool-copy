@@ -4,7 +4,10 @@
 
 ## Changed
 
-`apps/chat/src/components/ui/select.tsx`: migrated Positioner/Popup/List, group label, item indicator, and scroll arrows. Model callbacks handle Base UI nullable values. Leftover scan is clean.
+- `apps/chat/src/components/ui/select.tsx:1`: migrated Positioner/Popup/List, group label, item indicator, and full-width positioned scroll arrows; ItemText retains the official non-wrapping hook and classes.
+- `apps/chat/src/components/ai-elements/model-picker.tsx:13`: adapted the model callback to Base UI nullable values without changing the catalog.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for these files.
 
 ## Left alone
 

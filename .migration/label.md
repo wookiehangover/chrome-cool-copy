@@ -4,7 +4,9 @@
 
 ## Changed
 
-`apps/chat/src/components/ui/label.tsx`: now renders a native label with the existing classes. Leftover scan is clean.
+- `apps/chat/src/components/ui/label.tsx:5`: replaced Radix Label with a native label while preserving existing classes and association props.
+
+`grep -n "radix-ui\|@radix-ui"` returns no matches for this file.
 
 ## Left alone
 
