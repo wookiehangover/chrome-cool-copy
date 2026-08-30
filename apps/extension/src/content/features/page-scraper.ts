@@ -120,7 +120,10 @@ function cleanContent(element: Element): Element {
   });
 
   const totalLength = getTextLength(clone);
-  if (totalLength === 0 || getTextLength(withoutComments) / totalLength >= COMMENT_REMOVAL_RETAIN_RATIO) {
+  if (
+    totalLength === 0 ||
+    getTextLength(withoutComments) / totalLength >= COMMENT_REMOVAL_RETAIN_RATIO
+  ) {
     return withoutComments;
   }
 

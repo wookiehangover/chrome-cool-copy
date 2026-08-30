@@ -25,7 +25,9 @@ export function hasVisualStyling(element: Element): boolean {
   // Check for box-shadow or text-shadow
   const boxShadow = computedStyle.boxShadow;
   const textShadow = computedStyle.textShadow;
-  if ((boxShadow && boxShadow !== "none") || (textShadow && textShadow !== "none")) {
+  const hasShadow = (value: string) =>
+    value !== "" && value !== "none" && value !== "transparent" && value !== "rgba(0, 0, 0, 0)";
+  if (hasShadow(boxShadow) || hasShadow(textShadow)) {
     return true;
   }
 
