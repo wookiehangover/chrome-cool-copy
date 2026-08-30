@@ -83,7 +83,7 @@ function parseReaderSettings(stored: ReturnType<typeof parseJSONObject>): Reader
     fontFamilyValue === "serif" || fontFamilyValue === "mono" ? fontFamilyValue : "sans";
   const fontSizeValue = stored.fontSize;
   const fontSize = Number.isFinite(fontSizeValue)
-    ? Number(fontSizeValue)
+    ? Math.min(22, Math.max(14, Number(fontSizeValue)))
     : DEFAULT_SETTINGS.fontSize;
   return { fontFamily, fontSize };
 }

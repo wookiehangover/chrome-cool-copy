@@ -76,17 +76,17 @@ function parseAgentDBConfig(stored: JSONObject | undefined): AgentDBConfig | und
 function parseAIGatewayConfig(stored: JSONObject | undefined): VercelAIGatewayConfig | undefined {
   if (!stored) return undefined;
 
-  const apiKey = readStoredString(stored.apiKey);
-  const model = readStoredString(stored.model);
-  return apiKey && model ? { apiKey, model } : undefined;
+  return {
+    apiKey: readStoredString(stored.apiKey) || "",
+    model: readStoredString(stored.model) || DEFAULT_MODEL,
+  };
 }
 
 function parseClipsServerConfig(stored: JSONObject | undefined): ClipsServerConfig | undefined {
   if (!stored) return undefined;
 
   const baseUrl = readStoredString(stored.baseUrl);
-  const apiToken = readStoredString(stored.apiToken);
-  return baseUrl && apiToken !== undefined ? { baseUrl, apiToken } : undefined;
+  return baseUrl ? { baseUrl, apiToken: readStoredString(stored.apiToken) || "" } : undefined;
 }
 
 function readDatabaseType(value: string): AgentDBConfig["dbType"] {
