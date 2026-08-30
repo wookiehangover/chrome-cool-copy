@@ -18,9 +18,82 @@ import {
 import { generateElementSummary } from "../services/element-ai-summary";
 import { generateElementTitleAndDescription } from "../services/element-ai-service";
 import { initAssetStore, saveAsset, getAssetAsDataUrl } from "../services/asset-store";
-import type { ElementClip, LocalClip } from "@repo/shared";
+import type { ElementClip } from "@repo/shared";
 import { parseJSONObject } from "@repo/shared/utils";
 import type { HandlerMap } from "./types";
+import { z } from "zod";
+
+const requiredString = z.string().min(1);
+const clipIdMessageSchema = z.object({ clipId: requiredString });
+const mediaAssetSchema = z.object({
+  type: z.enum(["image", "video", "background"]),
+  assetId: z.string().optional(),
+  originalSrc: z.string(),
+  alt: z.string().optional(),
+});
+const elementMetadataSchema = z.object({
+  tagName: z.string(),
+  role: z.string().optional(),
+  boundingBox: z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() }),
+  classNames: z.array(z.string()),
+  dataAttributes: z.record(z.string(), z.string()),
+});
+const elementClipInputSchema = z.object({
+  url: requiredString,
+  pageTitle: z.string(),
+  selector: z.string(),
+  domStructure: z.string(),
+  scopedStyles: z.string(),
+  textContent: z.string(),
+  markdownContent: z.string(),
+  structuredData: z
+    .object({
+      jsonLd: z.array(z.record(z.string(), z.json())).optional(),
+      microdata: z
+        .array(
+          z.object({
+            itemtype: z.string().optional(),
+            properties: z.record(z.string(), z.array(z.string())),
+          }),
+        )
+        .optional(),
+      openGraph: z.record(z.string(), z.string()).optional(),
+      ariaAttributes: z.record(z.string(), z.array(z.string())).optional(),
+    })
+    .optional(),
+  mediaAssets: z.array(mediaAssetSchema),
+  elementMeta: elementMetadataSchema,
+});
+const structuredBlobSchema = z.object({
+  data: z.instanceof(ArrayBuffer),
+  type: z.string().optional(),
+});
+const imageBlobSchema = z.union([z.instanceof(Blob), structuredBlobSchema]).optional();
+const clipUpdateSchema = z.object({
+  title: z.string().optional(),
+  dom_content: z.string().optional(),
+  text_content: z.string().optional(),
+  metadata: z.record(z.string(), z.json()).optional(),
+  sync_status: z.enum(["pending", "synced", "error", "local-only"]).optional(),
+  sync_error: z.string().optional(),
+  agentdb_id: z.string().optional(),
+  share_id: z.string().optional(),
+  pageTitle: z.string().optional(),
+  selector: z.string().optional(),
+  domStructure: z.string().optional(),
+  scopedStyles: z.string().optional(),
+  textContent: z.string().optional(),
+  markdownContent: z.string().optional(),
+  screenshotAssetId: z.string().optional(),
+  mediaAssets: z.array(mediaAssetSchema).optional(),
+  elementMeta: elementMetadataSchema.optional(),
+  aiSummary: z.string().optional(),
+  aiSummaryStatus: z.enum(["pending", "complete", "error"]).optional(),
+  aiTitle: z.string().optional(),
+  aiDescription: z.string().optional(),
+  syncStatus: z.enum(["pending", "synced", "error", "local-only"]).optional(),
+  updatedAt: z.string().optional(),
+});
 
 /**
  * Wait for a tab to finish loading with a timeout
@@ -95,16 +168,21 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
       const message = _message;
       (async () => {
         try {
-          const metadataText = JSON.stringify(message.metadata ?? {});
+          const page = z
+            .object({
+              url: requiredString,
+              title: z.string(),
+              domContent: z.string(),
+              textContent: z.string(),
+              metadata: z.json().optional(),
+            })
+            .parse(message);
+          const metadataText = JSON.stringify(page.metadata ?? {});
           const clipInput = {
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            url: message.url as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            title: message.title as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            dom_content: message.domContent as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            text_content: message.textContent as string,
+            url: page.url,
+            title: page.title,
+            dom_content: page.domContent,
+            text_content: page.textContent,
             metadata: parseJSONObject(metadataText ?? "{}") ?? {},
           };
 
@@ -142,15 +220,9 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     clipElement: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const clipData = message.data as ElementClip;
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const screenshotDataUrl = message.screenshotDataUrl as string | undefined;
-          // SAFETY: clipElement messages carry either a browser Blob or its structured-clone representation.
-          const imageBlob = message.imageBlob as
-            | Blob
-            | { data?: ArrayBuffer; type?: string }
-            | undefined;
+          const clipData = elementClipInputSchema.parse(message.data);
+          const screenshotDataUrl = z.string().optional().parse(message.screenshotDataUrl);
+          const imageBlob = imageBlobSchema.parse(message.imageBlob);
 
           const now = new Date().toISOString();
           const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -166,27 +238,19 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
             }
           }
 
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
           let mediaAssets = clipData.mediaAssets;
           if (imageBlob && mediaAssets.length > 0) {
             try {
-              // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-              let imageBlobToSave: Blob = imageBlob as Blob;
-              if (!(imageBlob instanceof Blob)) {
-                // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-                const blobLike = imageBlob as { data?: ArrayBuffer; type?: string };
-                // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-                imageBlobToSave = new Blob([blobLike.data || (imageBlob as ArrayBuffer)], {
-                  type: blobLike.type || "image/png",
-                });
-              }
+              const imageBlobToSave =
+                imageBlob instanceof Blob
+                  ? imageBlob
+                  : new Blob([imageBlob.data], { type: imageBlob.type || "image/png" });
 
               const imageAssetId = await saveAsset(
                 clipId,
                 "image",
                 imageBlobToSave,
-                // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-                mediaAssets[0].originalSrc as string,
+                mediaAssets[0].originalSrc,
               );
               console.log("[Background] Image saved to IndexedDB:", imageAssetId);
 
@@ -199,26 +263,17 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
           const elementClip: ElementClip = {
             id: clipId,
             type: "element" as const,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            url: clipData.url as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            pageTitle: clipData.pageTitle as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            selector: clipData.selector as string,
+            url: clipData.url,
+            pageTitle: clipData.pageTitle,
+            selector: clipData.selector,
             screenshotAssetId: screenshotAssetId,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            domStructure: clipData.domStructure as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            scopedStyles: clipData.scopedStyles as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            textContent: clipData.textContent as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            markdownContent: clipData.markdownContent as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
+            domStructure: clipData.domStructure,
+            scopedStyles: clipData.scopedStyles,
+            textContent: clipData.textContent,
+            markdownContent: clipData.markdownContent,
             structuredData: clipData.structuredData,
             mediaAssets,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            elementMeta: clipData.elementMeta as ElementClip["elementMeta"],
+            elementMeta: clipData.elementMeta,
             aiSummary: undefined,
             aiSummaryStatus: "pending" as const,
             createdAt: now,
@@ -227,9 +282,7 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
           };
 
           const clips = await getLocalClips();
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const mutableClips: Array<(typeof clips)[number] | ElementClip> = clips;
-          mutableClips.push(elementClip);
+          clips.push(elementClip);
           await chrome.storage.local.set({ local_clips: clips });
 
           console.log("[Background] Element clip saved:", elementClip.id);
@@ -300,8 +353,8 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     checkExistingClip: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const existingClip = await isUrlClipped(message.url as string);
+          const url = requiredString.parse(message.url);
+          const existingClip = await isUrlClipped(url);
           sendResponse({ success: true, clip: existingClip });
         } catch (error) {
           console.error("[Clean Link Copy] Error checking clip:", error);
@@ -317,12 +370,19 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     addHighlight: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          const highlight = await addHighlight(
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            message.clipId as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            message.highlight as Parameters<typeof addHighlight>[1],
-          );
+          const input = z
+            .object({
+              clipId: requiredString,
+              highlight: z.object({
+                text: z.string(),
+                color: z.string().default("yellow"),
+                note: z.string().optional(),
+                startOffset: z.number().default(0),
+                endOffset: z.number().default(0),
+              }),
+            })
+            .parse(message);
+          const highlight = await addHighlight(input.clipId, input.highlight);
           sendResponse({ success: true, highlight });
         } catch (error) {
           console.error("[Clean Link Copy] Error adding highlight:", error);
@@ -338,14 +398,10 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     updateHighlightNote: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          await updateHighlightNote(
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            message.clipId as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            message.highlightId as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            message.note as string,
-          );
+          const input = z
+            .object({ clipId: requiredString, highlightId: requiredString, note: z.string() })
+            .parse(message);
+          await updateHighlightNote(input.clipId, input.highlightId, input.note);
           sendResponse({ success: true });
         } catch (error) {
           console.error("[Clean Link Copy] Error updating highlight:", error);
@@ -361,8 +417,10 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     deleteHighlight: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          await deleteHighlight(message.clipId as string, message.highlightId as string);
+          const input = z
+            .object({ clipId: requiredString, highlightId: requiredString })
+            .parse(message);
+          await deleteHighlight(input.clipId, input.highlightId);
           sendResponse({ success: true });
         } catch (error) {
           console.error("[Clean Link Copy] Error deleting highlight:", error);
@@ -378,12 +436,12 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     updateClipContent: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const result = await updateLocalClip(message.clipId as string, {
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            dom_content: message.domContent as string,
-            // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-            text_content: message.textContent as string,
+          const input = z
+            .object({ clipId: requiredString, domContent: z.string(), textContent: z.string() })
+            .parse(message);
+          const result = await updateLocalClip(input.clipId, {
+            dom_content: input.domContent,
+            text_content: input.textContent,
           });
           if (result) {
             sendResponse({ success: true });
@@ -405,8 +463,7 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
       (async () => {
         let tabId: number | undefined;
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const { clipId } = message as { clipId: string };
+          const { clipId } = clipIdMessageSchema.parse(message);
           const clip = await getLocalClip(clipId);
           if (!clip) {
             sendResponse({ success: false, error: "Clip not found" });
@@ -480,9 +537,9 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     },
 
     openClipViewer: (message, _sender, _sendResponse) => {
+      const { clipId } = clipIdMessageSchema.parse(message);
       const viewerUrl = chrome.runtime.getURL(
-        // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-        `viewer/index.html#/viewer/${encodeURIComponent(message.clipId as string)}`,
+        `viewer/index.html#/viewer/${encodeURIComponent(clipId)}`,
       );
       chrome.tabs.create({ url: viewerUrl });
       return false;
@@ -507,8 +564,7 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     getLocalClip: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const { clipId } = message as { clipId: string };
+          const { clipId } = clipIdMessageSchema.parse(message);
           if (!clipId) {
             throw new Error("Clip ID is required");
           }
@@ -528,8 +584,7 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     deleteClipWithSync: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const { clipId } = message as { clipId: string };
+          const { clipId } = clipIdMessageSchema.parse(message);
           if (!clipId) {
             throw new Error("Clip ID is required");
           }
@@ -581,17 +636,18 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     syncSingleClip: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const { clipId, generateShare = false } = message as {
-            clipId: string;
-            generateShare?: boolean;
-          };
+          const { clipId, generateShare = false } = z
+            .object({ clipId: requiredString, generateShare: z.boolean().optional() })
+            .parse(message);
           if (!clipId) {
             throw new Error("Clip ID is required");
           }
           const clip = await getLocalClip(clipId);
           if (!clip) {
             throw new Error("Clip not found");
+          }
+          if ("type" in clip) {
+            throw new Error("Element clips cannot be synced to AgentDB");
           }
           await syncClipToAgentDB(clip, generateShare);
           const updatedClip = await getLocalClip(clipId);
@@ -626,11 +682,9 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     updateLocalClip: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const { clipId, updates } = message as {
-            clipId: string;
-            updates: Partial<LocalClip & ElementClip>;
-          };
+          const { clipId, updates } = z
+            .object({ clipId: requiredString, updates: clipUpdateSchema })
+            .parse(message);
           if (!clipId) {
             throw new Error("Clip ID is required");
           }
@@ -650,8 +704,7 @@ export function createClipsHandlers(dependencies: ClipsHandlerDependencies): Han
     getClipAsset: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning clip service establish this payload shape before persistence.
-          const { assetId } = message as { assetId: string };
+          const { assetId } = z.object({ assetId: requiredString }).parse(message);
           if (!assetId) {
             throw new Error("Asset ID is required");
           }

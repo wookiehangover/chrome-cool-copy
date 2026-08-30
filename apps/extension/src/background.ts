@@ -10,6 +10,7 @@ import { tools } from "./tools/browse";
 import { createBoostTools } from "./tools/boost-tools";
 import { getBoostSystemPrompt } from "@repo/shared";
 import type { StreamTextRequest, StreamMessageType } from "@repo/shared";
+import { z } from "zod";
 import {
   clipsHandlers,
   boostsHandlers,
@@ -19,6 +20,29 @@ import {
   boostDrafts,
   getAIGateway,
 } from "./handlers";
+
+const streamTextRequestSchema: z.ZodType<StreamTextRequest> = z.object({
+  action: z.literal("streamText"),
+  messages: z.array(
+    z.object({ role: z.enum(["system", "user", "assistant"]), content: z.string() }),
+  ),
+  system: z.string().optional(),
+  toolChoice: z.enum(["auto", "none", "required"]).optional(),
+  enableTools: z.boolean().optional(),
+  maxSteps: z.number().int().positive().optional(),
+  providerOptions: z.record(z.string(), z.record(z.string(), z.json().optional())).optional(),
+  model: z.string().optional(),
+  maxOutputTokens: z.number().optional(),
+  temperature: z.number().optional(),
+  topP: z.number().optional(),
+  topK: z.number().optional(),
+  presencePenalty: z.number().optional(),
+  frequencyPenalty: z.number().optional(),
+  stopSequences: z.array(z.string()).optional(),
+  seed: z.number().optional(),
+  maxRetries: z.number().optional(),
+  headers: z.record(z.string(), z.string().optional()).optional(),
+});
 import type { HandlerMap } from "./handlers";
 
 // =============================================================================
@@ -197,8 +221,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     // Dispatch to domain-specific handler modules
-    // SAFETY: the registered Chrome action establishes the shared request or tool contract before this use.
-    const handler = handlers[message.action as string];
+    const action = z.string().safeParse(message.action);
+    const handler = action.success ? handlers[action.data] : undefined;
     if (handler) {
       return handler(message, sender, sendResponse);
     }
@@ -326,8 +350,7 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (message) => {
     if (message.action !== "streamText") return;
 
-    // SAFETY: the registered Chrome action establishes the shared request or tool contract before this use.
-    const request = message as StreamTextRequest;
+    const request = streamTextRequestSchema.parse(message);
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {
@@ -442,8 +465,7 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (message) => {
     if (message.action !== "streamText") return;
 
-    // SAFETY: the registered Chrome action establishes the shared request or tool contract before this use.
-    const request = message as StreamTextRequest;
+    const request = streamTextRequestSchema.parse(message);
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {

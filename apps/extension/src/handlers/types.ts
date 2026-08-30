@@ -6,10 +6,14 @@
 type ChromeMessageListener = Parameters<typeof chrome.runtime.onMessage.addListener>[0];
 export type BrowserMessage = Parameters<ChromeMessageListener>[0];
 export type BrowserResponse = Parameters<Parameters<ChromeMessageListener>[2]>[0];
+export interface HandlerSender {
+  id?: string;
+  tab?: Pick<chrome.tabs.Tab, "id">;
+}
 
 export type MessageHandler = (
   message: BrowserMessage,
-  sender: chrome.runtime.MessageSender,
+  sender: HandlerSender,
   sendResponse: (response?: BrowserResponse) => void,
 ) => boolean;
 

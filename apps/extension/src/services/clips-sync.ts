@@ -5,6 +5,7 @@
 
 import { nanoid } from "nanoid";
 import type { AgentDBConfig, LocalClip } from "@repo/shared";
+import { z } from "zod";
 import { generateClipId, parseJSONObject } from "@repo/shared/utils";
 import {
   getPendingClips,
@@ -22,6 +23,14 @@ import {
   getWebpagesBatch,
   getWebpagesCount,
 } from "./database";
+
+const agentDBConfigSchema: z.ZodType<AgentDBConfig> = z.object({
+  baseUrl: z.string().min(1),
+  apiKey: z.string().min(1),
+  token: z.string().min(1),
+  dbName: z.string().min(1),
+  dbType: z.enum(["sqlite", "duckdb"]).optional(),
+});
 import { deleteClipAssets } from "./asset-store";
 
 /**
@@ -38,13 +47,8 @@ export async function isAgentDBConfigured(): Promise<boolean> {
 export async function getAgentDBConfig(): Promise<AgentDBConfig | null> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["agentdbConfig"], (result) => {
-      // SAFETY: the owning AgentDB or Chrome storage contract establishes this persisted value shape.
-      const config = result.agentdbConfig as AgentDBConfig | undefined;
-      if (config?.baseUrl && config?.apiKey && config?.token && config?.dbName) {
-        resolve(config);
-      } else {
-        resolve(null);
-      }
+      const config = agentDBConfigSchema.safeParse(result.agentdbConfig);
+      resolve(config.success ? config.data : null);
     });
   });
 }
@@ -204,7 +208,7 @@ export async function deleteClipWithSync(
 
   let agentdbDeleted = false;
 
-  if (clip?.agentdb_id && clip.sync_status === "synced") {
+  if (clip && !("type" in clip) && clip.agentdb_id && clip.sync_status === "synced") {
     try {
       await deleteFromAgentDB(clip.agentdb_id);
       agentdbDeleted = true;
@@ -303,8 +307,7 @@ export async function syncFromAgentDB(): Promise<{
               dom_content: "",
               text_content: webpage.text_content,
               metadata,
-              // SAFETY: the owning AgentDB or Chrome storage contract establishes this persisted value shape.
-              highlights: highlights as any,
+              highlights,
               sync_status: "synced",
               share_id: webpage.share_id ?? undefined,
               created_at: webpage.created_at || webpage.captured_at || new Date().toISOString(),

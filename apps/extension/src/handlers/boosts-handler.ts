@@ -1,13 +1,11 @@
 import {
   getBoosts,
-  // SAFETY: the Chrome action and owning service contract establish this field shape before use.
   saveBoost as persistBoost,
   toggleBoost,
   deleteBoost,
   updateBoost,
   getBoostsForDomain,
 } from "../services/boosts";
-import type { Boost } from "@repo/shared";
 import type { HandlerMap } from "./types";
 import { z } from "zod";
 
@@ -15,6 +13,27 @@ interface BoostExecutionResult {
   success: boolean;
   result?: string;
   error?: string;
+}
+
+const requiredString = z.string().min(1);
+const boostFieldsSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  domain: z.string(),
+  code: z.string(),
+  enabled: z.boolean(),
+  runMode: z.enum(["auto", "manual"]),
+  chatHistory: z.array(z.json()).optional(),
+});
+const boostUpdatesSchema = boostFieldsSchema.partial();
+
+function parseRequiredString(
+  value: string | number | boolean | null | undefined,
+  errorMessage: string,
+): string {
+  const parsed = requiredString.safeParse(value);
+  if (!parsed.success) throw new Error(errorMessage);
+  return parsed.data;
 }
 
 declare global {
@@ -112,7 +131,6 @@ export function createBoostHandlers(dependencies: BoostHandlerDependencies): Han
       }
 
       try {
-        // SAFETY: the Chrome action and owning service contract establish this field shape before use.
         const content = z.string().safeParse(message.content);
         if (!content.success) {
           throw new Error("Content must be a string");
@@ -202,11 +220,7 @@ export function createBoostHandlers(dependencies: BoostHandlerDependencies): Han
     saveBoost: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning service contract establish this field shape before use.
-          const { action: _action, ...payload } = message as { action?: string } & Omit<
-            Boost,
-            "id" | "createdAt" | "updatedAt"
-          >;
+          const payload = boostFieldsSchema.parse(message);
           const boost = await persistBoost(payload);
           console.log("[Boosts] Boost saved successfully:", boost.id);
           sendResponse({ success: true, boost });
@@ -224,8 +238,7 @@ export function createBoostHandlers(dependencies: BoostHandlerDependencies): Han
     toggleBoost: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning service contract establish this field shape before use.
-          const { id } = message as { id: string };
+          const id = parseRequiredString(message.id, "Boost ID is required");
           if (!id) {
             throw new Error("Boost ID is required");
           }
@@ -245,8 +258,7 @@ export function createBoostHandlers(dependencies: BoostHandlerDependencies): Han
     deleteBoost: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning service contract establish this field shape before use.
-          const { id } = message as { id: string };
+          const id = parseRequiredString(message.id, "Boost ID is required");
           if (!id) {
             throw new Error("Boost ID is required");
           }
@@ -266,8 +278,9 @@ export function createBoostHandlers(dependencies: BoostHandlerDependencies): Han
     updateBoost: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning service contract establish this field shape before use.
-          const { id, updates } = message as { id: string; updates: Partial<Boost> };
+          const { id, updates } = z
+            .object({ id: requiredString, updates: boostUpdatesSchema })
+            .parse(message);
           if (!id) {
             throw new Error("Boost ID is required");
           }
@@ -301,8 +314,9 @@ export function createBoostHandlers(dependencies: BoostHandlerDependencies): Han
             return;
           }
 
-          // SAFETY: the Chrome action and owning service contract establish this field shape before use.
-          const { boostId, id } = message as { boostId?: string; id?: string };
+          const { boostId, id } = z
+            .object({ boostId: requiredString.optional(), id: requiredString.optional() })
+            .parse(message);
           const boostIdToUse = boostId || id;
           if (!boostIdToUse) {
             throw new Error("Boost ID is required");
@@ -330,8 +344,7 @@ export function createBoostHandlers(dependencies: BoostHandlerDependencies): Han
     getBoostsForDomain: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning service contract establish this field shape before use.
-          const { hostname } = message as { hostname: string };
+          const hostname = parseRequiredString(message.hostname, "Hostname is required");
           if (!hostname) {
             throw new Error("Hostname is required");
           }
@@ -351,8 +364,7 @@ export function createBoostHandlers(dependencies: BoostHandlerDependencies): Han
     getAutoBoosts: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the Chrome action and owning service contract establish this field shape before use.
-          const { domain } = message as { domain: string };
+          const domain = parseRequiredString(message.domain, "Domain is required");
           if (!domain) {
             throw new Error("Domain is required");
           }

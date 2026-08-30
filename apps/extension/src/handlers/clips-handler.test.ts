@@ -151,6 +151,8 @@ describe("Clips Handlers", () => {
       expect(mockAddHighlight).toHaveBeenCalledWith("clip-123", {
         text: "highlighted text",
         color: "yellow",
+        startOffset: 0,
+        endOffset: 0,
       });
     });
 

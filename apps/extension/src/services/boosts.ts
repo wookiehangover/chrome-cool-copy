@@ -4,18 +4,30 @@
  */
 
 import type { Boost } from "@repo/shared";
+import { z } from "zod";
 
 export type { Boost } from "@repo/shared";
 
 const STORAGE_KEY = "boosts";
+const boostSchema: z.ZodType<Boost> = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  domain: z.string(),
+  code: z.string(),
+  enabled: z.boolean(),
+  runMode: z.enum(["auto", "manual"]),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  chatHistory: z.array(z.json()).optional(),
+});
 
 /**
  * Get all boosts
  */
 export async function getBoosts(): Promise<Boost[]> {
   const result = await chrome.storage.local.get([STORAGE_KEY]);
-  // SAFETY: the boosts key is exclusively written by this service as Boost entries.
-  const boosts = (result[STORAGE_KEY] as Boost[] | undefined) || [];
+  const boosts = z.array(boostSchema).default([]).parse(result[STORAGE_KEY]);
   return boosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 

@@ -5,12 +5,22 @@
  */
 
 import type { ClipAsset } from "@repo/shared/types";
+import { z } from "zod";
 
 const DB_NAME = "clip-assets";
 const STORE_NAME = "assets";
 const DB_VERSION = 1;
 
 let db: IDBDatabase | null = null;
+const clipAssetSchema: z.ZodType<ClipAsset> = z.object({
+  id: z.string(),
+  clipId: z.string(),
+  type: z.enum(["screenshot", "image", "video", "background"]),
+  mimeType: z.string(),
+  data: z.instanceof(Blob),
+  originalUrl: z.string().optional(),
+  createdAt: z.string(),
+});
 
 /**
  * Initialize the IndexedDB database for asset storage
@@ -30,9 +40,8 @@ export async function initAssetStore(): Promise<void> {
       resolve();
     };
 
-    request.onupgradeneeded = (event) => {
-      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
-      const database = (event.target as IDBOpenDBRequest).result;
+    request.onupgradeneeded = () => {
+      const database = request.result;
 
       // Create object store with keyPath 'id'
       if (!database.objectStoreNames.contains(STORE_NAME)) {
@@ -110,8 +119,7 @@ export async function getAsset(assetId: string): Promise<Blob | null> {
     };
 
     request.onsuccess = () => {
-      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
-      const asset = request.result as ClipAsset | undefined;
+      const asset = clipAssetSchema.nullish().parse(request.result);
       resolve(asset ? asset.data : null);
     };
   });
@@ -131,11 +139,9 @@ export async function getAssetAsDataUrl(assetId: string): Promise<string | null>
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
-      resolve(reader.result as string);
+      resolve(z.string().parse(reader.result));
     };
     reader.onerror = () => {
-      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
       reject(new Error("Failed to read asset as data URL"));
     };
     reader.readAsDataURL(blob);
@@ -162,8 +168,7 @@ export async function deleteClipAssets(clipId: string): Promise<void> {
     };
 
     request.onsuccess = () => {
-      // SAFETY: the IndexedDB or FileReader callback guarantees this result type after successful completion.
-      const assets = request.result as ClipAsset[];
+      const assets = z.array(clipAssetSchema).parse(request.result);
       let deleteCount = 0;
 
       if (assets.length === 0) {

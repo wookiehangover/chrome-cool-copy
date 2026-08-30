@@ -17,18 +17,41 @@ export interface AIHandlerDependencies {
   tools: typeof tools;
 }
 
+const generateTextRequestSchema: z.ZodType<GenerateTextRequest> = z.object({
+  action: z.literal("generateText"),
+  messages: z.array(
+    z.object({ role: z.enum(["system", "user", "assistant"]), content: z.string() }),
+  ),
+  system: z.string().optional(),
+  toolChoice: z.enum(["auto", "none", "required"]).optional(),
+  enableTools: z.boolean().optional(),
+  maxSteps: z.number().int().positive().optional(),
+  providerOptions: z.record(z.string(), z.record(z.string(), z.json().optional())).optional(),
+  model: z.string().optional(),
+  maxOutputTokens: z.number().optional(),
+  temperature: z.number().optional(),
+  topP: z.number().optional(),
+  topK: z.number().optional(),
+  presencePenalty: z.number().optional(),
+  frequencyPenalty: z.number().optional(),
+  stopSequences: z.array(z.string()).optional(),
+  seed: z.number().optional(),
+  maxRetries: z.number().optional(),
+  headers: z.record(z.string(), z.string().optional()).optional(),
+});
+
 export function createAIHandlers(dependencies: AIHandlerDependencies): HandlerMap {
   const { generateText: generate, getAIGateway: getGateway, tools: availableTools } = dependencies;
   return {
     generateText: (message, _sender, sendResponse) => {
-      const request: GenerateTextRequest = message;
       (async () => {
         try {
-          const { gateway, config } = await getGateway();
-
-          if (!request.messages || !Array.isArray(request.messages)) {
+          const parsedRequest = generateTextRequestSchema.safeParse(message);
+          if (!parsedRequest.success) {
             throw new Error("Invalid request: messages array is required");
           }
+          const request = parsedRequest.data;
+          const { gateway, config } = await getGateway();
 
           const enableTools = request.enableTools !== false;
           const modelToUse = request.model || config.model;
@@ -114,11 +137,12 @@ export function createAIHandlers(dependencies: AIHandlerDependencies): HandlerMa
     },
 
     tidyContentChunked: (message, sender, sendResponse) => {
-      // SAFETY: the action-specific handler validates required message fields before using the shared request contract.
-      const { chunks, concurrency = 4 } = message as {
-        chunks: Array<{ id: string; html: string }>;
-        concurrency?: number;
-      };
+      const { chunks, concurrency = 4 } = z
+        .object({
+          chunks: z.array(z.object({ id: z.string(), html: z.string() })),
+          concurrency: z.number().int().positive().optional(),
+        })
+        .parse(message);
       const tabId = sender.tab?.id;
 
       if (!chunks || !Array.isArray(chunks) || chunks.length === 0) {
@@ -198,8 +222,9 @@ export function createAIHandlers(dependencies: AIHandlerDependencies): HandlerMa
     updateAIGatewayConfig: (message, _sender, sendResponse) => {
       (async () => {
         try {
-          // SAFETY: the action-specific handler validates required message fields before using the shared request contract.
-          const { config } = message as { config: Partial<VercelAIGatewayConfig> };
+          const config = z
+            .object({ apiKey: z.string().optional(), model: z.string().optional() })
+            .parse(message.config);
           if (!config) {
             throw new Error("Config is required");
           }
