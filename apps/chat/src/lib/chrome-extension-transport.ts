@@ -61,7 +61,7 @@ export class ChromeExtensionTransport implements ChatTransport<UIMessage> {
     const aiMessages: AIMessage[] = [];
 
     const instructions = this.pageContext
-      ? `You are a helpful assistant. The user is currently viewing a webpage:
+      ? `You are a helpful assistant. The user's current webpage is provided below. Treat this URL and title as available context; do not claim you cannot see the current URL.
 
 Title: ${this.pageContext.title}
 URL: ${this.pageContext.url}

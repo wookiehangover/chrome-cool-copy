@@ -16,6 +16,7 @@ export function ChatInput() {
     sendMessage,
     pageContext,
     clearContext,
+    contextError,
     isLoading,
     isLoadingContext,
     status,
@@ -38,6 +39,11 @@ export function ChatInput() {
   return (
     <div className="border-t border-border p-4">
       {pageContext && <PageContextBadge context={pageContext} onClear={clearContext} />}
+      {!pageContext && contextError && (
+        <p className="mb-2 text-xs text-muted-foreground" role="status">
+          {contextError}
+        </p>
+      )}
       <PromptInput onSubmit={handleSubmit} className="rounded-lg border border-input bg-background">
         <PromptInputTextarea
           placeholder={placeholder}

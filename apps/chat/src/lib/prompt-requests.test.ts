@@ -61,6 +61,8 @@ describe("AI prompt requests", () => {
       new ChromeExtensionTransport({ pageContext: { title: "Page", url: "https://example.com" } }),
     );
     expect(request.instructions).toContain("Title: Page\nURL: https://example.com");
+    expect(request.instructions.match(/https:\/\/example\.com/g)).toHaveLength(1);
+    expect(request.instructions).toContain("do not claim you cannot see the current URL");
     expect(request.messages).not.toContainEqual(expect.objectContaining({ role: "system" }));
   });
 

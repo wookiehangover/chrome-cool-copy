@@ -30,6 +30,7 @@ interface ChatContextValue {
   // Page context
   pageContext: PageContext | null;
   isLoadingContext: boolean;
+  contextError: string | null;
   clearContext: () => void;
 
   // Session management
@@ -69,7 +70,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const { selectedModel, setSelectedModel } = useModelSelection();
 
   // Page context from the active tab
-  const { pageContext, isLoading: isLoadingContext, clearContext } = usePageContext();
+  const { pageContext, isLoading: isLoadingContext, contextError, clearContext } = usePageContext();
 
   // Conversation store for persistence
   const {
@@ -128,6 +129,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     isReasoningStreaming,
     pageContext,
     isLoadingContext,
+    contextError,
     clearContext,
     currentSession,
     sessions,
