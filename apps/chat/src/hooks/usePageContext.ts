@@ -23,14 +23,15 @@ export function usePageContext(): UsePageContextReturn {
     try {
       const [tab] = await chrome.tabs.query(ACTIVE_TAB_QUERY);
       if (!tab?.id || !tab.url) {
-        activeTabIdRef.current = tab?.id ?? null;
         if (requestId === requestIdRef.current) {
+          activeTabIdRef.current = tab?.id ?? null;
           setPageContext(null);
           setContextError("Page context is unavailable for this tab.");
         }
         return;
       }
 
+      if (requestId !== requestIdRef.current) return;
       activeTabIdRef.current = tab.id;
       let context: PageContext = { url: tab.url, title: tab.title || tab.url };
 

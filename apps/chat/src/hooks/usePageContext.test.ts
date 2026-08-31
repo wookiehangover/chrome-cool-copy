@@ -11,13 +11,19 @@ interface PageContextResponse {
   success: boolean;
   context?: { url: string; title: string };
 }
+type TabMetadata = { id?: number; url?: string; title?: string };
 
-const query =
-  vi.fn<
-    (
-      queryInfo: chrome.tabs.QueryInfo,
-    ) => Promise<Array<{ id?: number; url?: string; title?: string }>>
-  >();
+function createDeferred<T>() {
+  let resolve: (value: T) => void = (_value) => {
+    throw new Error("Deferred promise was not initialized");
+  };
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
+const query = vi.fn<(queryInfo: chrome.tabs.QueryInfo) => Promise<TabMetadata[]>>();
 const sendMessage =
   vi.fn<(tabId: number, message: PageContextRequest) => Promise<PageContextResponse>>();
 let updatedListener: UpdatedListener;
@@ -88,6 +94,29 @@ describe("usePageContext", () => {
     act(() => activatedListener({ tabId: 3, windowId: 1 }));
     expect(result.current.pageContext).toBeNull();
     await waitFor(() => expect(result.current.pageContext?.title).toBe("Three"));
+  });
+
+  it("ignores an obsolete query that resolves after a tab activation", async () => {
+    const initialQuery = createDeferred<TabMetadata[]>();
+    query
+      .mockReturnValueOnce(initialQuery.promise)
+      .mockResolvedValueOnce([{ id: 2, url: "https://two.example", title: "Two" }])
+      .mockResolvedValueOnce([{ id: 2, url: "https://two.example/next", title: "Two next" }]);
+    sendMessage.mockRejectedValue(new Error("no content script"));
+    const { result } = renderHook(() => usePageContext());
+
+    act(() => activatedListener({ tabId: 2, windowId: 1 }));
+    await waitFor(() => expect(result.current.pageContext?.title).toBe("Two"));
+
+    await act(async () => {
+      initialQuery.resolve([{ id: 1, url: "https://one.example", title: "One" }]);
+      await initialQuery.promise;
+    });
+
+    // SAFETY: The hook only reads the event's tab ID and change info; the tab payload is unused.
+    act(() => updatedListener(2, { url: "https://two.example/next" }, {} as chrome.tabs.Tab));
+    await waitFor(() => expect(result.current.pageContext?.title).toBe("Two next"));
+    expect(query).toHaveBeenCalledTimes(3);
   });
 
   it("keeps manually cleared context absent until the page changes", async () => {
