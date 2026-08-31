@@ -5,7 +5,7 @@ interface LegacyAIMessage {
   content: string;
 }
 
-interface PromptRequest {
+export interface PromptRequest {
   instructions?: string;
   system?: string;
   messages: LegacyAIMessage[];

@@ -5,13 +5,13 @@ if (!("process" in globalThis)) {
   Object.assign(globalThis, { process: { env: {} } });
 }
 
-import { streamText, stepCountIs } from "ai";
+import { streamText } from "ai";
 import { tools } from "./tools/browse";
 import { createBoostTools } from "./tools/boost-tools";
 import { getBoostSystemPrompt } from "@repo/shared";
 import type { StreamMessageType } from "@repo/shared";
 import { z } from "zod";
-import { normalizeAIRequest } from "./handlers/normalize-ai-request";
+import { startStreamingRequest } from "./streaming-request";
 import {
   clipsHandlers,
   boostsHandlers,
@@ -353,7 +353,6 @@ chrome.runtime.onConnect.addListener((port) => {
     if (message.action !== "streamText") return;
 
     const request = streamTextRequestSchema.parse(message);
-    const prompt = normalizeAIRequest(request);
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {
@@ -371,29 +370,12 @@ chrome.runtime.onConnect.addListener((port) => {
 
       const defaultProviderOptions = getDefaultProviderOptions(modelToUse);
 
-      const result = streamText({
+      const result = startStreamingRequest({
+        stream: streamText,
         model: gateway(modelToUse),
-        messages: prompt.messages,
-        ...(prompt.instructions && { instructions: prompt.instructions }),
-        temperature: request.temperature,
-        maxOutputTokens: request.maxOutputTokens,
-        topP: request.topP,
-        topK: request.topK,
-        presencePenalty: request.presencePenalty,
-        frequencyPenalty: request.frequencyPenalty,
-        stopSequences: request.stopSequences,
-        seed: request.seed,
-        maxRetries: request.maxRetries,
-        headers: request.headers,
-        stopWhen: stepCountIs(request.maxSteps ?? 5),
-        ...(enableTools && {
-          tools,
-          toolChoice: request.toolChoice ?? "auto",
-        }),
-        providerOptions: {
-          ...defaultProviderOptions,
-          ...request.providerOptions,
-        },
+        request: { ...request, enableTools },
+        tools,
+        defaultProviderOptions,
       });
 
       for await (const part of result.fullStream) {
@@ -469,7 +451,6 @@ chrome.runtime.onConnect.addListener((port) => {
     if (message.action !== "streamText") return;
 
     const request = streamTextRequestSchema.parse(message);
-    const prompt = normalizeAIRequest(request);
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {
@@ -505,34 +486,13 @@ chrome.runtime.onConnect.addListener((port) => {
 
       const defaultProviderOptions = getDefaultProviderOptions(modelToUse);
 
-      const result = streamText({
+      const result = startStreamingRequest({
+        stream: streamText,
         model: gateway(modelToUse),
-        messages: prompt.messages,
-        instructions: [
-          getBoostSystemPrompt({ url: activeTab.url, title: activeTab.title }),
-          prompt.instructions,
-        ]
-          .filter((part): part is string => part !== undefined)
-          .join("\n\n"),
-        temperature: request.temperature,
-        maxOutputTokens: request.maxOutputTokens,
-        topP: request.topP,
-        topK: request.topK,
-        presencePenalty: request.presencePenalty,
-        frequencyPenalty: request.frequencyPenalty,
-        stopSequences: request.stopSequences,
-        seed: request.seed,
-        maxRetries: request.maxRetries,
-        headers: request.headers,
-        stopWhen: stepCountIs(request.maxSteps ?? 5),
-        ...(enableTools && {
-          tools: boostTools,
-          toolChoice: request.toolChoice ?? "auto",
-        }),
-        providerOptions: {
-          ...defaultProviderOptions,
-          ...request.providerOptions,
-        },
+        request: { ...request, enableTools },
+        tools: boostTools,
+        defaultProviderOptions,
+        instructionPrefix: getBoostSystemPrompt({ url: activeTab.url, title: activeTab.title }),
       });
 
       for await (const part of result.fullStream) {
