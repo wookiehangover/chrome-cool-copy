@@ -9,8 +9,9 @@ import { streamText, stepCountIs } from "ai";
 import { tools } from "./tools/browse";
 import { createBoostTools } from "./tools/boost-tools";
 import { getBoostSystemPrompt } from "@repo/shared";
-import type { StreamTextRequest, StreamMessageType } from "@repo/shared";
+import type { StreamMessageType } from "@repo/shared";
 import { z } from "zod";
+import { normalizeAIRequest } from "./handlers/normalize-ai-request";
 import {
   clipsHandlers,
   boostsHandlers,
@@ -21,11 +22,12 @@ import {
   getAIGateway,
 } from "./handlers";
 
-const streamTextRequestSchema: z.ZodType<StreamTextRequest> = z.object({
+const streamTextRequestSchema = z.object({
   action: z.literal("streamText"),
   messages: z.array(
     z.object({ role: z.enum(["system", "user", "assistant"]), content: z.string() }),
   ),
+  instructions: z.string().optional(),
   system: z.string().optional(),
   toolChoice: z.enum(["auto", "none", "required"]).optional(),
   enableTools: z.boolean().optional(),
@@ -351,6 +353,7 @@ chrome.runtime.onConnect.addListener((port) => {
     if (message.action !== "streamText") return;
 
     const request = streamTextRequestSchema.parse(message);
+    const prompt = normalizeAIRequest(request);
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {
@@ -370,8 +373,8 @@ chrome.runtime.onConnect.addListener((port) => {
 
       const result = streamText({
         model: gateway(modelToUse),
-        messages: request.messages,
-        ...(request.system && { system: request.system }),
+        messages: prompt.messages,
+        ...(prompt.instructions && { instructions: prompt.instructions }),
         temperature: request.temperature,
         maxOutputTokens: request.maxOutputTokens,
         topP: request.topP,
@@ -466,6 +469,7 @@ chrome.runtime.onConnect.addListener((port) => {
     if (message.action !== "streamText") return;
 
     const request = streamTextRequestSchema.parse(message);
+    const prompt = normalizeAIRequest(request);
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {
@@ -503,8 +507,13 @@ chrome.runtime.onConnect.addListener((port) => {
 
       const result = streamText({
         model: gateway(modelToUse),
-        messages: request.messages,
-        system: getBoostSystemPrompt({ url: activeTab.url, title: activeTab.title }),
+        messages: prompt.messages,
+        instructions: [
+          getBoostSystemPrompt({ url: activeTab.url, title: activeTab.title }),
+          prompt.instructions,
+        ]
+          .filter((part): part is string => part !== undefined)
+          .join("\n\n"),
         temperature: request.temperature,
         maxOutputTokens: request.maxOutputTokens,
         topP: request.topP,

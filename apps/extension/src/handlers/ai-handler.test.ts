@@ -78,6 +78,31 @@ describe("AI Handlers", () => {
       );
     });
 
+    it("passes explicit and legacy system content only as instructions", async () => {
+      mockGetAIGateway.mockResolvedValue({
+        gateway: vi.fn((model: string) => ({ model })),
+        config: { apiKey: "key", model: "default-model" },
+      });
+      mockGenerateText.mockResolvedValue({ text: "ok", usage: null });
+
+      await callHandler("generateText", {
+        action: "generateText",
+        instructions: "explicit",
+        messages: [
+          { role: "system", content: "legacy one" },
+          { role: "user", content: "Hi" },
+          { role: "system", content: "legacy two" },
+        ],
+      });
+
+      expect(mockGenerateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          instructions: "explicit\n\nlegacy one\n\nlegacy two",
+          messages: [{ role: "user", content: "Hi" }],
+        }),
+      );
+    });
+
     it("should return error when messages is missing", async () => {
       mockGetAIGateway.mockResolvedValue({
         gateway: vi.fn(),

@@ -1,6 +1,5 @@
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 import type { StreamTextRequest, AIMessage } from "@repo/shared";
-import { boostSystemPrompt } from "@repo/shared";
 
 interface BoostTransportOptions {
   domain: string;
@@ -49,15 +48,9 @@ export class BoostTransport implements ChatTransport<UIMessage> {
     // Build messages array for AI request
     const aiMessages: AIMessage[] = [];
 
-    // Add boost system prompt
-    aiMessages.push({
-      role: "system",
-      content: boostSystemPrompt,
-    });
-
     // Convert UIMessage[] to AIMessage format
     for (const msg of messages) {
-      if (msg.role === "system" || msg.role === "user" || msg.role === "assistant") {
+      if (msg.role === "user" || msg.role === "assistant") {
         const textContent = msg.parts
           .filter((part): part is { type: "text"; text: string } => part.type === "text")
           .map((part) => part.text)

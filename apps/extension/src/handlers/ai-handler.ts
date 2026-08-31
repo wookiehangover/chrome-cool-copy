@@ -7,9 +7,10 @@ import {
   stripCodeFences,
 } from "./ai-gateway";
 import type { VercelAIGatewayConfig } from "./ai-gateway";
-import type { GenerateTextRequest, GenerateTextResponse } from "@repo/shared";
+import type { GenerateTextResponse } from "@repo/shared";
 import type { HandlerMap } from "./types";
 import { z } from "zod";
+import { normalizeAIRequest } from "./normalize-ai-request";
 
 export interface AIHandlerDependencies {
   generateText: typeof generateText;
@@ -17,11 +18,12 @@ export interface AIHandlerDependencies {
   tools: typeof tools;
 }
 
-const generateTextRequestSchema: z.ZodType<GenerateTextRequest> = z.object({
+const generateTextRequestSchema = z.object({
   action: z.literal("generateText"),
   messages: z.array(
     z.object({ role: z.enum(["system", "user", "assistant"]), content: z.string() }),
   ),
+  instructions: z.string().optional(),
   system: z.string().optional(),
   toolChoice: z.enum(["auto", "none", "required"]).optional(),
   enableTools: z.boolean().optional(),
@@ -51,6 +53,7 @@ export function createAIHandlers(dependencies: AIHandlerDependencies): HandlerMa
             throw new Error("Invalid request: messages array is required");
           }
           const request = parsedRequest.data;
+          const prompt = normalizeAIRequest(request);
           const { gateway, config } = await getGateway();
 
           const enableTools = request.enableTools !== false;
@@ -58,8 +61,8 @@ export function createAIHandlers(dependencies: AIHandlerDependencies): HandlerMa
 
           const result = await generate({
             model: gateway(modelToUse),
-            messages: request.messages,
-            ...(request.system && { system: request.system }),
+            messages: prompt.messages,
+            ...(prompt.instructions && { instructions: prompt.instructions }),
             temperature: request.temperature ?? 0.7,
             maxOutputTokens: request.maxOutputTokens ?? 2000,
             topP: request.topP,
