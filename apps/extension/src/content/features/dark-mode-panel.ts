@@ -236,9 +236,10 @@ function handleExclusionClick(event: MouseEvent): void {
   if (!exclusionPickerActive) return;
 
   // Ignore clicks on overlay or panel
+  const target = event.target;
   if (
-    exclusionPickerOverlay?.contains(event.target as Node) ||
-    panelElement?.contains(event.target as Node)
+    target instanceof Node &&
+    (exclusionPickerOverlay?.contains(target) || panelElement?.contains(target))
   ) {
     return;
   }

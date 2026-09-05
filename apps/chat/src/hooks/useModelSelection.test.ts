@@ -5,14 +5,6 @@ import { mockStorage } from "../test/setup";
 
 const mockSendMessage = vi.fn();
 
-vi.mock("@repo/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@repo/shared")>();
-  return {
-    ...actual,
-    sendMessage: (...args: unknown[]) => mockSendMessage(...args),
-  };
-});
-
 import { useModelSelection } from "./useModelSelection";
 
 describe("useModelSelection", () => {
@@ -22,14 +14,14 @@ describe("useModelSelection", () => {
   });
 
   it("loads stored model and sends update message when model changes", async () => {
-    const storedModel: ModelId = "openai/gpt-5.5";
+    const storedModel: ModelId = "anthropic/claude-sonnet-4.6";
     const nextModel: ModelId = "google/gemini-3.5-flash";
 
     mockStorage.sync.get.mockImplementation((_keys, callback) => {
       callback({ aiGatewayConfig: { model: storedModel } });
     });
 
-    const { result } = renderHook(() => useModelSelection());
+    const { result } = renderHook(() => useModelSelection(mockSendMessage));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -50,19 +42,19 @@ describe("useModelSelection", () => {
 
   it("migrates a deprecated stored model to its replacement and persists it", async () => {
     mockStorage.sync.get.mockImplementation((_keys, callback) => {
-      callback({ aiGatewayConfig: { model: "anthropic/claude-opus-4.7" } });
+      callback({ aiGatewayConfig: { model: "openai/gpt-5.5" } });
     });
 
-    const { result } = renderHook(() => useModelSelection());
+    const { result } = renderHook(() => useModelSelection(mockSendMessage));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.selectedModel).toBe("anthropic/claude-opus-4.8");
+    expect(result.current.selectedModel).toBe("openai/gpt-5.6-sol");
     expect(mockSendMessage).toHaveBeenCalledWith({
       action: "updateAIGatewayConfig",
-      config: { model: "anthropic/claude-opus-4.8" },
+      config: { model: "openai/gpt-5.6-sol" },
     });
   });
 
@@ -71,12 +63,16 @@ describe("useModelSelection", () => {
       callback({ aiGatewayConfig: { model: "acme/legacy-model" } });
     });
 
-    const { result } = renderHook(() => useModelSelection());
+    const { result } = renderHook(() => useModelSelection(mockSendMessage));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.selectedModel).toBe("anthropic/claude-opus-4.8");
+    expect(result.current.selectedModel).toBe("openai/gpt-5.6-sol");
+    expect(mockSendMessage).toHaveBeenCalledWith({
+      action: "updateAIGatewayConfig",
+      config: { model: "openai/gpt-5.6-sol" },
+    });
   });
 });

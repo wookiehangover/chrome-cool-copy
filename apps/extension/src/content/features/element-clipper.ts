@@ -47,7 +47,8 @@ export async function captureElementClip(element: Element): Promise<ElementClipD
     const structuredData = extractStructuredData(element);
 
     // 4. Extract text content and convert to markdown
-    const textContent = (element as HTMLElement).innerText || element.textContent || "";
+    const renderedText = element instanceof HTMLElement ? element.innerText : "";
+    const textContent = renderedText || element.textContent || "";
     const markdownContent = convertToMarkdown(element.innerHTML);
 
     // 5. Collect media assets and detect single-image element
@@ -176,13 +177,13 @@ async function detectAndDownloadSingleImage(element: Element): Promise<Blob | un
     let imgElement: HTMLImageElement | null = null;
 
     // Check if element itself is an img tag
-    if (element.tagName.toLowerCase() === "img") {
-      imgElement = element as HTMLImageElement;
+    if (element instanceof HTMLImageElement) {
+      imgElement = element;
     } else {
       // Check if element contains exactly one img descendant
       const images = element.querySelectorAll("img");
       if (images.length === 1) {
-        imgElement = images[0] as HTMLImageElement;
+        imgElement = images.item(0);
       }
     }
 

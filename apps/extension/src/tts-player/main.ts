@@ -13,20 +13,43 @@ import {
   checkTTSServerAvailable,
   type StreamingTTSResult,
 } from "@repo/shared/tts";
+import { z } from "zod";
+
+function getElement<T extends Element>(id: string, constructor: { new (): T }): T {
+  const element = document.getElementById(id);
+  if (!(element instanceof constructor)) {
+    throw new Error(`Expected #${id} to be a ${constructor.name}`);
+  }
+  return element;
+}
+
+const pendingTTSSchema = z.object({
+  text: z.string(),
+  title: z.string(),
+  url: z.string(),
+  timestamp: z.number(),
+});
+
+const syncStorageSchema = z.object({ tts_url: z.string().optional() });
+const localStorageSchema = z.object({
+  tts_pending_text: pendingTTSSchema.optional(),
+  tts_url: z.string().optional(),
+  "clips-tts-url": z.string().optional(),
+});
 
 // DOM elements
-const pageTitleEl = document.getElementById("page-title") as HTMLSpanElement;
-const errorDialog = document.getElementById("error-dialog") as HTMLDivElement;
-const errorCloseBtn = document.getElementById("error-close-btn") as HTMLButtonElement;
-const streamingOverlay = document.getElementById("streaming-overlay") as HTMLDivElement;
-const statusText = document.getElementById("status-text") as HTMLSpanElement;
-const volumeIcon = document.getElementById("volume-icon") as unknown as SVGElement;
-const audioPlayer = document.getElementById("audio-player") as HTMLAudioElement;
-const playPauseBtn = document.getElementById("play-pause-btn") as HTMLButtonElement;
-const playIcon = document.getElementById("play-icon") as unknown as SVGElement;
-const pauseIcon = document.getElementById("pause-icon") as unknown as SVGElement;
-const stopBtn = document.getElementById("stop-btn") as HTMLButtonElement;
-const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
+const pageTitleEl = getElement("page-title", HTMLSpanElement);
+const errorDialog = getElement("error-dialog", HTMLDivElement);
+const errorCloseBtn = getElement("error-close-btn", HTMLButtonElement);
+const streamingOverlay = getElement("streaming-overlay", HTMLDivElement);
+const statusText = getElement("status-text", HTMLSpanElement);
+const volumeIcon = getElement("volume-icon", SVGSVGElement);
+const audioPlayer = getElement("audio-player", HTMLAudioElement);
+const playPauseBtn = getElement("play-pause-btn", HTMLButtonElement);
+const playIcon = getElement("play-icon", SVGSVGElement);
+const pauseIcon = getElement("pause-icon", SVGSVGElement);
+const stopBtn = getElement("stop-btn", HTMLButtonElement);
+const saveBtn = getElement("save-btn", HTMLButtonElement);
 
 // State
 let isStreaming = false;
@@ -249,16 +272,13 @@ async function init(): Promise<void> {
     ]);
 
     // tts_pending_text is an object: { text, title, url, timestamp }
-    const pendingData = localResult.tts_pending_text as
-      | { text: string; title: string; url: string; timestamp: number }
-      | undefined;
+    const syncData = syncStorageSchema.parse(syncResult);
+    const localData = localStorageSchema.parse(localResult);
+    const pendingData = localData.tts_pending_text;
     const text = pendingData?.text;
     pageTitle = pendingData?.title || "TTS Player";
     const ttsUrl =
-      (syncResult.tts_url as string) ||
-      (localResult.tts_url as string) ||
-      (localResult["clips-tts-url"] as string) ||
-      DEFAULT_TTS_URL;
+      syncData.tts_url || localData.tts_url || localData["clips-tts-url"] || DEFAULT_TTS_URL;
 
     // Update page title
     pageTitleEl.textContent = pageTitle;

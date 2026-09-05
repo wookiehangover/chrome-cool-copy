@@ -87,8 +87,8 @@ export function buildPageClipPayload(): PageClipPayload {
 /**
  * Helper to send a toast for clipping errors
  */
-export function handleClipError(error: unknown): void {
-  const errorMessage = error instanceof Error ? error.message : String(error);
+export function handleClipError(error: Error): void {
+  const errorMessage = error.message;
   console.error("[Clean Link Copy] Clip error:", errorMessage);
   showToast("Error: " + errorMessage);
 }

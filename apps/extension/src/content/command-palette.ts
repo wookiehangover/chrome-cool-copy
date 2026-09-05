@@ -17,13 +17,24 @@ let currentSearchQuery = "";
 // Storage key for command usage timestamps
 const COMMAND_USAGE_TIMESTAMPS_KEY = "command_usage_timestamps";
 
+interface CommandUsageTimestamps {
+  [commandId: string]: number;
+}
+
 /**
  * Load command usage timestamps from storage
  */
 async function loadCommandUsageTimestamps(): Promise<Record<string, number>> {
   return new Promise((resolve) => {
     chrome.storage.local.get([COMMAND_USAGE_TIMESTAMPS_KEY], (result) => {
-      resolve((result[COMMAND_USAGE_TIMESTAMPS_KEY] as Record<string, number>) || {});
+      const timestamps: CommandUsageTimestamps = {};
+      const stored = result[COMMAND_USAGE_TIMESTAMPS_KEY];
+      if (stored && Object(stored) === stored && !Array.isArray(stored)) {
+        for (const [commandId, timestamp] of Object.entries(stored)) {
+          if (Number.isFinite(timestamp)) timestamps[commandId] = Number(timestamp);
+        }
+      }
+      resolve(timestamps);
     });
   });
 }
@@ -175,9 +186,8 @@ function renderCommandPalette(): void {
   const dialog = document.getElementById("command-palette-dialog");
   if (!dialog) return;
 
-  const commandList = dialog.querySelector("#command-palette-list") as HTMLElement;
-
-  if (!commandList) return;
+  const commandList = dialog.querySelector("#command-palette-list");
+  if (!(commandList instanceof HTMLElement)) return;
 
   // Clear and rebuild command list
   commandList.innerHTML = "";
@@ -251,8 +261,12 @@ export async function openCommandPalette(): Promise<void> {
   injectStyles();
 
   // Create dialog if it doesn't exist
-  let dialog = document.getElementById("command-palette-dialog") as HTMLDialogElement | null;
-  if (!dialog) {
+  const existingDialog = document.getElementById("command-palette-dialog");
+  let dialog: HTMLDialogElement;
+  if (existingDialog instanceof HTMLDialogElement) {
+    dialog = existingDialog;
+  } else {
+    existingDialog?.remove();
     dialog = document.createElement("dialog");
     dialog.id = "command-palette-dialog";
     document.body.appendChild(dialog);
@@ -269,11 +283,17 @@ export async function openCommandPalette(): Promise<void> {
     <div id="command-palette-list" class="command-palette-list"></div>
   `;
 
-  const searchInput = dialog.querySelector("#command-palette-search") as HTMLInputElement;
+  const searchInput = dialog.querySelector("#command-palette-search");
+  if (!(searchInput instanceof HTMLInputElement)) {
+    dialog.remove();
+    commandPaletteOpen = false;
+    throw new Error("Command palette search input was not created");
+  }
 
   // Handle search input
   searchInput.addEventListener("input", async (e) => {
-    const query = (e.target as HTMLInputElement).value;
+    if (!(e.currentTarget instanceof HTMLInputElement)) return;
+    const query = e.currentTarget.value;
     currentSearchQuery = query;
     filteredCommands = await filterCommands(query);
     selectedCommandIndex = 0;
@@ -323,8 +343,8 @@ export async function openCommandPalette(): Promise<void> {
  */
 export function closeCommandPalette(): void {
   commandPaletteOpen = false;
-  const dialog = document.getElementById("command-palette-dialog") as HTMLDialogElement | null;
-  if (dialog) {
+  const dialog = document.getElementById("command-palette-dialog");
+  if (dialog instanceof HTMLDialogElement) {
     dialog.close();
     dialog.remove();
   }

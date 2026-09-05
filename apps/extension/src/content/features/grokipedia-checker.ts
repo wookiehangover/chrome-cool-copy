@@ -78,7 +78,7 @@ function setCachedResult(title: string, exists: boolean): void {
  * @returns Promise<boolean> - true if page exists, false otherwise
  */
 export async function checkGrokipediaPageExists(articleTitle: string): Promise<boolean> {
-  if (!articleTitle || typeof articleTitle !== "string") {
+  if (!articleTitle) {
     return false;
   }
 

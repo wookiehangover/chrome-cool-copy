@@ -8,10 +8,13 @@ import {
 } from "./storage.js";
 
 describe("storage utilities", () => {
-  let store: Record<string, unknown>;
+  type StorageValue = string | number | boolean | null | object;
+  type StorageData = Record<string, StorageValue>;
+
+  let store: StorageData;
   const local = {
-    get: vi.fn(),
-    set: vi.fn(),
+    get: vi.fn<(keys: string[], callback: (result: StorageData | undefined) => void) => void>(),
+    set: vi.fn<(items: StorageData, callback: () => void) => void>(),
     remove: vi.fn(),
     clear: vi.fn(),
   };
@@ -24,8 +27,8 @@ describe("storage utilities", () => {
     local.clear.mockReset();
 
     local.get.mockImplementation(
-      (keys: string[], callback: (result: Record<string, unknown>) => void) => {
-        const result: Record<string, unknown> = {};
+      (keys: string[], callback: (result: StorageData | undefined) => void) => {
+        const result: StorageData = {};
         keys.forEach((key) => {
           if (key in store) {
             result[key] = store[key];
@@ -35,7 +38,7 @@ describe("storage utilities", () => {
       },
     );
 
-    local.set.mockImplementation((items: Record<string, unknown>, callback: () => void) => {
+    local.set.mockImplementation((items: StorageData, callback: () => void) => {
       Object.assign(store, items);
       callback();
     });
@@ -88,9 +91,11 @@ describe("storage utilities", () => {
   });
 
   it("returns an empty object when chrome storage get returns undefined", async () => {
-    local.get.mockImplementationOnce((_keys: string[], callback: (result: unknown) => void) => {
-      callback(undefined);
-    });
+    local.get.mockImplementationOnce(
+      (_keys: string[], callback: (result: StorageData | undefined) => void) => {
+        callback(undefined);
+      },
+    );
 
     await expect(getStorageItems(["x"])).resolves.toEqual({});
   });

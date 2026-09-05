@@ -5,6 +5,7 @@
 
 import { generateText, createGateway } from "ai";
 import type { ElementClip } from "@repo/shared";
+import { z } from "zod";
 
 /**
  * Vercel AI Gateway configuration interface
@@ -13,6 +14,10 @@ interface VercelAIGatewayConfig {
   apiKey: string;
   model: string;
 }
+const gatewayConfigSchema: z.ZodType<VercelAIGatewayConfig> = z.object({
+  apiKey: z.string().min(1),
+  model: z.string().min(1),
+});
 
 /**
  * Get AI Gateway configuration from chrome.storage.sync
@@ -20,12 +25,8 @@ interface VercelAIGatewayConfig {
 async function getAIGatewayConfig(): Promise<VercelAIGatewayConfig | null> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
-      const config = result.aiGatewayConfig as VercelAIGatewayConfig | undefined;
-      if (config?.apiKey && config?.model) {
-        resolve(config);
-      } else {
-        resolve(null);
-      }
+      const config = gatewayConfigSchema.safeParse(result.aiGatewayConfig);
+      resolve(config.success ? config.data : null);
     });
   });
 }

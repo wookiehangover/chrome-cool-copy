@@ -8,4 +8,3 @@
     "convert": "xcrun safari-web-extension-converter dist --project-location . --bundle-identifier dev.sambreed.cool-copy-extension --force"
   }
 }
-

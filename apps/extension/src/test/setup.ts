@@ -5,11 +5,24 @@
 
 import { vi } from "vitest";
 
+export type TestValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | TestValue[]
+  | { [key: string]: TestValue };
+
+export interface TestRecord {
+  [key: string]: TestValue;
+}
+
 // Type for message listener callback
 type MessageListener = (
-  message: unknown,
+  message: TestValue,
   sender: chrome.runtime.MessageSender,
-  sendResponse: (response?: unknown) => void,
+  sendResponse: (response?: TestValue) => void,
 ) => boolean | void;
 
 // Store registered message listeners for testing
@@ -29,6 +42,7 @@ const mockRuntime = {
       }
     }),
   },
+  // SAFETY: The mutable mock starts empty and tests may assign Chrome's LastError shape.
   lastError: null as chrome.runtime.LastError | null,
   getURL: vi.fn((path: string) => `chrome-extension://test-id/${path}`),
 };
@@ -81,7 +95,7 @@ const mockChrome = {
 vi.stubGlobal("chrome", mockChrome);
 
 // Mock IndexedDB for testing
-const mockIDBStore: Record<string, Record<string, unknown>> = {};
+const mockIDBStore: Record<string, Record<string, TestRecord>> = {};
 
 class MockIDBDatabase {
   objectStoreNames = new Set<string>();
@@ -115,20 +129,20 @@ class MockIDBObjectStore {
     return this.indexMap.get(name) || new MockIDBIndex(name, "", this.storeName);
   }
 
-  add(value: unknown) {
-    const obj = value as Record<string, unknown>;
-    const key = obj[this.keyPath] as string;
+  add(value: TestRecord) {
+    const obj = value;
+    const key = String(obj[this.keyPath]);
     mockIDBStore[this.storeName][key] = obj;
     return new MockIDBRequest(true, key);
   }
 
   get(key: IDBValidKey) {
-    const result = mockIDBStore[this.storeName]?.[key as string] || null;
+    const result = mockIDBStore[this.storeName]?.[String(key)] || null;
     return new MockIDBRequest(true, result);
   }
 
   delete(key: IDBValidKey) {
-    const keyStr = key as string;
+    const keyStr = String(key);
     if (mockIDBStore[this.storeName] && mockIDBStore[this.storeName][keyStr]) {
       delete mockIDBStore[this.storeName][keyStr];
     }
@@ -149,8 +163,7 @@ class MockIDBIndex {
 
   getAll(query?: IDBValidKey | IDBKeyRange) {
     const store = mockIDBStore[this.storeName] || {};
-    const results = Object.values(store).filter((item: unknown) => {
-      const obj = item as Record<string, unknown>;
+    const results = Object.values(store).filter((obj) => {
       // If query is provided, filter by the index's keyPath
       if (query !== undefined) {
         return obj[this.keyPath] === query;
@@ -176,17 +189,17 @@ class MockIDBTransaction {
 }
 
 class MockIDBRequest {
-  result: unknown;
+  result: TestValue | TestRecord | TestRecord[] | MockIDBDatabase;
   error: DOMException | null = null;
-  onsuccess: ((this: IDBRequest, ev: Event) => unknown) | null = null;
-  onerror: ((this: IDBRequest, ev: Event) => unknown) | null = null;
+  onsuccess: ((this: MockIDBRequest, ev: Event) => void) | null = null;
+  onerror: ((this: MockIDBRequest, ev: Event) => void) | null = null;
 
-  constructor(success: boolean, result: unknown) {
+  constructor(success: boolean, result: TestValue | TestRecord | TestRecord[] | MockIDBDatabase) {
     this.result = result;
     // Schedule callback to be called after constructor completes
     if (success) {
       Promise.resolve().then(() => {
-        this.onsuccess?.call(this as unknown as IDBRequest, new Event("success"));
+        this.onsuccess?.call(this, new Event("success"));
       });
     }
   }
@@ -214,9 +227,9 @@ export function resetChromeMocks(): void {
 
 // Helper to simulate a message being sent and get the response
 export function simulateMessage(
-  message: unknown,
+  message: TestValue,
   sender: Partial<chrome.runtime.MessageSender> = {},
-): Promise<unknown> {
+): Promise<TestValue> {
   return new Promise((resolve) => {
     const fullSender: chrome.runtime.MessageSender = {
       id: "test-extension-id",
@@ -224,7 +237,7 @@ export function simulateMessage(
     };
 
     for (const listener of messageListeners) {
-      const sendResponse = (response?: unknown) => {
+      const sendResponse = (response?: TestValue) => {
         resolve(response);
       };
       const result = listener(message, fullSender, sendResponse);
@@ -239,9 +252,9 @@ export function simulateMessage(
 }
 
 // Helper to mock chrome.runtime.sendMessage responses
-export function mockSendMessageResponse(response: unknown): void {
+export function mockSendMessageResponse(response: TestValue): void {
   mockRuntime.sendMessage.mockImplementation(
-    (message: unknown, callback?: (response: unknown) => void) => {
+    (_message: TestValue, callback?: (response: TestValue) => void) => {
       if (callback) {
         callback(response);
       }

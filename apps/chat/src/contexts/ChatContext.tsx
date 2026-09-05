@@ -5,6 +5,7 @@ import { useConversationStore } from "@/hooks/useConversationStore";
 import { usePageContext } from "@/hooks/usePageContext";
 import type { PageContext, ModelId } from "@repo/shared";
 import { getRandomStrategy } from "@/constants/oblique-strategies";
+import { useModelSelection } from "@/hooks/useModelSelection";
 
 interface ChatContextValue {
   // Input state
@@ -29,6 +30,7 @@ interface ChatContextValue {
   // Page context
   pageContext: PageContext | null;
   isLoadingContext: boolean;
+  contextError: string | null;
   clearContext: () => void;
 
   // Session management
@@ -65,10 +67,10 @@ interface ChatProviderProps {
 export function ChatProvider({ children }: ChatProviderProps) {
   const [input, setInput] = useState("");
   const [showSessionList, setShowSessionList] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelId>("anthropic/claude-opus-4.8");
+  const { selectedModel, setSelectedModel } = useModelSelection();
 
   // Page context from the active tab
-  const { pageContext, isLoading: isLoadingContext, clearContext } = usePageContext();
+  const { pageContext, isLoading: isLoadingContext, contextError, clearContext } = usePageContext();
 
   // Conversation store for persistence
   const {
@@ -127,6 +129,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     isReasoningStreaming,
     pageContext,
     isLoadingContext,
+    contextError,
     clearContext,
     currentSession,
     sessions,

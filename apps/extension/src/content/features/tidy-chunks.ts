@@ -88,17 +88,17 @@ export function wrapContentInChunks(
     container.appendChild(chunkDiv);
 
     // Attach event listeners
-    const tidyBtn = controls.querySelector('[data-action="tidy"]') as HTMLButtonElement;
-    const removeBtn = controls.querySelector('[data-action="remove"]') as HTMLButtonElement;
+    const tidyBtn = controls.querySelector('[data-action="tidy"]');
+    const removeBtn = controls.querySelector('[data-action="remove"]');
 
-    if (tidyBtn && onTidyClick) {
+    if (tidyBtn instanceof HTMLButtonElement && onTidyClick) {
       tidyBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         onTidyClick(chunk.id);
       });
     }
 
-    if (removeBtn) {
+    if (removeBtn instanceof HTMLButtonElement) {
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         removeChunk(container, chunk.id);
@@ -118,7 +118,8 @@ export function findChunk(
   root: HTMLElement | ShadowRoot | Document,
   chunkId: string,
 ): HTMLElement | null {
-  return root.querySelector(`[data-tidy-chunk="${chunkId}"]`) as HTMLElement | null;
+  const chunk = root.querySelector(`[data-tidy-chunk="${chunkId}"]`);
+  return chunk instanceof HTMLElement ? chunk : null;
 }
 
 /**
@@ -159,9 +160,9 @@ export function setChunkLoading(
   chunk.classList.add("loading");
 
   // Disable buttons during loading
-  const buttons = chunk.querySelectorAll(".tidy-chunk-btn") as NodeListOf<HTMLButtonElement>;
+  const buttons = chunk.querySelectorAll(".tidy-chunk-btn");
   buttons.forEach((btn) => {
-    btn.disabled = true;
+    if (btn instanceof HTMLButtonElement) btn.disabled = true;
   });
 
   return true;
@@ -207,9 +208,9 @@ export function setChunkComplete(
   chunk.classList.remove("loading");
 
   // Re-enable buttons
-  const buttons = chunk.querySelectorAll(".tidy-chunk-btn") as NodeListOf<HTMLButtonElement>;
+  const buttons = chunk.querySelectorAll(".tidy-chunk-btn");
   buttons.forEach((btn) => {
-    btn.disabled = false;
+    if (btn instanceof HTMLButtonElement) btn.disabled = false;
   });
 
   return true;
@@ -265,9 +266,9 @@ export function clearAllLoadingStates(root: HTMLElement | ShadowRoot | Document)
     chunk.classList.remove("loading");
 
     // Re-enable buttons
-    const buttons = chunk.querySelectorAll(".tidy-chunk-btn") as NodeListOf<HTMLButtonElement>;
+    const buttons = chunk.querySelectorAll(".tidy-chunk-btn");
     buttons.forEach((btn) => {
-      btn.disabled = false;
+      if (btn instanceof HTMLButtonElement) btn.disabled = false;
     });
   });
 }
@@ -326,7 +327,8 @@ export function removeChunkUI(container: HTMLElement): void {
  */
 export function getCleanedContent(container: HTMLElement): string {
   // Clone the container so we don't modify the original
-  const clone = container.cloneNode(true) as HTMLElement;
+  const clone = container.cloneNode(true);
+  if (!(clone instanceof HTMLElement)) throw new Error("Cloned tidy content is not an element");
 
   // Remove all chunk controls
   const controls = clone.querySelectorAll(".tidy-chunk-controls");

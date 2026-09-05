@@ -89,7 +89,8 @@ const SELECTORS = {
  */
 function extractAuthor(tweetElement: Element): TweetAuthor {
   const userNameContainer = tweetElement.querySelector(SELECTORS.userName);
-  const avatar = tweetElement.querySelector(SELECTORS.userAvatar) as HTMLImageElement | null;
+  const avatarCandidate = tweetElement.querySelector(SELECTORS.userAvatar);
+  const avatar = avatarCandidate instanceof HTMLImageElement ? avatarCandidate : null;
 
   let name = "";
   let handle = "";
@@ -135,7 +136,7 @@ function extractText(tweetElement: Element): string {
 /**
  * Extract timestamp information
  */
-function extractTimestamp(tweetElement: Element): { display: string | null; iso: string | null } {
+function extractTimestamp(tweetElement: Element) {
   const timeElement = tweetElement.querySelector(SELECTORS.timestamp);
   if (!timeElement) return { display: null, iso: null };
 
@@ -154,29 +155,29 @@ function extractMedia(tweetElement: Element): TweetMedia[] {
   // Extract images
   const photos = tweetElement.querySelectorAll('[data-testid="tweetPhoto"] img');
   for (const img of photos) {
-    const imgElement = img as HTMLImageElement;
+    if (!(img instanceof HTMLImageElement)) continue;
     media.push({
       type: "image",
-      url: imgElement.src,
-      alt: imgElement.alt || undefined,
+      url: img.src,
+      alt: img.alt || undefined,
     });
   }
 
   // Extract videos
   const videos = tweetElement.querySelectorAll('[data-testid="videoPlayer"] video');
   for (const video of videos) {
-    const videoElement = video as HTMLVideoElement;
+    if (!(video instanceof HTMLVideoElement)) continue;
     media.push({
       type: "video",
-      url: videoElement.src || "",
-      thumbnailUrl: videoElement.poster || undefined,
+      url: video.src || "",
+      thumbnailUrl: video.poster || undefined,
     });
   }
 
   // Check for GIFs (often in video elements but marked differently)
   const gifs = tweetElement.querySelectorAll('[data-testid="videoPlayer"][aria-label*="GIF"]');
   for (const gif of gifs) {
-    const videoEl = gif.querySelector("video") as HTMLVideoElement | null;
+    const videoEl = gif.querySelector("video");
     if (videoEl && !media.some((m) => m.url === videoEl.src)) {
       media.push({
         type: "gif",

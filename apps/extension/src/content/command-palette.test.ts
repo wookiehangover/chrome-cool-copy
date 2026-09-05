@@ -8,10 +8,11 @@ import { resetChromeMocks, mockStorage } from "../test/setup.js";
 import { openCommandPalette, closeCommandPalette, registerCommands } from "./command-palette.js";
 import type { Command } from "./commands.js";
 
-// Mock the toast module
-vi.mock("./toast.js", () => ({
-  showToast: vi.fn(),
-}));
+function getSearchInput(): HTMLInputElement {
+  const input = document.getElementById("command-palette-search");
+  if (!(input instanceof HTMLInputElement)) throw new Error("Command palette input not found");
+  return input;
+}
 
 describe("Command Palette", () => {
   beforeEach(() => {
@@ -34,6 +35,7 @@ describe("Command Palette", () => {
   });
 
   afterEach(() => {
+    closeCommandPalette();
     // Clean up any remaining dialogs
     const dialog = document.getElementById("command-palette-dialog");
     if (dialog) {
@@ -58,8 +60,10 @@ describe("Command Palette", () => {
 
       await openCommandPalette();
 
-      const dialog = document.getElementById("command-palette-dialog") as HTMLDialogElement;
-      expect(dialog).toBeTruthy();
+      const dialog = document.getElementById("command-palette-dialog");
+      expect(dialog).toBeInstanceOf(HTMLDialogElement);
+      if (!(dialog instanceof HTMLDialogElement))
+        throw new Error("Command palette dialog not found");
       expect(dialog.tagName).toBe("DIALOG");
       expect(dialog.innerHTML).toContain("command-palette-search");
     });
@@ -127,17 +131,15 @@ describe("Command Palette", () => {
       await openCommandPalette();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const searchInput = document.getElementById("command-palette-search") as HTMLInputElement;
-      if (searchInput) {
-        searchInput.value = "copy";
-        searchInput.dispatchEvent(new Event("input"));
+      const searchInput = getSearchInput();
+      searchInput.value = "copy";
+      searchInput.dispatchEvent(new Event("input"));
 
-        // Wait for async filtering
-        await new Promise((resolve) => setTimeout(resolve, 20));
+      // Wait for async filtering
+      await new Promise((resolve) => setTimeout(resolve, 20));
 
-        const items = document.querySelectorAll(".command-palette-item");
-        expect(items.length).toBe(2);
-      }
+      const items = document.querySelectorAll(".command-palette-item");
+      expect(items.length).toBe(2);
     });
 
     it("should support fuzzy search", async () => {
@@ -158,16 +160,14 @@ describe("Command Palette", () => {
       await openCommandPalette();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const searchInput = document.getElementById("command-palette-search") as HTMLInputElement;
-      if (searchInput) {
-        searchInput.value = "cpy";
-        searchInput.dispatchEvent(new Event("input"));
+      const searchInput = getSearchInput();
+      searchInput.value = "cpy";
+      searchInput.dispatchEvent(new Event("input"));
 
-        await new Promise((resolve) => setTimeout(resolve, 20));
+      await new Promise((resolve) => setTimeout(resolve, 20));
 
-        const items = document.querySelectorAll(".command-palette-item");
-        expect(items.length).toBe(1);
-      }
+      const items = document.querySelectorAll(".command-palette-item");
+      expect(items.length).toBe(1);
     });
   });
 
@@ -190,18 +190,15 @@ describe("Command Palette", () => {
       await openCommandPalette();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const searchInput = document.getElementById("command-palette-search") as HTMLInputElement;
-      if (searchInput) {
-        const event = new KeyboardEvent("keydown", { key: "ArrowDown" });
-        searchInput.dispatchEvent(event);
+      const searchInput = getSearchInput();
+      const event = new KeyboardEvent("keydown", { key: "ArrowDown" });
+      searchInput.dispatchEvent(event);
 
-        await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-        const items = document.querySelectorAll(".command-palette-item");
-        if (items.length > 1) {
-          expect(items[1].classList.contains("selected")).toBe(true);
-        }
-      }
+      const items = document.querySelectorAll(".command-palette-item");
+      expect(items).toHaveLength(2);
+      expect(items[1].classList.contains("selected")).toBe(true);
     });
 
     it("should execute command on Enter key", async () => {
@@ -218,15 +215,13 @@ describe("Command Palette", () => {
       await openCommandPalette();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const searchInput = document.getElementById("command-palette-search") as HTMLInputElement;
-      if (searchInput) {
-        const event = new KeyboardEvent("keydown", { key: "Enter" });
-        searchInput.dispatchEvent(event);
+      const searchInput = getSearchInput();
+      const event = new KeyboardEvent("keydown", { key: "Enter" });
+      searchInput.dispatchEvent(event);
 
-        await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-        expect(actionFn).toHaveBeenCalled();
-      }
+      expect(actionFn).toHaveBeenCalled();
     });
   });
 });

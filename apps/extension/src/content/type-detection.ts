@@ -3,7 +3,7 @@
  * @param {Element} element - The element to check
  * @returns {boolean} - True if element has significant visual styling
  */
-export function hasVisualStyling(element: Element): boolean {
+export function hasVisualStyling(element: Element | null): boolean {
   if (!element) return false;
 
   const computedStyle = window.getComputedStyle(element);
@@ -25,7 +25,9 @@ export function hasVisualStyling(element: Element): boolean {
   // Check for box-shadow or text-shadow
   const boxShadow = computedStyle.boxShadow;
   const textShadow = computedStyle.textShadow;
-  if ((boxShadow && boxShadow !== "none") || (textShadow && textShadow !== "none")) {
+  const hasShadow = (value: string) =>
+    value !== "" && value !== "none" && value !== "transparent" && value !== "rgba(0, 0, 0, 0)";
+  if (hasShadow(boxShadow) || hasShadow(textShadow)) {
     return true;
   }
 
@@ -49,12 +51,12 @@ export function hasVisualStyling(element: Element): boolean {
  * @param {Element} element - The element to analyze
  * @returns {number} - Ratio of text content to descendant elements (higher = more text-heavy)
  */
-export function calculateTextRatio(element: Element): number {
+export function calculateTextRatio(element: Element | null): number {
   if (!element) return 0;
 
   // Get total text content length (all text recursively, trimmed)
-  const htmlElement = element as HTMLElement;
-  const text = (htmlElement.innerText || element.textContent || "").trim();
+  const renderedText = element instanceof HTMLElement ? element.innerText : "";
+  const text = (renderedText || element.textContent || "").trim();
   const totalCharacters = text.length;
 
   // Count all descendant elements (not just direct children)
@@ -77,7 +79,7 @@ export function calculateTextRatio(element: Element): number {
  * @param {Element} element - The element to check
  * @returns {boolean} - True if element is text-heavy
  */
-export function isTextHeavy(element: Element): boolean {
+export function isTextHeavy(element: Element | null): boolean {
   if (!element) return false;
 
   // Don't consider elements with visual styling as text-heavy
@@ -100,7 +102,9 @@ export function isTextHeavy(element: Element): boolean {
  * @param {Element} element - The element to detect
  * @returns {string} - The element type: 'table', 'text', 'image', 'svg', or 'visual'
  */
-export function detectElementType(element: Element): "table" | "text" | "image" | "svg" | "visual" {
+export function detectElementType(
+  element: Element | null,
+): "table" | "text" | "image" | "svg" | "visual" {
   if (!element) {
     return "text";
   }

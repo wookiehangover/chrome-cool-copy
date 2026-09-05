@@ -4,16 +4,13 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createGateway as createRealGateway } from "ai";
 import { resetChromeMocks, mockStorage } from "../test/setup.js";
-
-// Mock the "ai" module before importing the module under test
-vi.mock("ai", () => ({
-  createGateway: vi.fn((opts: { apiKey: string }) => {
-    return (model: string) => ({ provider: "gateway", apiKey: opts.apiKey, model });
-  }),
-}));
+import type { JSONObject } from "@repo/shared/types";
 
 import { getAIGateway, stripCodeFences } from "./ai-gateway.js";
+
+const createGateway = vi.fn(createRealGateway);
 
 describe("AI Gateway", () => {
   beforeEach(() => {
@@ -24,46 +21,52 @@ describe("AI Gateway", () => {
     it("should return gateway and config when valid config exists", async () => {
       const validConfig = { apiKey: "test-key-123", model: "openai/gpt-4" };
       mockStorage.sync.get.mockImplementation(
-        (_keys: string[], callback: (result: Record<string, unknown>) => void) => {
+        (_keys: string[], callback: (result: JSONObject) => void) => {
           callback({ aiGatewayConfig: validConfig });
         },
       );
 
-      const result = await getAIGateway();
+      const result = await getAIGateway(createGateway);
 
       expect(result.config).toEqual(validConfig);
       expect(result.gateway).toBeDefined();
-      expect(typeof result.gateway).toBe("function");
+      expect(result.gateway).toBeInstanceOf(Function);
     });
 
     it("should throw when config is missing entirely", async () => {
       mockStorage.sync.get.mockImplementation(
-        (_keys: string[], callback: (result: Record<string, unknown>) => void) => {
+        (_keys: string[], callback: (result: JSONObject) => void) => {
           callback({});
         },
       );
 
-      await expect(getAIGateway()).rejects.toThrow("Vercel AI Gateway configuration not found");
+      await expect(getAIGateway(createGateway)).rejects.toThrow(
+        "Vercel AI Gateway configuration not found",
+      );
     });
 
     it("should throw when apiKey is missing", async () => {
       mockStorage.sync.get.mockImplementation(
-        (_keys: string[], callback: (result: Record<string, unknown>) => void) => {
+        (_keys: string[], callback: (result: JSONObject) => void) => {
           callback({ aiGatewayConfig: { apiKey: "", model: "openai/gpt-4" } });
         },
       );
 
-      await expect(getAIGateway()).rejects.toThrow("Vercel AI Gateway configuration not found");
+      await expect(getAIGateway(createGateway)).rejects.toThrow(
+        "Vercel AI Gateway configuration not found",
+      );
     });
 
     it("should throw when model is missing", async () => {
       mockStorage.sync.get.mockImplementation(
-        (_keys: string[], callback: (result: Record<string, unknown>) => void) => {
+        (_keys: string[], callback: (result: JSONObject) => void) => {
           callback({ aiGatewayConfig: { apiKey: "test-key", model: "" } });
         },
       );
 
-      await expect(getAIGateway()).rejects.toThrow("Vercel AI Gateway configuration not found");
+      await expect(getAIGateway(createGateway)).rejects.toThrow(
+        "Vercel AI Gateway configuration not found",
+      );
     });
   });
 

@@ -1,18 +1,17 @@
 // Background service worker for handling keyboard shortcuts
 
 // Polyfill process.env for Vercel AI SDK (required in Chrome extension context)
-declare const process: { env: Record<string, string | undefined> } | undefined;
-if (typeof process === "undefined") {
-  (globalThis as unknown as { process: { env: Record<string, string | undefined> } }).process = {
-    env: {},
-  };
+if (!("process" in globalThis)) {
+  Object.assign(globalThis, { process: { env: {} } });
 }
 
-import { streamText, createGateway, stepCountIs } from "ai";
+import { streamText } from "ai";
 import { tools } from "./tools/browse";
 import { createBoostTools } from "./tools/boost-tools";
 import { getBoostSystemPrompt } from "@repo/shared";
-import type { StreamTextRequest, StreamMessageType } from "@repo/shared";
+import type { StreamMessageType } from "@repo/shared";
+import { z } from "zod";
+import { startStreamingRequest } from "./streaming-request";
 import {
   clipsHandlers,
   boostsHandlers,
@@ -22,6 +21,30 @@ import {
   boostDrafts,
   getAIGateway,
 } from "./handlers";
+
+const streamTextRequestSchema = z.object({
+  action: z.literal("streamText"),
+  messages: z.array(
+    z.object({ role: z.enum(["system", "user", "assistant"]), content: z.string() }),
+  ),
+  instructions: z.string().optional(),
+  system: z.string().optional(),
+  toolChoice: z.enum(["auto", "none", "required"]).optional(),
+  enableTools: z.boolean().optional(),
+  maxSteps: z.number().int().positive().optional(),
+  providerOptions: z.record(z.string(), z.record(z.string(), z.json().optional())).optional(),
+  model: z.string().optional(),
+  maxOutputTokens: z.number().optional(),
+  temperature: z.number().optional(),
+  topP: z.number().optional(),
+  topK: z.number().optional(),
+  presencePenalty: z.number().optional(),
+  frequencyPenalty: z.number().optional(),
+  stopSequences: z.array(z.string()).optional(),
+  seed: z.number().optional(),
+  maxRetries: z.number().optional(),
+  headers: z.record(z.string(), z.string().optional()).optional(),
+});
 import type { HandlerMap } from "./handlers";
 
 // =============================================================================
@@ -200,7 +223,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     // Dispatch to domain-specific handler modules
-    const handler = handlers[message.action as string];
+    const action = z.string().safeParse(message.action);
+    const handler = action.success ? handlers[action.data] : undefined;
     if (handler) {
       return handler(message, sender, sendResponse);
     }
@@ -328,7 +352,7 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (message) => {
     if (message.action !== "streamText") return;
 
-    const request = message as StreamTextRequest;
+    const request = streamTextRequestSchema.parse(message);
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {
@@ -346,29 +370,12 @@ chrome.runtime.onConnect.addListener((port) => {
 
       const defaultProviderOptions = getDefaultProviderOptions(modelToUse);
 
-      const result = streamText({
+      const result = startStreamingRequest({
+        stream: streamText,
         model: gateway(modelToUse),
-        messages: request.messages,
-        ...(request.system && { system: request.system }),
-        temperature: request.temperature,
-        maxOutputTokens: request.maxOutputTokens,
-        topP: request.topP,
-        topK: request.topK,
-        presencePenalty: request.presencePenalty,
-        frequencyPenalty: request.frequencyPenalty,
-        stopSequences: request.stopSequences,
-        seed: request.seed,
-        maxRetries: request.maxRetries,
-        headers: request.headers,
-        stopWhen: stepCountIs(request.maxSteps ?? 5),
-        ...(enableTools && {
-          tools,
-          toolChoice: request.toolChoice ?? "auto",
-        }),
-        providerOptions: {
-          ...defaultProviderOptions,
-          ...request.providerOptions,
-        },
+        request: { ...request, enableTools },
+        tools,
+        defaultProviderOptions,
       });
 
       for await (const part of result.fullStream) {
@@ -443,7 +450,7 @@ chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (message) => {
     if (message.action !== "streamText") return;
 
-    const request = message as StreamTextRequest;
+    const request = streamTextRequestSchema.parse(message);
     const sendMessage = (msg: StreamMessageType) => port.postMessage(msg);
 
     try {
@@ -479,30 +486,14 @@ chrome.runtime.onConnect.addListener((port) => {
 
       const defaultProviderOptions = getDefaultProviderOptions(modelToUse);
 
-      const result = streamText({
+      const result = startStreamingRequest({
+        stream: streamText,
         model: gateway(modelToUse),
-        messages: request.messages,
-        system: getBoostSystemPrompt({ url: activeTab.url, title: activeTab.title }),
-        temperature: request.temperature,
-        maxOutputTokens: request.maxOutputTokens,
-        topP: request.topP,
-        topK: request.topK,
-        presencePenalty: request.presencePenalty,
-        frequencyPenalty: request.frequencyPenalty,
-        stopSequences: request.stopSequences,
-        seed: request.seed,
-        maxRetries: request.maxRetries,
-        headers: request.headers,
-        stopWhen: stepCountIs(request.maxSteps ?? 5),
-        ...(enableTools && {
-          tools: boostTools as Record<string, unknown>,
-          toolChoice: request.toolChoice ?? "auto",
-        }),
-        providerOptions: {
-          ...defaultProviderOptions,
-          ...request.providerOptions,
-        },
-      } as Parameters<typeof streamText>[0]);
+        request: { ...request, enableTools },
+        tools: boostTools,
+        defaultProviderOptions,
+        instructionPrefix: getBoostSystemPrompt({ url: activeTab.url, title: activeTab.title }),
+      });
 
       for await (const part of result.fullStream) {
         switch (part.type) {

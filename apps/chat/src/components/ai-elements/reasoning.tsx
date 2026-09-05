@@ -1,11 +1,28 @@
 "use client";
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
+
+function useControllableState<T>({
+  prop,
+  defaultProp,
+  onChange,
+}: {
+  prop: T | undefined;
+  defaultProp: T;
+  onChange?: (value: T) => void;
+}) {
+  const [uncontrolledValue, setUncontrolledValue] = useState(defaultProp);
+  const value = prop === undefined ? uncontrolledValue : prop;
+  const setValue = (nextValue: T) => {
+    if (prop === undefined) setUncontrolledValue(nextValue);
+    onChange?.(nextValue);
+  };
+  return [value, setValue] as const;
+}
 
 type ReasoningContextValue = {
   isStreaming: boolean;
@@ -157,7 +174,7 @@ export const ReasoningContent = memo(({ className, children, ...props }: Reasoni
   <CollapsibleContent
     className={cn(
       "mt-4 text-sm whitespace-pre-wrap",
-      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 text-muted-foreground outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "data-closed:fade-out-0 data-closed:slide-out-to-top-2 data-open:slide-in-from-top-2 text-muted-foreground outline-none data-closed:animate-out data-open:animate-in",
       className,
     )}
     {...props}

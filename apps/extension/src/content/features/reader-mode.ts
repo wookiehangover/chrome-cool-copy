@@ -9,7 +9,7 @@
 import { isXPage, extractXContent, type XContentResult } from "./extractors/x-extractor.js";
 import { renderXContent } from "./extractors/x-renderer.js";
 import styles from "./reader-mode.css?raw";
-import type { Highlight } from "@repo/shared";
+import { parseJSONObject, type Highlight, type JSONValue } from "@repo/shared";
 import { showToast } from "../toast.js";
 import { copyToClipboard } from "../clipboard.js";
 import {
@@ -54,6 +54,38 @@ let editToolbarContainer: HTMLElement | null = null;
 interface ReaderSettings {
   fontFamily: "sans" | "serif" | "mono";
   fontSize: number; // 14-22
+}
+
+interface SelectionShadowRoot extends ShadowRoot {
+  getSelection(): Selection | null;
+}
+
+function hasShadowSelection(root: ShadowRoot): root is SelectionShadowRoot {
+  return "getSelection" in root;
+}
+
+function readStoredString(value: JSONValue | undefined): string | undefined {
+  return Object.prototype.toString.call(value) === "[object String]" ? String(value) : undefined;
+}
+
+function readStoredStringArray(value: JSONValue | undefined): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is string => Object.prototype.toString.call(item) === "[object String]",
+  );
+}
+
+function parseReaderSettings(stored: ReturnType<typeof parseJSONObject>): ReaderSettings {
+  if (!stored) return DEFAULT_SETTINGS;
+
+  const fontFamilyValue = readStoredString(stored.fontFamily);
+  const fontFamily =
+    fontFamilyValue === "serif" || fontFamilyValue === "mono" ? fontFamilyValue : "sans";
+  const fontSizeValue = stored.fontSize;
+  const fontSize = Number.isFinite(fontSizeValue)
+    ? Math.min(22, Math.max(14, Number(fontSizeValue)))
+    : DEFAULT_SETTINGS.fontSize;
+  return { fontFamily, fontSize };
 }
 
 const DEFAULT_SETTINGS: ReaderSettings = {
@@ -170,7 +202,8 @@ async function rememberReaderModeUrl(): Promise<void> {
   try {
     const url = window.location.href;
     const result = await chrome.storage.local.get([READER_MODE_URLS_KEY]);
-    const urls = (result[READER_MODE_URLS_KEY] as string[] | undefined) || [];
+    const storedUrls = parseJSONObject(JSON.stringify({ value: result[READER_MODE_URLS_KEY] }));
+    const urls = readStoredStringArray(storedUrls?.value);
 
     if (!urls.includes(url)) {
       urls.push(url);
@@ -190,7 +223,8 @@ async function forgetReaderModeUrl(): Promise<void> {
   try {
     const url = window.location.href;
     const result = await chrome.storage.local.get([READER_MODE_URLS_KEY]);
-    const urls = (result[READER_MODE_URLS_KEY] as string[] | undefined) || [];
+    const storedUrls = parseJSONObject(JSON.stringify({ value: result[READER_MODE_URLS_KEY] }));
+    const urls = readStoredStringArray(storedUrls?.value);
 
     const index = urls.indexOf(url);
     if (index !== -1) {
@@ -209,7 +243,8 @@ async function shouldAutoEnterReaderMode(): Promise<boolean> {
   try {
     const url = window.location.href;
     const result = await chrome.storage.local.get([READER_MODE_URLS_KEY]);
-    const urls = (result[READER_MODE_URLS_KEY] as string[] | undefined) || [];
+    const storedUrls = parseJSONObject(JSON.stringify({ value: result[READER_MODE_URLS_KEY] }));
+    const urls = readStoredStringArray(storedUrls?.value);
     return urls.includes(url);
   } catch (error) {
     console.error("[Reader Mode] Failed to check URL:", error);
@@ -402,7 +437,8 @@ function generateXTitle(xResult: XContentResult): string {
  * Clone element and remove non-content elements
  */
 function cleanContent(element: Element): Element {
-  const clone = element.cloneNode(true) as Element;
+  const clone = element.cloneNode(true);
+  if (!(clone instanceof Element)) throw new Error("Cloned reader content is not an element");
 
   // Remove non-content elements
   const selectorsToRemove = [
@@ -480,14 +516,8 @@ function extractImages(content: Element): string[] {
 async function loadSettings(): Promise<ReaderSettings> {
   try {
     const result = await chrome.storage.sync.get(["readerSettings"]);
-    const stored = result.readerSettings as ReaderSettings | undefined;
-    if (stored && typeof stored === "object") {
-      return {
-        fontFamily: stored.fontFamily || DEFAULT_SETTINGS.fontFamily,
-        fontSize: stored.fontSize || DEFAULT_SETTINGS.fontSize,
-      };
-    }
-    return DEFAULT_SETTINGS;
+    const storedSettings = JSON.stringify(result.readerSettings);
+    return parseReaderSettings(storedSettings ? parseJSONObject(storedSettings) : undefined);
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -582,9 +612,11 @@ function findTextAndWrap(
 ): boolean {
   // First, try to find in a single text node (fast path)
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-  let node: Text | null;
+  let candidate: Node | null;
 
-  while ((node = walker.nextNode() as Text | null)) {
+  while ((candidate = walker.nextNode())) {
+    if (!(candidate instanceof Text)) continue;
+    const node = candidate;
     const nodeText = node.textContent || "";
     const index = nodeText.indexOf(searchText);
 
@@ -607,7 +639,9 @@ function findTextAndWrap(
   const walker2 = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let pos = 0;
 
-  while ((node = walker2.nextNode() as Text | null)) {
+  while ((candidate = walker2.nextNode())) {
+    if (!(candidate instanceof Text)) continue;
+    const node = candidate;
     const len = node.textContent?.length || 0;
     textNodes.push({ node, start: pos, end: pos + len });
     pos += len;
@@ -660,9 +694,11 @@ function findTextAndWrap(
 function wrapHighlightByOffset(container: Element, highlight: Highlight): boolean {
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
   let currentOffset = 0;
-  let node: Text | null;
+  let candidate: Node | null;
 
-  while ((node = walker.nextNode() as Text | null)) {
+  while ((candidate = walker.nextNode())) {
+    if (!(candidate instanceof Text)) continue;
+    const node = candidate;
     const nodeLength = node.textContent?.length || 0;
     const nodeStart = currentOffset;
     const nodeEnd = currentOffset + nodeLength;
@@ -1209,9 +1245,13 @@ async function createReaderModeUI(
       const shareId = response.data.share_id;
 
       // Get share server hostname from settings
-      const { shareServerHostname } = (await chrome.storage.sync.get({
+      const storedShareSettings = await chrome.storage.sync.get({
         shareServerHostname: "localhost:5173",
-      })) as { shareServerHostname: string };
+      });
+      const storedShareHostname = parseJSONObject(
+        JSON.stringify({ value: storedShareSettings.shareServerHostname }),
+      );
+      const shareServerHostname = readStoredString(storedShareHostname?.value) || "localhost:5173";
 
       // Build share URL (ensure protocol)
       const host = shareServerHostname.startsWith("http")
@@ -1305,7 +1345,7 @@ async function createReaderModeUI(
 
   // Close dropdown when clicking outside
   wrapper.addEventListener("click", (e) => {
-    if (!dropdown.contains(e.target as Node)) {
+    if (e.target instanceof Node && !dropdown.contains(e.target)) {
       dropdownMenu.classList.remove("visible");
     }
   });
@@ -1381,8 +1421,8 @@ async function createReaderModeUI(
  */
 function getSelection(): Selection | null {
   // Try shadowRoot.getSelection first (for shadow DOM)
-  if (shadowRoot && typeof (shadowRoot as any).getSelection === "function") {
-    const shadowSelection = (shadowRoot as any).getSelection();
+  if (shadowRoot && hasShadowSelection(shadowRoot)) {
+    const shadowSelection = shadowRoot.getSelection();
     if (shadowSelection && !shadowSelection.isCollapsed) {
       return shadowSelection;
     }
@@ -1405,7 +1445,7 @@ function setupSelectionListener(): void {
     }
 
     // Skip highlighting when shift is held - allow normal text selection for copying
-    if ((e as MouseEvent).shiftKey) {
+    if (!(e instanceof MouseEvent) || e.shiftKey) {
       return;
     }
 
@@ -1550,8 +1590,8 @@ function showNoteEditor(markElement: HTMLElement, highlightId: string, existingN
   }
 
   // Set existing note value
-  const textarea = noteEditor.querySelector(".note-textarea") as HTMLTextAreaElement;
-  if (textarea) {
+  const textarea = noteEditor.querySelector(".note-textarea");
+  if (textarea instanceof HTMLTextAreaElement) {
     textarea.value = existingNote;
     textarea.focus();
   }
@@ -1579,8 +1619,8 @@ function hideNoteEditor(): void {
 async function saveCurrentNote(): Promise<void> {
   if (!noteEditor || !activeHighlightId || !currentClipId || !shadowRoot) return;
 
-  const textarea = noteEditor.querySelector(".note-textarea") as HTMLTextAreaElement;
-  const note = textarea?.value || "";
+  const textarea = noteEditor.querySelector(".note-textarea");
+  const note = textarea instanceof HTMLTextAreaElement ? textarea.value : "";
 
   try {
     await chrome.runtime.sendMessage({
@@ -1746,8 +1786,9 @@ function setupHighlightListeners(): void {
 
   // Click on highlight to edit note
   contentWrapper.addEventListener("click", (e) => {
-    const target = e.target as Element;
-    const markElement = target.closest(".reader-highlight") as HTMLElement;
+    if (!(e.target instanceof Element)) return;
+    const markCandidate = e.target.closest(".reader-highlight");
+    const markElement = markCandidate instanceof HTMLElement ? markCandidate : null;
 
     if (!markElement) {
       // Clicked outside highlight - save and hide editor

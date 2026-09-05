@@ -11,6 +11,17 @@ import { HighlightPopover, type HighlightPopoverHandle } from "./HighlightPopove
 import { cn } from "@/lib/utils";
 import { showToast } from "@/lib/toast";
 
+export type HighlightClickTarget =
+  | { kind: "highlight"; element: HTMLElement }
+  | { kind: "outside" }
+  | { kind: "ignored" };
+
+export function classifyHighlightClick(target: EventTarget | null): HighlightClickTarget {
+  if (!(target instanceof HTMLElement)) return { kind: "ignored" };
+  const element = target.closest<HTMLElement>(".viewer-highlight");
+  return element ? { kind: "highlight", element } : { kind: "outside" };
+}
+
 export function ClipViewer() {
   const { clipId } = useParams<{ clipId: string }>();
   const { getClip } = useClips();
@@ -144,6 +155,7 @@ export function ClipViewer() {
           setClip(loadedClip);
           // Only set edit content for LocalClip
           if (!("type" in loadedClip) || loadedClip.type !== "element") {
+            // SAFETY: Element clips return above, leaving the LocalClip branch.
             const localClip = loadedClip as LocalClip;
             setEditContent(localClip.dom_content);
             setHighlights(localClip.highlights || []);
@@ -260,6 +272,7 @@ export function ClipViewer() {
       return;
     }
 
+    // SAFETY: This callback returns unless the clip has the element discriminator.
     const elementClip = clip as ElementClip;
     if (!elementClip.screenshotAssetId) {
       setScreenshotUrl(null);
@@ -286,7 +299,8 @@ export function ClipViewer() {
       // If no active highlight, nothing to do
       if (!activeHighlightIdRef.current) return;
 
-      const target = e.target as HTMLElement;
+      if (!(e.target instanceof HTMLElement)) return;
+      const target = e.target;
 
       // If click is inside the popover, ignore
       if (popoverRef.current?.contains(target)) return;
@@ -402,16 +416,16 @@ export function ClipViewer() {
 
   // Handle click on content - show popover for highlights, hide for clicks outside
   const handleContentClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    const mark = target.closest(".viewer-highlight") as HTMLElement;
-
-    if (!mark) {
+    const clickTarget = classifyHighlightClick(e.target);
+    if (clickTarget.kind === "ignored") return;
+    if (clickTarget.kind === "outside") {
       // Clicked outside highlight - save and hide
       if (activeHighlightIdRef.current) {
         handleSaveNote();
       }
       return;
     }
+    const mark = clickTarget.element;
 
     const highlightId = mark.dataset.highlightId;
     if (!highlightId) return;
@@ -512,7 +526,7 @@ export function ClipViewer() {
 
     // Set loading state
     chunkEl.classList.add("loading");
-    const buttons = chunkEl.querySelectorAll(".tidy-chunk-btn") as NodeListOf<HTMLButtonElement>;
+    const buttons = chunkEl.querySelectorAll<HTMLButtonElement>(".tidy-chunk-btn");
     buttons.forEach((btn) => (btn.disabled = true));
 
     try {
@@ -632,6 +646,7 @@ export function ClipViewer() {
 
     try {
       // Get cleaned content (without chunk wrappers)
+      // SAFETY: cloneNode preserves the HTMLElement runtime class of container.
       const clone = container.cloneNode(true) as HTMLElement;
 
       // Remove all chunk controls
@@ -713,7 +728,11 @@ export function ClipViewer() {
 
   // Check if this is an element clip
   const isElementClip = "type" in clip && clip.type === "element";
+  // SAFETY: isElementClip checks the Clip union discriminator above.
   const elementClip = isElementClip ? (clip as ElementClip) : null;
+  // SAFETY: The false discriminator branch of Clip is LocalClip.
+  const localClip = isElementClip ? null : (clip as LocalClip);
+  const clipCreatedAt = elementClip?.createdAt ?? localClip?.created_at ?? "";
 
   return (
     <div
@@ -723,6 +742,7 @@ export function ClipViewer() {
       {!isElementClip && (
         <>
           <ViewerToolbar
+            // SAFETY: The element branch renders separately, so this is LocalClip.
             clip={clip as LocalClip}
             isEditMode={isEditMode}
             editContent={editContent}
@@ -748,6 +768,7 @@ export function ClipViewer() {
           <div
             ref={progressBarRef}
             className="fixed top-14 left-0 right-0 h-0.5 bg-transparent z-[99] pointer-events-none before:content-[''] before:absolute before:top-0 before:left-0 before:h-full before:bg-muted-foreground/40 before:transition-[width] before:duration-100 before:ease-linear"
+            // SAFETY: React accepts custom CSS properties at runtime.
             style={{ "--scroll-progress": "0%" } as React.CSSProperties}
           />
         </>
@@ -766,7 +787,7 @@ export function ClipViewer() {
           <h1 className="font-semibold text-[28px] leading-tight text-foreground m-0 tracking-tight md:text-2xl sm:text-[22px]">
             {isElementClip && elementClip
               ? elementClip.aiTitle || `${elementClip.elementMeta.tagName} Element`
-              : (clip as LocalClip).title}
+              : localClip?.title}
           </h1>
           <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
             <a
@@ -778,13 +799,7 @@ export function ClipViewer() {
               {new URL(clip.url).hostname}
             </a>
             <span className="text-muted-foreground">•</span>
-            <time>
-              {new Date(
-                isElementClip && elementClip
-                  ? elementClip.createdAt
-                  : (clip as LocalClip).created_at,
-              ).toLocaleDateString()}
-            </time>
+            <time>{new Date(clipCreatedAt).toLocaleDateString()}</time>
           </div>
         </header>
 

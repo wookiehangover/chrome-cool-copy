@@ -5,12 +5,31 @@
 
 import { DatabaseService, DatabaseConnection, ExecuteResult } from "@agentdb/sdk";
 import type { AgentDBConfig, Webpage, WebpageRow } from "@repo/shared";
+import { z } from "zod";
 
 export type { Webpage, WebpageRow };
 
 let dbService: DatabaseService | null = null;
 let dbConnection: DatabaseConnection | null = null;
 let config: AgentDBConfig | null = null;
+const webpageRowSchema: z.ZodType<WebpageRow> = z.object({
+  id: z.union([z.string(), z.number()]).optional(),
+  url: z.string(),
+  title: z.string(),
+  dom_content: z.string().optional(),
+  text_content: z.string(),
+  metadata: z.string().nullable().optional(),
+  highlights: z.string().nullable().optional(),
+  status_code: z.number().nullable().optional(),
+  content_type: z.string().nullable().optional(),
+  content_length: z.number().nullable().optional(),
+  last_modified: z.string().nullable().optional(),
+  captured_at: z.string().nullable().optional(),
+  created_at: z.string().nullable().optional(),
+  updated_at: z.string().nullable().optional(),
+  share_id: z.string().nullable().optional(),
+});
+const countRowSchema = z.object({ count: z.number() });
 
 /**
  * Initialize the database connection
@@ -96,7 +115,7 @@ export async function getWebpages(): Promise<WebpageRow[]> {
 
     const rows = result.results[0]?.rows || [];
     console.log("[Database] Retrieved", rows.length, "webpages");
-    return rows as WebpageRow[];
+    return z.array(webpageRowSchema).parse(rows);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to retrieve webpages: ${message}`);
@@ -128,7 +147,7 @@ export async function getWebpagesBatch(offset: number, limit: number): Promise<W
       limit,
       ")",
     );
-    return rows as WebpageRow[];
+    return z.array(webpageRowSchema).parse(rows);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to retrieve webpages batch: ${message}`);
@@ -149,7 +168,7 @@ export async function getWebpagesCount(): Promise<number> {
     });
 
     const rows = result.results[0]?.rows || [];
-    const count = rows.length > 0 ? (rows[0] as { count: number }).count : 0;
+    const count = rows.length > 0 ? countRowSchema.parse(rows[0]).count : 0;
     console.log("[Database] Total webpages count:", count);
     return count;
   } catch (error) {
@@ -179,7 +198,7 @@ export async function getWebpage(id: string): Promise<WebpageRow | null> {
     }
 
     console.log("[Database] Retrieved webpage:", id);
-    return rows[0] as WebpageRow;
+    return webpageRowSchema.parse(rows[0]);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to retrieve webpage: ${message}`);
@@ -291,7 +310,7 @@ export async function getWebpageByShareId(shareId: string): Promise<WebpageRow |
     }
 
     console.log("[Database] Retrieved webpage by share_id:", shareId);
-    return rows[0] as WebpageRow;
+    return webpageRowSchema.parse(rows[0]);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to retrieve webpage by share_id: ${message}`);

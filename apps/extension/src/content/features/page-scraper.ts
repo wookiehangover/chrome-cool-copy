@@ -16,7 +16,7 @@ export interface ScrapedPage {
 /**
  * Extract metadata from the page
  */
-function extractMetadata(): { siteName: string; byline: string; excerpt: string } {
+function extractMetadata() {
   const siteName =
     document.querySelector('meta[property="og:site_name"]')?.getAttribute("content") ||
     document.querySelector('meta[name="application-name"]')?.getAttribute("content") ||
@@ -107,20 +107,25 @@ function getTextLength(element: Element): number {
  * Clone element and remove non-content elements
  */
 function cleanContent(element: Element): Element {
-  const clone = element.cloneNode(true) as Element;
+  const clone = element.cloneNode(true);
+  if (!(clone instanceof Element)) throw new Error("Cloned content is not an element");
 
   CHROME_SELECTORS.forEach((selector) => {
     clone.querySelectorAll(selector).forEach((el) => el.remove());
   });
 
   // Only strip comment sections when most of the content remains afterwards.
-  const withoutComments = clone.cloneNode(true) as Element;
+  const withoutComments = clone.cloneNode(true);
+  if (!(withoutComments instanceof Element)) throw new Error("Cloned content is not an element");
   COMMENT_SELECTORS.forEach((selector) => {
     withoutComments.querySelectorAll(selector).forEach((el) => el.remove());
   });
 
   const totalLength = getTextLength(clone);
-  if (totalLength === 0 || getTextLength(withoutComments) / totalLength >= COMMENT_REMOVAL_RETAIN_RATIO) {
+  if (
+    totalLength === 0 ||
+    getTextLength(withoutComments) / totalLength >= COMMENT_REMOVAL_RETAIN_RATIO
+  ) {
     return withoutComments;
   }
 

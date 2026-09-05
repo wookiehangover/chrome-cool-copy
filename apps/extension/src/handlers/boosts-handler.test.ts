@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetChromeMocks } from "../test/setup.js";
+import { resetChromeMocks, mockTabs } from "../test/setup.js";
 
 const mockGetBoosts = vi.fn();
 const mockToggleBoost = vi.fn();
@@ -12,14 +12,6 @@ const mockDeleteBoost = vi.fn();
 const mockUpdateBoost = vi.fn();
 const mockGetBoostsForDomain = vi.fn();
 const mockExecuteScript = vi.fn();
-
-vi.mock("../services/boosts", () => ({
-  getBoosts: (...args: unknown[]) => mockGetBoosts(...args),
-  toggleBoost: (...args: unknown[]) => mockToggleBoost(...args),
-  deleteBoost: (...args: unknown[]) => mockDeleteBoost(...args),
-  updateBoost: (...args: unknown[]) => mockUpdateBoost(...args),
-  getBoostsForDomain: (...args: unknown[]) => mockGetBoostsForDomain(...args),
-}));
 
 // Mock chrome.scripting for executeBoostCode
 vi.stubGlobal("chrome", {
@@ -32,16 +24,26 @@ vi.stubGlobal("chrome", {
   runtime: globalThis.chrome?.runtime,
 });
 
-import { boostsHandlers, boostDrafts } from "./boosts-handler.js";
+import { createBoostHandlers, boostDrafts } from "./boosts-handler.js";
+import type { BrowserMessage, BrowserResponse, HandlerSender } from "./types.js";
+
+const boostsHandlers = createBoostHandlers({
+  getBoosts: mockGetBoosts,
+  saveBoost: vi.fn(),
+  toggleBoost: mockToggleBoost,
+  deleteBoost: mockDeleteBoost,
+  updateBoost: mockUpdateBoost,
+  getBoostsForDomain: mockGetBoostsForDomain,
+});
 
 function callHandler(
   action: string,
-  message: Record<string, unknown>,
-  sender: Partial<chrome.runtime.MessageSender> = {},
-): Promise<unknown> {
+  message: BrowserMessage,
+  sender: HandlerSender = {},
+): Promise<BrowserResponse | undefined> {
   return new Promise((resolve) => {
     const handler = boostsHandlers[action];
-    const fullSender: chrome.runtime.MessageSender = { id: "test-ext", ...sender };
+    const fullSender: HandlerSender = { id: "test-ext", ...sender };
     handler(message, fullSender, resolve);
   });
 }
@@ -126,11 +128,7 @@ describe("Boosts Handlers", () => {
         { result: Promise.resolve({ success: true, result: "boosted" }) },
       ]);
 
-      const result = await callHandler(
-        "runBoost",
-        { boostId: "b1" },
-        { tab: { id: 42 } as chrome.tabs.Tab },
-      );
+      const result = await callHandler("runBoost", { boostId: "b1" }, { tab: { id: 42 } });
 
       expect(result).toEqual({ success: true, result: "boosted" });
       expect(mockGetBoosts).toHaveBeenCalled();
@@ -139,24 +137,20 @@ describe("Boosts Handlers", () => {
     it("should return error when boost not found", async () => {
       mockGetBoosts.mockResolvedValue([]);
 
-      const result = await callHandler(
-        "runBoost",
-        { boostId: "nonexistent" },
-        { tab: { id: 42 } as chrome.tabs.Tab },
-      );
+      const result = await callHandler("runBoost", { boostId: "nonexistent" }, { tab: { id: 42 } });
 
       expect(result).toEqual({ success: false, error: "Boost not found" });
     });
 
     it("should return error when no tab ID available", async () => {
       // Mock chrome.tabs.query to return empty
-      (globalThis.chrome.tabs.query as ReturnType<typeof vi.fn>).mockImplementation(
-        (_query: unknown, callback: (tabs: unknown[]) => void) => {
+      mockTabs.query.mockImplementation(
+        (_query: chrome.tabs.QueryInfo, callback: (tabs: chrome.tabs.Tab[]) => void) => {
           callback([]);
         },
       );
       // For the promise-based path
-      (globalThis.chrome.tabs.query as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      mockTabs.query.mockResolvedValue([]);
 
       const result = await callHandler("runBoost", { boostId: "b1" });
 
@@ -164,7 +158,7 @@ describe("Boosts Handlers", () => {
     });
 
     it("should throw when boostId is missing", async () => {
-      const result = await callHandler("runBoost", {}, { tab: { id: 42 } as chrome.tabs.Tab });
+      const result = await callHandler("runBoost", {}, { tab: { id: 42 } });
 
       expect(result).toEqual({ success: false, error: "Boost ID is required" });
     });

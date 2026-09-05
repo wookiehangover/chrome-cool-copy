@@ -28,7 +28,7 @@ export async function action({ request }: Route.ActionArgs) {
     const rawId = formData.get("id");
 
     // Validate input
-    if (!rawId || typeof rawId !== "string") {
+    if (!rawId || rawId instanceof File) {
       return data({ error: "Either 'id' (number) or 'url' (string) is required" }, { status: 400 });
     }
 

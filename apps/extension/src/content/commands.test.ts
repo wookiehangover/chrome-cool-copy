@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { resetChromeMocks, mockRuntime } from "../test/setup.js";
+import { resetChromeMocks, mockRuntime, type TestRecord, type TestValue } from "../test/setup.js";
 
 // README content loaded via Vitest's raw import
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -83,7 +83,7 @@ describe("Command Registry", () => {
     it("should send savePageToDatabase action to background script", async () => {
       // Mock successful response
       mockRuntime.sendMessage.mockImplementation(
-        (message: { action: string }, callback?: (response: unknown) => void) => {
+        (message: { action: string }, callback?: (response: TestValue) => void) => {
           if (callback) {
             callback({ success: true });
           }
@@ -112,7 +112,7 @@ describe("Command Registry", () => {
 
     it("should throw error when background script returns failure", async () => {
       mockRuntime.sendMessage.mockImplementation(
-        (_message: unknown, callback?: (response: unknown) => void) => {
+        (_message: TestValue, callback?: (response: TestValue) => void) => {
           if (callback) {
             callback({ success: false, error: "Database not configured" });
           }
@@ -127,7 +127,7 @@ describe("Command Registry", () => {
 
     it("should throw error when message port closes", async () => {
       mockRuntime.sendMessage.mockImplementation(
-        (_message: unknown, callback?: (response: unknown) => void) => {
+        (_message: TestValue, callback?: (response: TestValue) => void) => {
           // Simulate the original bug - message port closing
           mockRuntime.lastError = {
             message: "The message port closed before a response was received.",
@@ -150,9 +150,9 @@ describe("Command Registry", () => {
     });
 
     it("should collect page metadata correctly", async () => {
-      let capturedMessage: Record<string, unknown> | null = null;
+      let capturedMessage: TestRecord | null = null;
       mockRuntime.sendMessage.mockImplementation(
-        (message: Record<string, unknown>, callback?: (response: unknown) => void) => {
+        (message: TestRecord, callback?: (response: TestValue) => void) => {
           capturedMessage = message;
           if (callback) {
             callback({ success: true });

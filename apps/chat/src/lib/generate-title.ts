@@ -40,13 +40,10 @@ export async function generateTitle(messages: UIMessage[]): Promise<string> {
       enableTools: false, // No tools needed for title generation
       maxOutputTokens: 50,
       temperature: 0.7,
-      messages: [
-        {
-          role: "system",
-          content: `You are a title generator. Generate a brief, descriptive title (3-6 words) for the following conversation.
+      instructions: `You are a title generator. Generate a brief, descriptive title (3-6 words) for the following conversation.
 The title should capture the main topic or intent.
 Respond with ONLY the title, no quotes, no explanation, no punctuation at the end.`,
-        },
+      messages: [
         {
           role: "user",
           content: conversationText,

@@ -15,6 +15,9 @@ export type JSONValue =
   | { [key: string]: JSONValue | undefined }
   | JSONValue[];
 
+/** JSON object with recursively serializable property values. */
+export type JSONObject = { [key: string]: JSONValue | undefined };
+
 /**
  * Provider-specific options for AI requests
  * This is a simplified version of ProviderOptions from @ai-sdk/provider-utils
@@ -30,7 +33,7 @@ export type SyncStatus = "pending" | "synced" | "error" | "local-only";
 /**
  * Message role for AI conversations
  */
-export type MessageRole = "system" | "user" | "assistant";
+export type MessageRole = "user" | "assistant";
 
 /**
  * Simple message format for AI requests
@@ -83,8 +86,8 @@ export interface GenerateTextRequest extends AICallSettings {
   action: "generateText";
   /** Messages to send to the model */
   messages: AIMessage[];
-  /** System message (alternative to including in messages array) */
-  system?: string;
+  /** Instructions to send separately from conversation messages */
+  instructions?: string;
   /** Tool choice strategy */
   toolChoice?: AIToolChoice;
   /** Whether to enable built-in tools (default: true) */
@@ -105,8 +108,8 @@ export interface StreamTextRequest extends AICallSettings {
   action: "streamText";
   /** Messages to send to the model */
   messages: AIMessage[];
-  /** System message (alternative to including in messages array) */
-  system?: string;
+  /** Instructions to send separately from conversation messages */
+  instructions?: string;
   /** Tool choice strategy */
   toolChoice?: AIToolChoice;
   /** Whether to enable built-in tools (default: true) */
@@ -233,7 +236,7 @@ export interface Webpage {
   title: string;
   dom_content: string;
   text_content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JSONObject;
   highlights?: Highlight[];
   status_code?: number;
   content_type?: string;
@@ -276,7 +279,7 @@ export interface LocalClip {
   title: string;
   dom_content: string;
   text_content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JSONObject;
   highlights?: Highlight[]; // User highlights and annotations
   created_at: string;
   updated_at: string;
@@ -292,7 +295,7 @@ export interface LocalClip {
  */
 export interface StructuredData {
   /** Parsed JSON-LD objects from script[type="application/ld+json"] tags */
-  jsonLd?: Record<string, unknown>[];
+  jsonLd?: JSONObject[];
   /** Microdata items extracted from elements with itemscope/itemprop */
   microdata?: Array<{
     itemtype?: string;
@@ -400,7 +403,7 @@ export interface ClipInput {
   title: string;
   dom_content: string;
   text_content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JSONObject;
 }
 
 /**

@@ -36,17 +36,14 @@ export function useBoosts(): UseBoostsReturn {
   }, [loadBoosts]);
 
   // Group boosts by domain
-  const boostsByDomain = boosts.reduce(
-    (acc, boost) => {
-      const domain = boost.domain || "Other";
-      if (!acc[domain]) {
-        acc[domain] = [];
-      }
-      acc[domain].push(boost);
-      return acc;
-    },
-    {} as Record<string, Boost[]>,
-  );
+  const boostsByDomain = boosts.reduce<Record<string, Boost[]>>((acc, boost) => {
+    const domain = boost.domain || "Other";
+    if (!acc[domain]) {
+      acc[domain] = [];
+    }
+    acc[domain].push(boost);
+    return acc;
+  }, {});
 
   // Sort domains alphabetically and boosts by name within each domain
   Object.keys(boostsByDomain).forEach((domain) => {

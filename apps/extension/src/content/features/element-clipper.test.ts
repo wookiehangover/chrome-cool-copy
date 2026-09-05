@@ -6,36 +6,23 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { captureElementClip } from "./element-clipper.js";
 
-// Mock TurndownService global
-(globalThis as any).TurndownService = class {
+class FakeTurndownService {
   turndown(html: string): string {
     return `# Markdown\n\n${html}`;
   }
-};
+}
 
-// Mock the extraction modules
-vi.mock("./dom-serializer.js", () => ({
-  serializeDOM: vi.fn((element) => `<div>${element.innerHTML}</div>`),
-}));
+class FakeImage {
+  src = "";
+  crossOrigin = "";
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+}
 
-vi.mock("./style-extractor.js", () => ({
-  extractComputedStyles: vi.fn(
-    (element, scopeId) => `<style data-clip-scope="${scopeId}"></style>`,
-  ),
-}));
-
-vi.mock("./structured-data-extractor.js", () => ({
-  extractStructuredData: vi.fn(() => ({
-    jsonLd: [],
-    microdata: [],
-    openGraph: {},
-    ariaAttributes: {},
-  })),
-}));
+vi.stubGlobal("TurndownService", FakeTurndownService);
 
 // Mock fetch and Image for image download tests
 let fetchMock: ReturnType<typeof vi.fn>;
-let imageMock: any;
 
 beforeEach(() => {
   // Mock fetch to return a blob
@@ -43,16 +30,8 @@ beforeEach(() => {
     ok: true,
     blob: vi.fn().mockResolvedValue(new Blob(["fake image data"], { type: "image/png" })),
   });
-  (globalThis as any).fetch = fetchMock;
-
-  // Mock Image constructor
-  imageMock = vi.fn(function (this: any) {
-    this.src = "";
-    this.crossOrigin = "";
-    this.onload = null;
-    this.onerror = null;
-  });
-  (globalThis as any).Image = imageMock;
+  vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal("Image", FakeImage);
 });
 
 afterEach(() => {

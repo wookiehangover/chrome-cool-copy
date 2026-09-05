@@ -15,7 +15,8 @@
  */
 export function serializeDOM(element: Element): string {
   // Clone the element to avoid modifying the original
-  const clone = element.cloneNode(true) as Element;
+  const clone = element.cloneNode(true);
+  if (!(clone instanceof Element)) throw new Error("Cloned DOM content is not an element");
 
   // Remove all script tags
   clone.querySelectorAll("script").forEach((script) => script.remove());

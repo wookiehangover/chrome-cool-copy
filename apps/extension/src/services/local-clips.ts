@@ -4,27 +4,110 @@
  * This is the primary storage mechanism - AgentDB sync is optional
  */
 
-import type { SyncStatus, Highlight, LocalClip, ClipInput } from "@repo/shared";
+import type { SyncStatus, Highlight, LocalClip, ElementClip, Clip, ClipInput } from "@repo/shared";
 import { generateClipId } from "@repo/shared/utils";
+import { z } from "zod";
 
 export type { SyncStatus, Highlight, LocalClip, ClipInput } from "@repo/shared";
 
 const STORAGE_KEY = "local_clips";
+const highlightSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  color: z.string(),
+  note: z.string().optional(),
+  startOffset: z.number(),
+  endOffset: z.number(),
+  created_at: z.string(),
+});
+const localClipSchema: z.ZodType<LocalClip> = z.object({
+  id: z.string(),
+  url: z.string(),
+  title: z.string(),
+  dom_content: z.string(),
+  text_content: z.string(),
+  metadata: z.record(z.string(), z.json()).optional(),
+  highlights: z.array(highlightSchema).optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  sync_status: z.enum(["pending", "synced", "error", "local-only"]),
+  sync_error: z.string().optional(),
+  agentdb_id: z.string().optional(),
+  share_id: z.string().optional(),
+});
+const elementClipSchema: z.ZodType<ElementClip> = z.object({
+  id: z.string(),
+  type: z.literal("element"),
+  url: z.string(),
+  pageTitle: z.string(),
+  selector: z.string(),
+  screenshotAssetId: z.string(),
+  domStructure: z.string(),
+  scopedStyles: z.string(),
+  textContent: z.string(),
+  markdownContent: z.string(),
+  structuredData: z
+    .object({
+      jsonLd: z.array(z.record(z.string(), z.json())).optional(),
+      microdata: z
+        .array(
+          z.object({
+            itemtype: z.string().optional(),
+            properties: z.record(z.string(), z.array(z.string())),
+          }),
+        )
+        .optional(),
+      openGraph: z.record(z.string(), z.string()).optional(),
+      ariaAttributes: z.record(z.string(), z.array(z.string())).optional(),
+    })
+    .optional(),
+  mediaAssets: z.array(
+    z.object({
+      type: z.enum(["image", "video", "background"]),
+      assetId: z.string().optional(),
+      originalSrc: z.string(),
+      alt: z.string().optional(),
+    }),
+  ),
+  elementMeta: z.object({
+    tagName: z.string(),
+    role: z.string().optional(),
+    boundingBox: z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() }),
+    classNames: z.array(z.string()),
+    dataAttributes: z.record(z.string(), z.string()),
+  }),
+  aiSummary: z.string().optional(),
+  aiSummaryStatus: z.enum(["pending", "complete", "error"]),
+  aiTitle: z.string().optional(),
+  aiDescription: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  syncStatus: z.enum(["pending", "synced", "error", "local-only"]),
+});
+const storedClipSchema: z.ZodType<Clip> = z.union([localClipSchema, elementClipSchema]);
+
+function isLocalClip(clip: Clip): clip is LocalClip {
+  return !("type" in clip);
+}
 
 /**
  * Get all local clips
  */
-export async function getLocalClips(): Promise<LocalClip[]> {
+export async function getLocalClips(): Promise<Clip[]> {
   const result = await chrome.storage.local.get([STORAGE_KEY]);
-  const clips = (result[STORAGE_KEY] as LocalClip[] | undefined) || [];
+  const clips = z.array(storedClipSchema).default([]).parse(result[STORAGE_KEY]);
   // Sort by created_at descending (newest first)
-  return clips.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  return clips.sort((a, b) => {
+    const aCreated = isLocalClip(a) ? a.created_at : a.createdAt;
+    const bCreated = isLocalClip(b) ? b.created_at : b.createdAt;
+    return new Date(bCreated).getTime() - new Date(aCreated).getTime();
+  });
 }
 
 /**
  * Get a single clip by ID
  */
-export async function getLocalClip(id: string): Promise<LocalClip | null> {
+export async function getLocalClip(id: string): Promise<Clip | null> {
   const clips = await getLocalClips();
   return clips.find((c) => c.id === id) || null;
 }
@@ -67,7 +150,7 @@ export async function updateClipSyncStatus(
   const clips = await getLocalClips();
   const index = clips.findIndex((c) => c.id === id);
 
-  if (index === -1) {
+  if (index === -1 || !isLocalClip(clips[index])) {
     console.warn("[Local Clips] Clip not found for sync update:", id);
     return;
   }
@@ -108,7 +191,9 @@ export async function deleteLocalClip(id: string): Promise<boolean> {
  */
 export async function getPendingClips(): Promise<LocalClip[]> {
   const clips = await getLocalClips();
-  return clips.filter((c) => c.sync_status === "pending");
+  return clips.filter(
+    (clip): clip is LocalClip => isLocalClip(clip) && clip.sync_status === "pending",
+  );
 }
 
 /**
@@ -128,7 +213,7 @@ export async function addHighlight(
   const clips = await getLocalClips();
   const index = clips.findIndex((c) => c.id === clipId);
 
-  if (index === -1) {
+  if (index === -1 || !isLocalClip(clips[index])) {
     console.warn("[Local Clips] Clip not found for highlight:", clipId);
     return null;
   }
@@ -161,7 +246,7 @@ export async function updateHighlightNote(
   const clips = await getLocalClips();
   const clipIndex = clips.findIndex((c) => c.id === clipId);
 
-  if (clipIndex === -1) return false;
+  if (clipIndex === -1 || !isLocalClip(clips[clipIndex])) return false;
 
   const highlights = clips[clipIndex].highlights || [];
   const hlIndex = highlights.findIndex((h: Highlight) => h.id === highlightId);
@@ -186,7 +271,7 @@ export async function deleteHighlight(clipId: string, highlightId: string): Prom
   const clips = await getLocalClips();
   const clipIndex = clips.findIndex((c) => c.id === clipId);
 
-  if (clipIndex === -1) return false;
+  if (clipIndex === -1 || !isLocalClip(clips[clipIndex])) return false;
 
   const highlights = clips[clipIndex].highlights || [];
   const hlIndex = highlights.findIndex((h: Highlight) => h.id === highlightId);
@@ -209,7 +294,7 @@ export async function deleteHighlight(clipId: string, highlightId: string): Prom
  */
 export async function isUrlClipped(url: string): Promise<LocalClip | null> {
   const clips = await getLocalClips();
-  return clips.find((c) => c.url === url) || null;
+  return clips.find((clip): clip is LocalClip => isLocalClip(clip) && clip.url === url) || null;
 }
 
 /**
@@ -218,18 +303,17 @@ export async function isUrlClipped(url: string): Promise<LocalClip | null> {
  */
 export async function updateLocalClip(
   id: string,
-  updates: Record<string, unknown>,
-): Promise<LocalClip | null> {
+  updates: Partial<LocalClip & ElementClip>,
+): Promise<Clip | null> {
   const clips = await getLocalClips();
   const index = clips.findIndex((c) => c.id === id);
 
   if (index === -1) return null;
 
-  clips[index] = {
-    ...clips[index],
-    ...updates,
-    updated_at: new Date().toISOString(),
-  };
+  const clip = clips[index];
+  clips[index] = isLocalClip(clip)
+    ? { ...clip, ...updates, updated_at: new Date().toISOString() }
+    : { ...clip, ...updates, updatedAt: new Date().toISOString() };
 
   await chrome.storage.local.set({ [STORAGE_KEY]: clips });
   return clips[index];

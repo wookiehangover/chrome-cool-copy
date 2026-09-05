@@ -1,5 +1,4 @@
-import { useCallback, useEffect } from "react";
-import { sendMessage as sendChromeMessage } from "@repo/shared";
+import { useCallback } from "react";
 import {
   PromptInput,
   PromptInputTextarea,
@@ -17,54 +16,13 @@ export function ChatInput() {
     sendMessage,
     pageContext,
     clearContext,
+    contextError,
     isLoading,
     isLoadingContext,
     status,
     selectedModel,
     setSelectedModel,
   } = useChatContext();
-
-  // Load model from storage on mount
-  useEffect(() => {
-    const loadModel = async () => {
-      try {
-        const result = await new Promise<{ aiGatewayConfig?: { model?: string } }>((resolve) => {
-          chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
-            resolve(result);
-          });
-        });
-
-        const model = result.aiGatewayConfig?.model;
-        if (model) {
-          setSelectedModel(model as any);
-        }
-      } catch (error) {
-        console.error("[ChatInput] Failed to load model from storage:", error);
-      }
-    };
-
-    loadModel();
-  }, [setSelectedModel]);
-
-  // Save model to storage when it changes
-  const handleModelChange = useCallback(
-    (model: any) => {
-      setSelectedModel(model);
-
-      // Save to chrome.storage.sync
-      sendChromeMessage({
-        action: "updateAIGatewayConfig",
-        config: { model },
-      })
-        .then(() => {
-          console.log("[ChatInput] Model saved successfully:", model);
-        })
-        .catch((err: unknown) => {
-          console.error("[ChatInput] Failed to save model:", err);
-        });
-    },
-    [setSelectedModel],
-  );
 
   const handleSubmit = useCallback(
     ({ text }: { text: string }) => {
@@ -81,6 +39,11 @@ export function ChatInput() {
   return (
     <div className="border-t border-border p-4">
       {pageContext && <PageContextBadge context={pageContext} onClear={clearContext} />}
+      {!pageContext && contextError && (
+        <p className="mb-2 text-xs text-muted-foreground" role="status">
+          {contextError}
+        </p>
+      )}
       <PromptInput onSubmit={handleSubmit} className="rounded-lg border border-input bg-background">
         <PromptInputTextarea
           placeholder={placeholder}
@@ -91,7 +54,7 @@ export function ChatInput() {
         <PromptInputFooter>
           <ModelPicker
             value={selectedModel}
-            onValueChange={handleModelChange}
+            onValueChange={setSelectedModel}
             disabled={isLoading}
           />
           <PromptInputSubmit status={status} disabled={isSubmitDisabled} />

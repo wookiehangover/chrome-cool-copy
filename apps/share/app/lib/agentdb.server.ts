@@ -5,7 +5,7 @@
 
 import { DatabaseService, DatabaseConnection } from "@agentdb/sdk";
 import { nanoid } from "nanoid";
-import type { AgentDBConfig, WebpageRow } from "@repo/shared";
+import type { AgentDBConfig, JSONValue, WebpageRow } from "@repo/shared";
 
 /**
  * Shared clip type for share app rendering and lookup
@@ -23,13 +23,79 @@ export type SharedClip = WebpageRow & {
  */
 export interface LightweightClip {
   id: number;
-  share_id: string;
+  share_id: string | null;
   title: string;
   url: string;
   captured_at: string;
 }
 
 type DatabaseConfig = AgentDBConfig;
+
+function readField(value: JSONValue, key: string): JSONValue | undefined {
+  return Object.getOwnPropertyDescriptor(Object(value), key)?.value;
+}
+
+function readString(value: JSONValue | undefined): string | undefined {
+  return Object.prototype.toString.call(value) === "[object String]" ? String(value) : undefined;
+}
+
+function readNumber(value: JSONValue | undefined): number | undefined {
+  return Object.prototype.toString.call(value) === "[object Number]" ? Number(value) : undefined;
+}
+
+function readNullableString(value: JSONValue | undefined): string | null | undefined {
+  return value === null ? null : readString(value);
+}
+
+function readNullableNumber(value: JSONValue | undefined): number | null | undefined {
+  return value === null ? null : readNumber(value);
+}
+
+type ParsedWebpageClip = Omit<SharedClip, "share_id"> & { share_id: string | null };
+
+function parseWebpageClip(value: JSONValue): ParsedWebpageClip | null {
+  const id = readNumber(readField(value, "id"));
+  const shareId = readNullableString(readField(value, "share_id"));
+  const url = readString(readField(value, "url"));
+  const title = readString(readField(value, "title"));
+  const domContent = readString(readField(value, "dom_content"));
+  const textContent = readString(readField(value, "text_content"));
+  const capturedAt = readString(readField(value, "captured_at"));
+  const highlights = readNullableString(readField(value, "highlights"));
+  if (
+    id === undefined ||
+    shareId === undefined ||
+    !url ||
+    !title ||
+    domContent === undefined ||
+    textContent === undefined ||
+    !capturedAt ||
+    highlights === undefined
+  ) {
+    return null;
+  }
+  return {
+    id,
+    share_id: shareId,
+    url,
+    title,
+    dom_content: domContent,
+    text_content: textContent,
+    captured_at: capturedAt,
+    highlights,
+  };
+}
+
+function parseLightweightClip(value: JSONValue): LightweightClip | null {
+  const id = readNumber(readField(value, "id"));
+  const shareId = readNullableString(readField(value, "share_id"));
+  const title = readString(readField(value, "title"));
+  const url = readString(readField(value, "url"));
+  const capturedAt = readString(readField(value, "captured_at"));
+  return id !== undefined && shareId !== undefined && title && url && capturedAt
+    ? { id, share_id: shareId, title, url, captured_at: capturedAt }
+    : null;
+}
 
 let dbService: DatabaseService | null = null;
 let dbConnection: DatabaseConnection | null = null;
@@ -107,7 +173,8 @@ export async function getClipByShareId(shareId: string): Promise<SharedClip | nu
     }
 
     console.log("[AgentDB] Clip retrieved for share_id:", shareId);
-    return rows[0] as SharedClip;
+    const clip = parseWebpageClip(rows[0]);
+    return clip?.share_id ? { ...clip, share_id: clip.share_id } : null;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to fetch clip by share_id: ${message}`);
@@ -134,7 +201,7 @@ export async function getAllClips(): Promise<LightweightClip[]> {
     const rows = result.results[0]?.rows || [];
 
     console.log("[AgentDB] Retrieved", rows.length, "clips");
-    return rows as LightweightClip[];
+    return rows.map(parseLightweightClip).filter((clip) => clip !== null);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to fetch all clips: ${message}`);
@@ -172,7 +239,8 @@ export async function shareClip(identifier: number): Promise<string | null> {
       return null;
     }
 
-    const clip = rows[0] as SharedClip;
+    const clip = parseWebpageClip(rows[0]);
+    if (!clip) throw new Error("AgentDB returned an invalid webpage row");
 
     // If clip already has a share_id, return it
     if (clip.share_id) {
@@ -276,6 +344,54 @@ export interface MediaClip {
   created_at: string;
 }
 
+function parseMediaClip(value: JSONValue): MediaClip | null {
+  const id = readString(readField(value, "id"));
+  const blobUrl = readString(readField(value, "blob_url"));
+  const originalFilename = readNullableString(readField(value, "original_filename"));
+  const mimetype = readString(readField(value, "mimetype"));
+  const fileSize = readNullableNumber(readField(value, "file_size"));
+  const width = readNullableNumber(readField(value, "width"));
+  const height = readNullableNumber(readField(value, "height"));
+  const altText = readNullableString(readField(value, "alt_text"));
+  const pageUrl = readString(readField(value, "page_url"));
+  const pageTitle = readNullableString(readField(value, "page_title"));
+  const aiDescription = readNullableString(readField(value, "ai_description"));
+  const aiDescriptionStatus = readString(readField(value, "ai_description_status"));
+  const createdAt = readString(readField(value, "created_at"));
+  if (
+    !id ||
+    !blobUrl ||
+    originalFilename === undefined ||
+    !mimetype ||
+    fileSize === undefined ||
+    width === undefined ||
+    height === undefined ||
+    altText === undefined ||
+    !pageUrl ||
+    pageTitle === undefined ||
+    aiDescription === undefined ||
+    !aiDescriptionStatus ||
+    !createdAt
+  ) {
+    return null;
+  }
+  return {
+    id,
+    blob_url: blobUrl,
+    original_filename: originalFilename,
+    mimetype,
+    file_size: fileSize,
+    width,
+    height,
+    alt_text: altText,
+    page_url: pageUrl,
+    page_title: pageTitle,
+    ai_description: aiDescription,
+    ai_description_status: aiDescriptionStatus,
+    created_at: createdAt,
+  };
+}
+
 /**
  * Fetch paginated media clips from the media_clips table
  * @param options - Pagination options with limit and offset
@@ -296,7 +412,7 @@ export async function getMediaClips(options: {
     sql: "SELECT COUNT(*) as count FROM media_clips",
     params: [],
   });
-  const total = (countResult.results[0]?.rows?.[0] as { count: number } | undefined)?.count || 0;
+  const total = readNumber(readField(countResult.results[0]?.rows?.[0], "count")) ?? 0;
 
   // Get paginated clips
   const result = await dbConnection.execute({
@@ -307,7 +423,7 @@ export async function getMediaClips(options: {
   });
 
   return {
-    clips: (result.results[0]?.rows || []) as MediaClip[],
+    clips: (result.results[0]?.rows || []).map(parseMediaClip).filter((clip) => clip !== null),
     total,
   };
 }
@@ -340,7 +456,7 @@ export async function getMediaClipById(id: string): Promise<MediaClip | null> {
     }
 
     console.log("[AgentDB] Media clip retrieved for id:", id);
-    return rows[0] as MediaClip;
+    return parseMediaClip(rows[0]);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to fetch media clip by id: ${message}`);

@@ -5,14 +5,14 @@
 
 import { nanoid } from "nanoid";
 import type { AgentDBConfig, LocalClip } from "@repo/shared";
-import { generateClipId } from "@repo/shared/utils";
+import { z } from "zod";
+import { generateClipId, parseJSONObject } from "@repo/shared/utils";
 import {
   getPendingClips,
   updateClipSyncStatus,
   getLocalClip,
   deleteLocalClip,
   getLocalClips,
-  saveLocalClip,
 } from "./local-clips";
 import {
   initializeDatabase,
@@ -23,6 +23,14 @@ import {
   getWebpagesBatch,
   getWebpagesCount,
 } from "./database";
+
+const agentDBConfigSchema: z.ZodType<AgentDBConfig> = z.object({
+  baseUrl: z.string().min(1),
+  apiKey: z.string().min(1),
+  token: z.string().min(1),
+  dbName: z.string().min(1),
+  dbType: z.enum(["sqlite", "duckdb"]).optional(),
+});
 import { deleteClipAssets } from "./asset-store";
 
 /**
@@ -39,12 +47,8 @@ export async function isAgentDBConfigured(): Promise<boolean> {
 export async function getAgentDBConfig(): Promise<AgentDBConfig | null> {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["agentdbConfig"], (result) => {
-      const config = result.agentdbConfig as AgentDBConfig | undefined;
-      if (config?.baseUrl && config?.apiKey && config?.token && config?.dbName) {
-        resolve(config);
-      } else {
-        resolve(null);
-      }
+      const config = agentDBConfigSchema.safeParse(result.agentdbConfig);
+      resolve(config.success ? config.data : null);
     });
   });
 }
@@ -204,7 +208,7 @@ export async function deleteClipWithSync(
 
   let agentdbDeleted = false;
 
-  if (clip?.agentdb_id && clip.sync_status === "synced") {
+  if (clip && !("type" in clip) && clip.agentdb_id && clip.sync_status === "synced") {
     try {
       await deleteFromAgentDB(clip.agentdb_id);
       agentdbDeleted = true;
@@ -214,9 +218,8 @@ export async function deleteClipWithSync(
   }
 
   // Clean up IndexedDB assets if this is an element clip
-  // The clip could be an ElementClip which has a 'type' property
-  const clipAsAny = clip as unknown as Record<string, unknown>;
-  if (clip && clipAsAny.type === "element") {
+  // Element clips carry a discriminant that ordinary page clips do not.
+  if (clip && "type" in clip && clip.type === "element") {
     try {
       await deleteClipAssets(localId);
       console.log("[Clips Sync] Deleted assets for clip:", localId);
@@ -281,30 +284,18 @@ export async function syncFromAgentDB(): Promise<{
             }
 
             // Parse metadata if it's a JSON string
-            let metadata: Record<string, unknown> | undefined;
+            let metadata: LocalClip["metadata"];
             if (webpage.metadata) {
-              if (typeof webpage.metadata === "string") {
-                try {
-                  metadata = JSON.parse(webpage.metadata);
-                } catch {
-                  metadata = undefined;
-                }
-              } else {
-                metadata = webpage.metadata;
-              }
+              metadata = parseJSONObject(webpage.metadata);
             }
 
             // Parse highlights if it's a JSON string
-            let highlights: unknown[] | undefined;
+            let highlights: LocalClip["highlights"];
             if (webpage.highlights) {
-              if (typeof webpage.highlights === "string") {
-                try {
-                  highlights = JSON.parse(webpage.highlights);
-                } catch {
-                  highlights = undefined;
-                }
-              } else {
-                highlights = webpage.highlights;
+              try {
+                highlights = JSON.parse(webpage.highlights);
+              } catch {
+                highlights = undefined;
               }
             }
 
@@ -316,7 +307,7 @@ export async function syncFromAgentDB(): Promise<{
               dom_content: "",
               text_content: webpage.text_content,
               metadata,
-              highlights: highlights as any,
+              highlights,
               sync_status: "synced",
               share_id: webpage.share_id ?? undefined,
               created_at: webpage.created_at || webpage.captured_at || new Date().toISOString(),

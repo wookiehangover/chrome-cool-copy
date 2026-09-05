@@ -3,10 +3,18 @@
  * Returns true if the handler will send a response asynchronously,
  * false if it handled the message synchronously (or didn't handle it).
  */
+type ChromeMessageListener = Parameters<typeof chrome.runtime.onMessage.addListener>[0];
+export type BrowserMessage = Parameters<ChromeMessageListener>[0];
+export type BrowserResponse = Parameters<Parameters<ChromeMessageListener>[2]>[0];
+export interface HandlerSender {
+  id?: string;
+  tab?: Pick<chrome.tabs.Tab, "id">;
+}
+
 export type MessageHandler = (
-  message: Record<string, unknown>,
-  sender: chrome.runtime.MessageSender,
-  sendResponse: (response?: unknown) => void,
+  message: BrowserMessage,
+  sender: HandlerSender,
+  sendResponse: (response?: BrowserResponse) => void,
 ) => boolean;
 
 /**

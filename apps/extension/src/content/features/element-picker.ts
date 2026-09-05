@@ -76,12 +76,14 @@ export function createPickerOverlay(): HTMLElement {
     `;
 
     // Prevent toolbar interactions from triggering picker
-    const toolbar = overlay.querySelector(".element-picker-toolbar") as HTMLElement;
+    const toolbar = overlay.querySelector(".element-picker-toolbar");
+    if (!(toolbar instanceof HTMLElement)) throw new Error("Picker toolbar was not created");
     toolbar.addEventListener("click", (e: Event) => e.stopPropagation());
     toolbar.addEventListener("mousedown", (e: Event) => e.stopPropagation());
 
     // Add click handler for Page button
-    const pageButton = overlay.querySelector(".element-picker-page-button") as HTMLElement;
+    const pageButton = overlay.querySelector(".element-picker-page-button");
+    if (!(pageButton instanceof HTMLElement)) throw new Error("Picker page button was not created");
     pageButton.addEventListener("click", async (e: Event) => {
       e.stopPropagation();
       e.preventDefault();
@@ -90,10 +92,13 @@ export function createPickerOverlay(): HTMLElement {
     pageButton.addEventListener("mousedown", (e: Event) => e.stopPropagation());
 
     // Add change handler for type select
-    const typeSelect = overlay.querySelector(".element-picker-type-select") as HTMLSelectElement;
+    const typeSelect = overlay.querySelector(".element-picker-type-select");
+    if (!(typeSelect instanceof HTMLSelectElement))
+      throw new Error("Picker type select was not created");
     typeSelect.addEventListener("change", (e: Event) => {
       e.stopPropagation();
-      const type = (e.target as HTMLSelectElement).value;
+      if (!(e.currentTarget instanceof HTMLSelectElement)) return;
+      const type = e.currentTarget.value;
       setForcedType(type === "auto" ? null : type);
       // Update the type indicator if there's a highlighted element
       if (currentHighlightedElement) {
@@ -257,7 +262,7 @@ async function handlePickerClick(event: MouseEvent): Promise<void> {
   if (!elementPickerActive) return;
 
   // Ignore clicks on the overlay toolbar (select, etc.)
-  if (pickerOverlay && pickerOverlay.contains(event.target as Node)) {
+  if (pickerOverlay && event.target instanceof Node && pickerOverlay.contains(event.target)) {
     return;
   }
 

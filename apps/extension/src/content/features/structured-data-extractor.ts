@@ -3,7 +3,16 @@
  * Extracts JSON-LD, microdata, Open Graph, and ARIA attributes from a webpage
  */
 
-import type { StructuredData } from "@repo/shared/types";
+import type { JSONObject, StructuredData } from "@repo/shared/types";
+import { parseJSONObject } from "@repo/shared/utils";
+
+interface OpenGraphData {
+  [property: string]: string;
+}
+
+interface AriaAttributeData {
+  [attribute: string]: string[];
+}
 
 /**
  * Extracts structured data from an element and its context
@@ -22,16 +31,16 @@ export function extractStructuredData(element: Element): StructuredData {
 /**
  * Extracts JSON-LD data from script[type="application/ld+json"] tags
  */
-function extractJsonLd(): Record<string, unknown>[] {
+function extractJsonLd(): JSONObject[] {
   const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
-  const jsonLdData: Record<string, unknown>[] = [];
+  const jsonLdData: JSONObject[] = [];
 
   jsonLdScripts.forEach((script) => {
     try {
       const content = script.textContent;
       if (content) {
-        const parsed = JSON.parse(content);
-        jsonLdData.push(parsed);
+        const parsed = parseJSONObject(content);
+        if (parsed) jsonLdData.push(parsed);
       }
     } catch (error) {
       // Silently skip malformed JSON-LD
@@ -97,8 +106,8 @@ function extractMicrodata(
 /**
  * Extracts Open Graph meta tags
  */
-function extractOpenGraph(): Record<string, string> {
-  const ogData: Record<string, string> = {};
+function extractOpenGraph(): OpenGraphData {
+  const ogData: OpenGraphData = {};
   const metaTags = document.querySelectorAll('meta[property^="og:"]');
 
   metaTags.forEach((tag) => {
@@ -116,8 +125,8 @@ function extractOpenGraph(): Record<string, string> {
 /**
  * Extracts ARIA attributes from an element and its descendants
  */
-function extractAriaAttributes(element: Element): Record<string, string[]> {
-  const ariaAttrs: Record<string, string[]> = {};
+function extractAriaAttributes(element: Element): AriaAttributeData {
+  const ariaAttrs: AriaAttributeData = {};
 
   // Get all elements including the root element
   const allElements = [element, ...Array.from(element.querySelectorAll("*"))];

@@ -1,12 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import type { Clip } from "@repo/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSendMessage = vi.fn();
-
-vi.mock("@repo/shared", () => ({
-  sendMessage: (...args: unknown[]) => mockSendMessage(...args),
-}));
 
 import { useClips } from "./useClips";
 
@@ -16,10 +11,21 @@ describe("useClips", () => {
   });
 
   it("loads clips on mount", async () => {
-    const clips = [{ id: "clip-1", title: "Example clip" }] as unknown as Clip[];
+    const clips = [
+      {
+        id: "clip-1",
+        url: "https://example.com",
+        title: "Example clip",
+        dom_content: "",
+        text_content: "Example clip",
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-01T00:00:00.000Z",
+        sync_status: "local" as const,
+      },
+    ];
     mockSendMessage.mockResolvedValueOnce(clips);
 
-    const { result } = renderHook(() => useClips());
+    const { result } = renderHook(() => useClips(mockSendMessage));
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);

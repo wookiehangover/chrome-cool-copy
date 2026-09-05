@@ -2,8 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAudioFromBlob, generateSpeech, revokeAudioUrl } from "./tts-service.js";
 import { TTSError } from "./tts-types.js";
 
+function responseWithBlob(blob: Blob): Response {
+  const response = new Response();
+  vi.spyOn(response, "blob").mockResolvedValue(blob);
+  return response;
+}
+
 describe("TTS service", () => {
-  const fetchMock = vi.fn();
+  const fetchMock = vi.fn<typeof fetch>();
 
   beforeEach(() => {
     fetchMock.mockReset();
@@ -25,10 +31,7 @@ describe("TTS service", () => {
 
   it("posts text and voice to the TTS endpoint and returns an audio blob", async () => {
     const responseBlob = new Blob(["audio-data"], { type: "audio/wav" });
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      blob: vi.fn().mockResolvedValue(responseBlob),
-    } as unknown as Response);
+    fetchMock.mockResolvedValueOnce(responseWithBlob(responseBlob));
 
     const result = await generateSpeech({
       text: "Hello world",
@@ -45,17 +48,16 @@ describe("TTS service", () => {
       }),
     );
 
-    const requestBody = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    const requestBody = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(requestBody).toBeInstanceOf(FormData);
+    if (!(requestBody instanceof FormData)) throw new Error("Expected FormData request body");
     expect(requestBody.get("text")).toBe("Hello world");
     expect(requestBody.get("voice_url")).toBe("bella");
   });
 
   it("uses default voice and server URL when options are omitted", async () => {
     const responseBlob = new Blob(["audio-data"], { type: "audio/wav" });
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      blob: vi.fn().mockResolvedValue(responseBlob),
-    } as unknown as Response);
+    fetchMock.mockResolvedValueOnce(responseWithBlob(responseBlob));
 
     await generateSpeech({ text: "Defaults test" });
 
@@ -67,7 +69,9 @@ describe("TTS service", () => {
       }),
     );
 
-    const requestBody = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    const requestBody = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(requestBody).toBeInstanceOf(FormData);
+    if (!(requestBody instanceof FormData)) throw new Error("Expected FormData request body");
     expect(requestBody.get("voice_url")).toBe("alba");
   });
 
@@ -91,11 +95,9 @@ describe("TTS service", () => {
   });
 
   it("throws SERVER_ERROR when response is not ok", async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-    } as unknown as Response);
+    fetchMock.mockResolvedValueOnce(
+      new Response(null, { status: 500, statusText: "Internal Server Error" }),
+    );
 
     await expect(generateSpeech({ text: "Hello" })).rejects.toMatchObject({
       name: "TTSError",
@@ -105,10 +107,7 @@ describe("TTS service", () => {
   });
 
   it("throws INVALID_RESPONSE when server returns an empty blob", async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      blob: vi.fn().mockResolvedValue(new Blob()),
-    } as unknown as Response);
+    fetchMock.mockResolvedValueOnce(responseWithBlob(new Blob()));
 
     await expect(generateSpeech({ text: "Hello" })).rejects.toMatchObject({
       name: "TTSError",
@@ -132,7 +131,7 @@ describe("TTS service", () => {
 
     expect(createObjectURL).toHaveBeenCalledWith(blob);
     expect(MockAudio).toHaveBeenCalledWith("blob:mock-audio");
-    expect((audio as unknown as { src: string }).src).toBe("blob:mock-audio");
+    expect(audio.src).toBe("blob:mock-audio");
   });
 
   it("revokeAudioUrl revokes blob URLs", () => {
@@ -142,7 +141,9 @@ describe("TTS service", () => {
       revokeObjectURL,
     });
 
-    revokeAudioUrl({ src: "blob:mock-audio" } as HTMLAudioElement);
+    const audio = document.createElement("audio");
+    audio.src = "blob:mock-audio";
+    revokeAudioUrl(audio);
 
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-audio");
   });
@@ -154,16 +155,15 @@ describe("TTS service", () => {
       revokeObjectURL,
     });
 
-    revokeAudioUrl({ src: "https://example.com/audio.wav" } as HTMLAudioElement);
+    const audio = document.createElement("audio");
+    audio.src = "https://example.com/audio.wav";
+    revokeAudioUrl(audio);
 
     expect(revokeObjectURL).not.toHaveBeenCalled();
   });
 
   it("throws TTSError instances for TTS errors", async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      blob: vi.fn().mockResolvedValue(new Blob()),
-    } as unknown as Response);
+    fetchMock.mockResolvedValueOnce(responseWithBlob(new Blob()));
 
     await expect(generateSpeech({ text: "Hello" })).rejects.toBeInstanceOf(TTSError);
   });

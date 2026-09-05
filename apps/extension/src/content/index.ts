@@ -29,7 +29,9 @@ interface ContentMessage {
   action: string;
   x?: number;
   y?: number;
-  [key: string]: unknown;
+  lines?: number;
+  chunkId?: string;
+  success?: boolean;
 }
 
 /**
@@ -165,7 +167,7 @@ chrome.runtime.onMessage.addListener(
 
           sendResponse({ success: true });
         } catch (error) {
-          handleClipError(error);
+          handleClipError(error instanceof Error ? error : new Error(String(error)));
           const errorMessage = error instanceof Error ? error.message : String(error);
           sendResponse({ success: false, error: errorMessage });
         }
@@ -192,7 +194,7 @@ chrome.runtime.onMessage.addListener(
       } else if (message.action === "readConsole") {
         // Handle console read request - return captured console entries
         try {
-          const lines = typeof message.lines === "number" ? message.lines : 20;
+          const lines = Number.isFinite(message.lines) ? message.lines : 20;
           const entries = getConsoleEntries(lines);
           sendResponse({ success: true, entries });
         } catch (error) {

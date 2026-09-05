@@ -21,6 +21,7 @@ export function SettingsPanel() {
       try {
         const result = await chrome.storage.local.get([STORAGE_KEY]);
         if (result[STORAGE_KEY]) {
+          // SAFETY: This key is written only from ViewerSettings controls below.
           const loadedSettings = result[STORAGE_KEY] as ViewerSettings;
           setSettings(loadedSettings);
           applySettings(loadedSettings);

@@ -29,7 +29,7 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const password = formData.get("password");
 
-  if (typeof password !== "string" || !checkPassword(password)) {
+  if (password instanceof File || password === null || !checkPassword(password)) {
     return data({ error: "Incorrect password" }, { status: 401 });
   }
 

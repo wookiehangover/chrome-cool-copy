@@ -10,13 +10,13 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIMETYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 // Map file extensions to mimetypes
-const EXT_TO_MIMETYPE: Record<string, string> = {
+const EXT_TO_MIMETYPE = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
   png: "image/png",
   gif: "image/gif",
   webp: "image/webp",
-};
+} satisfies Record<string, string>;
 
 /**
  * Extract mimetype from URL extension
@@ -26,7 +26,10 @@ function getMimetypeFromUrl(url: string): string | undefined {
     const pathname = new URL(url).pathname;
     const ext = pathname.split(".").pop()?.toLowerCase();
     if (ext) {
-      return EXT_TO_MIMETYPE[ext];
+      // SAFETY: Object.hasOwn establishes ext as a key of the closed map.
+      return Object.hasOwn(EXT_TO_MIMETYPE, ext)
+        ? EXT_TO_MIMETYPE[ext as keyof typeof EXT_TO_MIMETYPE]
+        : undefined;
     }
   } catch {
     // Invalid URL, ignore
@@ -73,18 +76,20 @@ export async function action({ request }: Route.ActionArgs) {
 
   const { url, pageUrl, pageTitle, altText } = body;
 
-  if (!url || typeof url !== "string") {
+  if (!url || Object.prototype.toString.call(url) !== "[object String]") {
     return data({ error: "URL is required" }, { status: 400 });
   }
 
-  if (!pageUrl || typeof pageUrl !== "string") {
+  if (!pageUrl || Object.prototype.toString.call(pageUrl) !== "[object String]") {
     return data({ error: "pageUrl is required" }, { status: 400 });
   }
 
   try {
     // 3. Fetch the image server-side
-    console.log("[Media Upload URL API] Fetching image from:", url);
-    const imageResponse = await fetch(url, {
+    const imageUrl = String(url);
+    const sourcePageUrl = String(pageUrl);
+    console.log("[Media Upload URL API] Fetching image from:", imageUrl);
+    const imageResponse = await fetch(imageUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; ClipsBot/1.0)",
       },
@@ -109,7 +114,7 @@ export async function action({ request }: Route.ActionArgs) {
     let mimetype = contentType && ALLOWED_MIMETYPES.includes(contentType) ? contentType : undefined;
 
     if (!mimetype) {
-      mimetype = getMimetypeFromUrl(url);
+      mimetype = getMimetypeFromUrl(imageUrl);
     }
 
     if (!mimetype || !ALLOWED_MIMETYPES.includes(mimetype)) {
@@ -128,7 +133,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     // 7. Create blob for upload
-    const filename = getFilenameFromUrl(url);
+    const filename = getFilenameFromUrl(imageUrl);
     const blob = new Blob([imageBuffer], { type: mimetype });
 
     // 8. Upload to Vercel Blob
@@ -145,7 +150,7 @@ export async function action({ request }: Route.ActionArgs) {
       width,
       height,
       alt_text: altText,
-      page_url: pageUrl,
+      page_url: sourcePageUrl,
       page_title: pageTitle,
     });
 

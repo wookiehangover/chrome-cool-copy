@@ -210,8 +210,8 @@ export async function handleTextCopy(element: Element): Promise<void> {
     } catch (error) {
       console.error("[Clean Link Copy] Error converting HTML to markdown:", error);
       // Fallback to plain text if conversion fails
-      const htmlElement = element as HTMLElement;
-      markdown = htmlElement.innerText || element.textContent || "";
+      const renderedText = element instanceof HTMLElement ? element.innerText : "";
+      markdown = renderedText || element.textContent || "";
     }
 
     if (!markdown || !markdown.trim()) {
@@ -427,22 +427,22 @@ export async function handleImageCopy(element: Element): Promise<void> {
     // Route direct media elements first (before checking for nested elements)
 
     // Handle direct video elements - capture current frame
-    if (element.tagName === "VIDEO") {
+    if (element instanceof HTMLVideoElement) {
       console.log("[Clean Link Copy] Detected direct <video> element");
-      await captureVideoFrame(element as HTMLVideoElement);
+      await captureVideoFrame(element);
       return;
     }
 
     // Handle direct canvas elements - export to PNG
-    if (element.tagName === "CANVAS") {
+    if (element instanceof HTMLCanvasElement) {
       console.log("[Clean Link Copy] Detected direct <canvas> element");
-      await captureCanvasFrame(element as HTMLCanvasElement);
+      await captureCanvasFrame(element);
       return;
     }
 
     // Handle direct image elements - try direct copy
-    if (element.tagName === "IMG") {
-      const imgElement = element as HTMLImageElement;
+    if (element instanceof HTMLImageElement) {
+      const imgElement = element;
       const imageSrc = imgElement.src || element.getAttribute("src");
       if (imageSrc) {
         console.log("[Clean Link Copy] Detected direct <img> element, attempting direct copy");
@@ -458,7 +458,7 @@ export async function handleImageCopy(element: Element): Promise<void> {
     // Check for nested media elements (containers with media inside)
 
     // Check if element contains a video element
-    const videoElement = element.querySelector("video") as HTMLVideoElement | null;
+    const videoElement = element.querySelector("video");
     if (videoElement) {
       console.log("[Clean Link Copy] Detected nested <video> element");
       await captureVideoFrame(videoElement);
@@ -466,7 +466,7 @@ export async function handleImageCopy(element: Element): Promise<void> {
     }
 
     // Check if element contains a canvas element
-    const canvasElement = element.querySelector("canvas") as HTMLCanvasElement | null;
+    const canvasElement = element.querySelector("canvas");
     if (canvasElement) {
       console.log("[Clean Link Copy] Detected nested <canvas> element");
       await captureCanvasFrame(canvasElement);

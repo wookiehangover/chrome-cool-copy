@@ -1,4 +1,5 @@
 import type { HandlerMap } from "./types";
+import { z } from "zod";
 
 interface ElementBounds {
   top: number;
@@ -16,6 +17,32 @@ interface PageInfo {
   originalScrollX: number;
   originalScrollY: number;
 }
+
+const elementBoundsSchema = z.object({
+  top: z.number(),
+  left: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+});
+const pageInfoSchema = z.object({
+  scrollWidth: z.number(),
+  scrollHeight: z.number(),
+  viewportWidth: z.number(),
+  viewportHeight: z.number(),
+  devicePixelRatio: z.number().positive(),
+  originalScrollX: z.number(),
+  originalScrollY: z.number(),
+});
+const clipsServerConfigSchema = z.object({ baseUrl: z.string().url(), apiToken: z.string() });
+const uploadMetadataSchema = z.object({
+  mimetype: z.string().optional(),
+  originalFilename: z.string(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  altText: z.string().optional(),
+  pageUrl: z.string().optional(),
+  pageTitle: z.string().optional(),
+});
 
 /**
  * Capture the visible tab and crop to element bounds
@@ -82,7 +109,7 @@ async function captureAndCropImage(bounds: ElementBounds, devicePixelRatio = 1):
     const blob = await canvas.convertToBlob({ type: "image/png" });
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => resolve(z.string().parse(reader.result));
       reader.onerror = () => reject(new Error("Failed to read blob"));
       reader.readAsDataURL(blob);
     });
@@ -183,7 +210,7 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
   const blob = await finalCanvas.convertToBlob({ type: "image/png" });
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => resolve(z.string().parse(reader.result));
     reader.onerror = () => reject(new Error("Failed to read blob"));
     reader.readAsDataURL(blob);
   });
@@ -191,7 +218,9 @@ async function captureEntirePage(tabId: number, pageInfo: PageInfo): Promise<str
 
 export const mediaHandlers: HandlerMap = {
   captureElement: (message, _sender, sendResponse) => {
-    captureAndCropImage(message.bounds as ElementBounds, (message.devicePixelRatio as number) || 1)
+    const bounds = elementBoundsSchema.parse(message.bounds);
+    const devicePixelRatio = z.number().positive().catch(1).parse(message.devicePixelRatio);
+    captureAndCropImage(bounds, devicePixelRatio)
       .then((imageData) => {
         sendResponse({ success: true, imageData });
       })
@@ -208,7 +237,7 @@ export const mediaHandlers: HandlerMap = {
       sendResponse({ success: false, error: "No tab ID available" });
       return true;
     }
-    const pageInfo = message.pageInfo as PageInfo;
+    const pageInfo = pageInfoSchema.parse(message.pageInfo);
     captureEntirePage(tabId, pageInfo)
       .then((imageData) => {
         chrome.tabs.sendMessage(tabId, {
@@ -218,7 +247,7 @@ export const mediaHandlers: HandlerMap = {
         });
         sendResponse({ success: true, imageData });
       })
-      .catch((error: unknown) => {
+      .catch((error) => {
         console.error("[Clean Link Copy] Error in captureFullPage handler:", error);
         chrome.tabs.sendMessage(tabId, {
           action: "scrollTo",
@@ -236,7 +265,7 @@ export const mediaHandlers: HandlerMap = {
   fetchImage: (message, _sender, sendResponse) => {
     (async () => {
       try {
-        const { url } = message as { url: string };
+        const url = z.string().url().parse(message.url);
         console.log("[Background] Fetching image:", url);
         const response = await fetch(url);
         if (!response.ok) {
@@ -264,15 +293,15 @@ export const mediaHandlers: HandlerMap = {
   uploadMedia: (message, _sender, sendResponse) => {
     (async () => {
       try {
-        const { imageData, metadata } = message as {
-          imageData: number[];
-          metadata: Record<string, unknown>;
-        };
+        const { imageData, metadata } = z
+          .object({
+            imageData: z.array(z.number().int().min(0).max(255)),
+            metadata: uploadMetadataSchema,
+          })
+          .parse(message);
 
         const result = await chrome.storage.sync.get(["clipsServerConfig"]);
-        const clipsConfig = result.clipsServerConfig as
-          | { baseUrl: string; apiToken: string }
-          | undefined;
+        const clipsConfig = clipsServerConfigSchema.optional().parse(result.clipsServerConfig);
 
         if (!clipsConfig?.baseUrl) {
           sendResponse({
@@ -284,11 +313,11 @@ export const mediaHandlers: HandlerMap = {
 
         const uint8Array = new Uint8Array(imageData);
         const blob = new Blob([uint8Array], {
-          type: (metadata.mimetype as string) || "image/png",
+          type: metadata.mimetype || "image/png",
         });
 
         const formData = new FormData();
-        formData.append("image", blob, metadata.originalFilename as string);
+        formData.append("image", blob, metadata.originalFilename);
         formData.append(
           "metadata",
           JSON.stringify({
@@ -339,17 +368,17 @@ export const mediaHandlers: HandlerMap = {
   uploadMediaUrl: (message, _sender, sendResponse) => {
     (async () => {
       try {
-        const { url, pageUrl, pageTitle, altText } = message as {
-          url: string;
-          pageUrl: string;
-          pageTitle: string;
-          altText: string;
-        };
+        const { url, pageUrl, pageTitle, altText } = z
+          .object({
+            url: z.string().url(),
+            pageUrl: z.string(),
+            pageTitle: z.string(),
+            altText: z.string(),
+          })
+          .parse(message);
 
         const result = await chrome.storage.sync.get(["clipsServerConfig"]);
-        const clipsConfig = result.clipsServerConfig as
-          | { baseUrl: string; apiToken: string }
-          | undefined;
+        const clipsConfig = clipsServerConfigSchema.optional().parse(result.clipsServerConfig);
 
         if (!clipsConfig?.baseUrl) {
           sendResponse({
@@ -360,12 +389,10 @@ export const mediaHandlers: HandlerMap = {
         }
 
         const uploadUrl = `${clipsConfig.baseUrl}/api/media/upload-url`;
-        const headers: Record<string, string> = {
+        const headers = {
           "Content-Type": "application/json",
+          ...(clipsConfig.apiToken && { Authorization: `Bearer ${clipsConfig.apiToken}` }),
         };
-        if (clipsConfig.apiToken) {
-          headers["Authorization"] = `Bearer ${clipsConfig.apiToken}`;
-        }
 
         const response = await fetch(uploadUrl, {
           method: "POST",

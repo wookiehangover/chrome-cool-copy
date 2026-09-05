@@ -6,7 +6,11 @@ import { useAgentDBConfig } from "@/hooks/useAgentDBConfig";
 import { ClipCard } from "@/components/ClipCard";
 import { MediaClipCard } from "@/components/MediaClipCard";
 import { cn } from "@/lib/utils";
-import type { LocalClip, Clip } from "@repo/shared";
+import type { Clip, ElementClip } from "@repo/shared";
+
+function isElementClip(clip: Clip): clip is ElementClip {
+  return "type" in clip && clip.type === "element";
+}
 
 // Fuzzy match function - same as BoostsList
 function fuzzyMatch(query: string, text: string): boolean {
@@ -50,8 +54,7 @@ export function ClipsList() {
     // Filter local clips
     const filteredLocalClips = search.trim()
       ? clips.filter((clip) => {
-          const title =
-            "type" in clip && clip.type === "element" ? clip.pageTitle : (clip as LocalClip).title;
+          const title = isElementClip(clip) ? clip.pageTitle : clip.title;
           return fuzzyMatch(search, title) || fuzzyMatch(search, clip.url);
         })
       : clips;
@@ -80,16 +83,16 @@ export function ClipsList() {
     const allItems = [...localItems, ...mediaItems].sort((a, b) => {
       const dateA = new Date(
         a.type === "local"
-          ? "type" in a.item && a.item.type === "element"
+          ? isElementClip(a.item)
             ? a.item.createdAt
-            : (a.item as LocalClip).created_at
+            : a.item.created_at
           : a.item.created_at,
       );
       const dateB = new Date(
         b.type === "local"
-          ? "type" in b.item && b.item.type === "element"
+          ? isElementClip(b.item)
             ? b.item.createdAt
-            : (b.item as LocalClip).created_at
+            : b.item.created_at
           : b.item.created_at,
       );
       return dateB.getTime() - dateA.getTime();

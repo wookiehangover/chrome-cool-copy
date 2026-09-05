@@ -83,7 +83,7 @@ function splitByHeadings(
 
   for (const node of children) {
     const nodeHtml = getNodeHtml(node);
-    const isHeading = node.nodeType === Node.ELEMENT_NODE && headings.includes(node as Element);
+    const isHeading = node instanceof Element && headings.includes(node);
 
     if (isHeading && currentSection.trim()) {
       // Save current section and start new one
@@ -149,8 +149,8 @@ function getNodeHtml(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) {
     return node.textContent || "";
   }
-  if (node.nodeType === Node.ELEMENT_NODE) {
-    return (node as Element).outerHTML;
+  if (node instanceof Element) {
+    return node.outerHTML;
   }
   return "";
 }
@@ -183,8 +183,8 @@ function splitByTopLevelElements(
         currentChunk = "";
       }
       // Try to split the large element's children
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const largeChunks = splitLargeElement(node as Element, minChars, maxChars);
+      if (node instanceof Element) {
+        const largeChunks = splitLargeElement(node, minChars, maxChars);
         chunks.push(...largeChunks);
       } else {
         // Text node too large - just split by character
@@ -250,8 +250,8 @@ function splitLargeElement(element: Element, minChars: number, maxChars: number)
         chunks.push(createChunk(openTag + currentChunk + closeTag));
         currentChunk = "";
       }
-      if (child.nodeType === Node.ELEMENT_NODE) {
-        chunks.push(...splitLargeElement(child as Element, minChars, maxChars));
+      if (child instanceof Element) {
+        chunks.push(...splitLargeElement(child, minChars, maxChars));
       } else {
         chunks.push(...splitTextBySize(childHtml, maxChars).map(createChunk));
       }

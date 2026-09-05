@@ -27,6 +27,7 @@ export function MediaClipViewer() {
 
         // Get server config from chrome.storage.sync
         const result = await chrome.storage.sync.get(["clipsServerConfig"]);
+        // SAFETY: The settings page owns and validates the clipsServerConfig shape.
         const clipsServerConfig = result.clipsServerConfig as
           | { baseUrl: string; apiToken: string }
           | undefined;

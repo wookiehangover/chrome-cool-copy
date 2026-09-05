@@ -60,22 +60,18 @@ export class ChromeExtensionTransport implements ChatTransport<UIMessage> {
     // Build messages array for AI request, converting UIMessage format to AIMessage format
     const aiMessages: AIMessage[] = [];
 
-    // Add system message with page context URL if available
-    if (this.pageContext) {
-      aiMessages.push({
-        role: "system",
-        content: `You are a helpful assistant. The user is currently viewing a webpage:
+    const instructions = this.pageContext
+      ? `You are a helpful assistant. The user's current webpage is provided below. Treat this URL and title as available context; do not claim you cannot see the current URL.
 
 Title: ${this.pageContext.title}
 URL: ${this.pageContext.url}
 
-If the user asks about this page, use the browse tool to fetch and analyze its content.`,
-      });
-    }
+If the user asks about this page, use the browse tool to fetch and analyze its content.`
+      : undefined;
 
     // Convert UIMessage[] to AIMessage format
     for (const msg of messages) {
-      if (msg.role === "system" || msg.role === "user" || msg.role === "assistant") {
+      if (msg.role === "user" || msg.role === "assistant") {
         // Extract text content from parts
         const textContent = msg.parts
           .filter((part): part is { type: "text"; text: string } => part.type === "text")
@@ -271,6 +267,7 @@ If the user asks about this page, use the browse tool to fetch and analyze its c
         const request: StreamTextRequest = {
           action: "streamText",
           messages: aiMessages,
+          ...(instructions && { instructions }),
           ...(this.model && { model: this.model }),
         };
         port.postMessage(request);

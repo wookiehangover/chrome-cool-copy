@@ -51,9 +51,10 @@ export function MessageList(props: MessageListProps) {
         const showReasoning = isLastAssistantMessage && (reasoning || isReasoningStreaming);
 
         // Extract tool parts from the message
+        // SAFETY: The filter admits only AI SDK tool-part discriminants.
         const toolParts = message.parts
           .filter((part) => part.type.startsWith("tool-") || part.type === "dynamic-tool")
-          .map((part) => part as unknown as AnyToolUIPart);
+          .map((part) => part as AnyToolUIPart);
 
         return (
           <Message key={message.id} from={message.role}>
@@ -72,6 +73,7 @@ export function MessageList(props: MessageListProps) {
                       <Tool key={toolPart.toolCallId} className="group">
                         <ToolHeader
                           title={toolName}
+                          // SAFETY: AnyToolUIPart.type is an AI SDK tool discriminant.
                           type={toolPart.type as `tool-${string}`}
                           state={toolPart.state}
                         />

@@ -45,7 +45,8 @@ function openDB(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
 
     request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
+      if (!(event.target instanceof IDBOpenDBRequest)) return;
+      const db = event.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: "clipId" });
         store.createIndex("lastAccessedAt", "lastAccessedAt");
