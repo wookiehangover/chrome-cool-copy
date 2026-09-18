@@ -2,7 +2,10 @@
  * Popup script for Cool Copy extension
  */
 
+import { initializeWebsiteLockForm } from "./website-lock.js";
+
 document.addEventListener("DOMContentLoaded", (): void => {
+  void initializeWebsiteLockForm();
   document.getElementById("openChatBtn")?.addEventListener("click", async (): Promise<void> => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.id) {

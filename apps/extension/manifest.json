@@ -41,6 +41,12 @@
   },
   "content_scripts": [
     {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["website-lock.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
       "matches": ["<all_urls>"],
       "js": ["vendor/turndown.js", "content.js"],
       "css": ["styles.css"],

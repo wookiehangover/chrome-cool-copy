@@ -110,14 +110,18 @@ function copyAssetsPlugin() {
         console.error("Failed to build content.js with esbuild:", e);
       }
 
-      // Wrap popup.js in IIFE
-      try {
-        let popupCode = await fs.readFile("dist/pages/popup.js", "utf-8");
-        popupCode = `(function() {\n${popupCode}\n})();`;
-        await fs.writeFile("dist/pages/popup.js", popupCode);
-      } catch {
-        console.warn("Could not wrap popup.js in IIFE");
-      }
+      await esbuild({
+        entryPoints: {
+          "website-lock": "src/content/website-lock-entry.ts",
+          "pages/popup": "src/pages/popup/popup.ts",
+        },
+        bundle: true,
+        format: "iife",
+        outdir: "dist",
+        sourcemap: true,
+        target: "chrome100",
+        loader: { ".css": "text" },
+      });
     },
   };
 }
@@ -136,7 +140,6 @@ export default defineConfig({
         "services/database": resolve(__dirname, "src/services/database.ts"),
         "services/local-clips": resolve(__dirname, "src/services/local-clips.ts"),
         "services/clips-sync": resolve(__dirname, "src/services/clips-sync.ts"),
-        "pages/popup": resolve(__dirname, "src/pages/popup/popup.ts"),
         // clip-viewer and clipped-pages removed - now using React viewer at apps/clips (outputs to dist/viewer)
         "pages/settings": resolve(__dirname, "src/pages/settings/settings.ts"),
         "tts-player/index": resolve(__dirname, "src/tts-player/main.ts"),
