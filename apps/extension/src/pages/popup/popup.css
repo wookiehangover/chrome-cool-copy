@@ -146,6 +146,32 @@ body {
   cursor: wait;
 }
 
+.website-lock-durations {
+  margin-bottom: 16px;
+  border: 0;
+}
+
+.website-lock-durations legend {
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.website-lock-durations div {
+  display: flex;
+  gap: 8px;
+}
+
+.website-lock-durations button {
+  margin-top: 0;
+  border-color: var(--divider);
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.website-lock-durations button:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
 .website-lock input:focus-visible,
 .website-lock button:focus-visible {
   outline: 2px solid var(--text-secondary);

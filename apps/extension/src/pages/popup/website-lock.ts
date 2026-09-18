@@ -15,15 +15,19 @@ function localDateTime(timestamp: number): string {
 export async function initializeWebsiteLockForm(): Promise<void> {
   const form = document.querySelector<HTMLFormElement>("#websiteLockForm");
   const input = document.querySelector<HTMLInputElement>("#websiteUnlockAt");
-  const button = document.querySelector<HTMLButtonElement>("#lockWebsiteBtn");
+  const buttons = document.querySelectorAll<HTMLButtonElement>("#websiteLockForm button");
   const site = document.querySelector<HTMLElement>("#websiteLockHost");
   const status = document.querySelector<HTMLElement>("#websiteLockStatus");
-  if (!form || !input || !button || !site || !status) return;
+  if (!form || !input || buttons.length === 0 || !site || !status) return;
 
   let deadline: number | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let saving = false;
   let notice = "";
+
+  function setButtonsDisabled(disabled: boolean): void {
+    for (const button of buttons) button.disabled = disabled;
+  }
 
   function render(): void {
     clearTimeout(timer);
@@ -48,7 +52,7 @@ export async function initializeWebsiteLockForm(): Promise<void> {
     deadline = await getWebsiteLock(hostname);
     input.value = localDateTime(Math.ceil((Date.now() + 60 * 60_000) / 60_000) * 60_000);
     input.min = localDateTime(Math.ceil((Date.now() + 1) / 60_000) * 60_000);
-    button.disabled = false;
+    setButtonsDisabled(false);
     render();
 
     const onStorageChanged = (
@@ -71,17 +75,15 @@ export async function initializeWebsiteLockForm(): Promise<void> {
       { once: true },
     );
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
+    const lockWebsite = async (unlockAt: number): Promise<void> => {
       if (saving) return;
-      const unlockAt = new Date(input.value).getTime();
       if (!activeDeadline(unlockAt)) {
         status.textContent = "Choose a date and time in the future.";
         input.focus();
         return;
       }
       saving = true;
-      button.disabled = true;
+      setButtonsDisabled(true);
       try {
         const currentTab = await chrome.tabs.get(tabId);
         if (getWebsiteHostname(currentTab.url ?? "") !== hostname) {
@@ -121,9 +123,22 @@ export async function initializeWebsiteLockForm(): Promise<void> {
           error instanceof Error ? error.message : "Could not save the lock. Try again.";
       } finally {
         saving = false;
-        button.disabled = false;
+        setButtonsDisabled(false);
       }
+    };
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void lockWebsite(new Date(input.value).getTime());
     });
+    for (const button of buttons) {
+      const minutes = Number(button.getAttribute("data-lock-minutes"));
+      if (minutes === 30 || minutes === 60) {
+        button.addEventListener("click", () => {
+          void lockWebsite(Date.now() + minutes * 60_000);
+        });
+      }
+    }
   } catch {
     status.textContent = "Could not load website locks. Reopen the popup to try again.";
   }

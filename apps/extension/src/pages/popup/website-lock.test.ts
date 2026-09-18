@@ -26,6 +26,7 @@ describe("website lock popup", () => {
 
   afterEach(() => {
     window.dispatchEvent(new Event("pagehide"));
+    vi.restoreAllMocks();
   });
 
   function submit(timestamp: number): void {
@@ -62,6 +63,53 @@ describe("website lock popup", () => {
     expect(document.querySelector("#websiteLockStatus")?.textContent).toContain("future");
     expect(executeScript).not.toHaveBeenCalled();
     expect(chrome.storage.local.set).not.toHaveBeenCalled();
+  });
+
+  it.each([30, 60])("locks for exactly %i minutes from the quick button click", async (minutes) => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(new Date("2026-09-18T23:50:37Z").getTime());
+    await initializeWebsiteLockForm();
+    const clickedAt = new Date("2026-09-18T23:55:43Z").getTime();
+    now.mockReturnValue(clickedAt);
+    document.querySelector<HTMLInputElement>("#websiteUnlockAt")!.value = "";
+    const quickButton = document.querySelector<HTMLButtonElement>(
+      `[data-lock-minutes="${minutes}"]`,
+    )!;
+    quickButton.click();
+    expect(
+      [...document.querySelectorAll<HTMLButtonElement>("#websiteLockForm button")].every(
+        (button) => button.disabled,
+      ),
+    ).toBe(true);
+    quickButton.click();
+
+    await vi.waitFor(() =>
+      expect(chrome.storage.local.set).toHaveBeenCalledWith({
+        "website-lock:example.com": clickedAt + minutes * 60_000,
+      }),
+    );
+    expect(chrome.storage.local.set).toHaveBeenCalledOnce();
+    expect(document.querySelector<HTMLFormElement>("form")?.hidden).toBe(true);
+  });
+
+  it("lets a quick lock retry after a save failure", async () => {
+    vi.mocked(chrome.storage.local.set).mockRejectedValueOnce(new Error("Storage unavailable"));
+    await initializeWebsiteLockForm();
+    const quickButton = document.querySelector<HTMLButtonElement>('[data-lock-minutes="30"]')!;
+    quickButton.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector("#websiteLockStatus")?.textContent).toContain(
+        "Storage unavailable",
+      ),
+    );
+    expect(
+      [...document.querySelectorAll<HTMLButtonElement>("#websiteLockForm button")].every(
+        (button) => !button.disabled,
+      ),
+    ).toBe(true);
+    quickButton.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector<HTMLFormElement>("form")?.hidden).toBe(true),
+    );
   });
 
   it("does not save a lock when the browser refuses injection", async () => {
