@@ -71,6 +71,21 @@
           <span>Keyboard Shortcuts</span>
         </button>
       </nav>
+      <section class="website-lock" aria-labelledby="websiteLockTitle">
+        <h2 id="websiteLockTitle">Lock website</h2>
+        <p id="websiteLockHost" class="website-lock-host">Current website</p>
+        <form id="websiteLockForm" hidden>
+          <label for="websiteUnlockAt">Unlock on</label>
+          <input
+            id="websiteUnlockAt"
+            type="datetime-local"
+            required
+            aria-describedby="websiteLockStatus"
+          />
+          <button id="lockWebsiteBtn" type="submit" disabled>Lock until then</button>
+        </form>
+        <p id="websiteLockStatus" class="website-lock-status" role="status">Loading…</p>
+      </section>
     </div>
 
     <script src="./popup.js"></script>
