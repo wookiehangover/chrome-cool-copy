@@ -9,25 +9,19 @@
 export type ModelId =
   // Anthropic models
   | "anthropic/claude-fable-5"
-  | "anthropic/claude-opus-4.8"
-  | "anthropic/claude-sonnet-4.6"
-  | "anthropic/claude-haiku-4.5"
+  | "anthropic/claude-opus-5"
   // OpenAI models
   | "openai/gpt-5.6-sol"
   | "openai/gpt-5.6-terra"
   | "openai/gpt-5.6-luna"
-  // Google models
-  | "google/gemini-3.5-flash"
-  | "google/gemini-3.1-pro-preview"
+  | "openai/gpt-6-astra"
   // xAI models
-  | "xai/grok-4.20-reasoning"
-  | "xai/grok-4.20-non-reasoning"
-  | "xai/grok-4.3";
+  | "spacexai/grok-4.6";
 
 /**
  * AI provider identifier
  */
-export type ModelProvider = "Anthropic" | "OpenAI" | "Google" | "X.AI";
+export type ModelProvider = "Anthropic" | "OpenAI" | "X.AI";
 
 /**
  * Model definition with metadata
@@ -51,18 +45,8 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
     provider: "Anthropic",
   },
   {
-    id: "anthropic/claude-opus-4.8",
-    displayName: "Claude Opus 4.8",
-    provider: "Anthropic",
-  },
-  {
-    id: "anthropic/claude-sonnet-4.6",
-    displayName: "Claude Sonnet 4.6",
-    provider: "Anthropic",
-  },
-  {
-    id: "anthropic/claude-haiku-4.5",
-    displayName: "Claude Haiku 4.5",
+    id: "anthropic/claude-opus-5",
+    displayName: "Claude Opus 5",
     provider: "Anthropic",
   },
   // OpenAI models
@@ -81,31 +65,15 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
     displayName: "GPT-5.6 Luna",
     provider: "OpenAI",
   },
-  // Google models
   {
-    id: "google/gemini-3.5-flash",
-    displayName: "Gemini 3.5 Flash",
-    provider: "Google",
-  },
-  {
-    id: "google/gemini-3.1-pro-preview",
-    displayName: "Gemini 3.1 Pro Preview",
-    provider: "Google",
+    id: "openai/gpt-6-astra",
+    displayName: "GPT-6 Astra",
+    provider: "OpenAI",
   },
   // xAI models
   {
-    id: "xai/grok-4.20-reasoning",
-    displayName: "Grok 4.20 Reasoning",
-    provider: "X.AI",
-  },
-  {
-    id: "xai/grok-4.20-non-reasoning",
-    displayName: "Grok 4.20 Non-Reasoning",
-    provider: "X.AI",
-  },
-  {
-    id: "xai/grok-4.3",
-    displayName: "Grok 4.3",
+    id: "spacexai/grok-4.6",
+    displayName: "Grok 4.6",
     provider: "X.AI",
   },
 ];
@@ -116,6 +84,5 @@ export const SUPPORTED_MODELS: ModelDefinition[] = [
 export const MODELS_BY_PROVIDER = {
   Anthropic: SUPPORTED_MODELS.filter((m) => m.provider === "Anthropic"),
   OpenAI: SUPPORTED_MODELS.filter((m) => m.provider === "OpenAI"),
-  Google: SUPPORTED_MODELS.filter((m) => m.provider === "Google"),
   "X.AI": SUPPORTED_MODELS.filter((m) => m.provider === "X.AI"),
 } satisfies Record<ModelProvider, ModelDefinition[]>;
