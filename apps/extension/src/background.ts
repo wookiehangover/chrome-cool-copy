@@ -11,6 +11,7 @@ import { createBoostTools } from "./tools/boost-tools";
 import { getBoostSystemPrompt } from "@repo/shared";
 import type { StreamMessageType } from "@repo/shared";
 import { z } from "zod";
+import { getDefaultProviderOptions } from "./provider-options";
 import { startStreamingRequest } from "./streaming-request";
 import {
   clipsHandlers,
@@ -46,39 +47,6 @@ const streamTextRequestSchema = z.object({
   headers: z.record(z.string(), z.string().optional()).optional(),
 });
 import type { HandlerMap } from "./handlers";
-
-// =============================================================================
-// Anthropic thinking mode helpers
-// =============================================================================
-
-/**
- * Models that require adaptive thinking (thinking.type: "adaptive" + output_config.effort)
- * instead of the legacy enabled thinking (thinking.type: "enabled" + budgetTokens).
- */
-const ADAPTIVE_THINKING_MODELS = ["anthropic/claude-fable-5", "anthropic/claude-opus-4.8"];
-
-/**
- * Returns default provider options with the correct thinking configuration
- * based on the model being used.
- */
-function getDefaultProviderOptions(modelId: string) {
-  const isAdaptive = ADAPTIVE_THINKING_MODELS.some((m) => modelId.includes(m));
-
-  if (isAdaptive) {
-    return {
-      anthropic: {
-        thinking: { type: "adaptive" as const },
-        output_config: { effort: "high" as const },
-      },
-    };
-  }
-
-  return {
-    anthropic: {
-      thinking: { type: "enabled" as const, budgetTokens: 10000 },
-    },
-  };
-}
 
 // =============================================================================
 // Message Router
