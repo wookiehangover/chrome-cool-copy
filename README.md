@@ -5,6 +5,7 @@ There are many like it, but this one is mine.
 ## Features
 
 ### Cool Command Palette
+- **Archive**: Navigate the current tab to `https://archive.ph/{url}` using the full current page URL.
 - **Open Command Palette**: `Cmd+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
 - Searchable overlay with fuzzy search for quick command access
 - Keyboard navigation (arrow keys, Enter to execute, Escape to close)
@@ -95,4 +96,3 @@ There are many like it, but this one is mine.
 6. Click "Load unpacked"
 7. Select the `apps/extension/dist/` folder (not the root directory)
 8. (Optional) Configure AgentDB for page clipping feature (see [AgentDB Setup](#agentdb-setup) below)
-

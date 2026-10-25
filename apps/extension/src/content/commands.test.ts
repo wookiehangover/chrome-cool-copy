@@ -79,6 +79,21 @@ describe("Command Registry", () => {
     });
   });
 
+  describe("archive command", () => {
+    it.each([
+      "https://www.nytimes.com/2026/10/25/technology/personaltech/openai-dots-meta-muse-4-killer-tasks.html",
+      "https://example.com/article%20title?source=newsletter&next=%2Fnews#section",
+      "http://example.com:8080/article",
+    ])("should navigate the current tab using the full URL: %s", async (url) => {
+      const { executeCommand } = await import("./commands.js");
+      window.location.href = url;
+
+      await executeCommand("archive");
+
+      expect(window.location.href).toBe(`https://archive.ph/${url}`);
+    });
+  });
+
   describe("clip-page command", () => {
     it("should send savePageToDatabase action to background script", async () => {
       // Mock successful response
