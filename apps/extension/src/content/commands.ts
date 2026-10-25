@@ -81,6 +81,15 @@ export const commandRegistry: Command[] = [
     action: startMediaPicker,
   },
   {
+    id: "archive",
+    name: "Archive",
+    description: "Open the current page on archive.ph",
+    shortcut: "",
+    action: () => {
+      window.location.href = `https://archive.ph/${window.location.href}`;
+    },
+  },
+  {
     id: "reader-mode",
     name: "Reader mode",
     description: "Toggle distraction-free reading mode",
