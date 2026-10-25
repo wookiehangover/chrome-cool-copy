@@ -13,6 +13,7 @@ import type { StreamMessageType } from "@repo/shared";
 import { z } from "zod";
 import { getDefaultProviderOptions } from "./provider-options";
 import { startStreamingRequest } from "./streaming-request";
+import { getModelCatalog } from "./services/model-catalog";
 import {
   clipsHandlers,
   boostsHandlers,
@@ -56,6 +57,12 @@ import type { HandlerMap } from "./handlers";
  * Combined handler map from all domain-specific handler modules.
  */
 const handlers: HandlerMap = {
+  getModelCatalog: (message, _sender, sendResponse) => {
+    void getModelCatalog(message.refresh === true).then((result) => {
+      sendResponse({ success: true, ...result });
+    });
+    return true;
+  },
   ...clipsHandlers,
   ...boostsHandlers,
   ...aiHandlers,

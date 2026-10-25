@@ -1,4 +1,4 @@
-import { MODELS_BY_PROVIDER } from "@repo/shared";
+import { MODELS_BY_PROVIDER, type AIProviderOptions } from "@repo/shared";
 
 /**
  * Models that require adaptive thinking (thinking.type: "adaptive" + output_config.effort)
@@ -13,8 +13,8 @@ const ADAPTIVE_THINKING_MODELS = [
  * Returns default provider options with the correct thinking configuration
  * based on the model being used.
  */
-export function getDefaultProviderOptions(modelId: string) {
-  const isAdaptive = ADAPTIVE_THINKING_MODELS.some((m) => modelId.includes(m));
+export function getDefaultProviderOptions(modelId: string): AIProviderOptions {
+  const isAdaptive = ADAPTIVE_THINKING_MODELS.includes(modelId);
 
   if (isAdaptive) {
     return {
@@ -24,6 +24,8 @@ export function getDefaultProviderOptions(modelId: string) {
       },
     };
   }
+
+  if (modelId !== "anthropic/claude-sonnet-4.6") return {};
 
   return {
     anthropic: {

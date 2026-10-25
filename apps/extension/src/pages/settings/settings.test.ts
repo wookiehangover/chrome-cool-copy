@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { mockStorage, resetChromeMocks } from "../../test/setup.js";
+import { mockStorage, mockRuntime, resetChromeMocks } from "../../test/setup.js";
+import { SUPPORTED_MODELS, type ModelCatalogResult } from "@repo/shared";
 
 function requireElement<T extends HTMLElement>(id: string, constructor: new () => T): T {
   const element = document.getElementById(id);
@@ -21,6 +22,8 @@ describe("settings page", () => {
       <select id="dbType"><option value="sqlite">SQLite</option><option value="duckdb">DuckDB</option></select>
       <input id="aiGatewayApiKey" />
       <select id="aiGatewayModel"></select>
+      <p id="modelCatalogStatus"></p>
+      <button id="refreshModels" type="button"></button>
       <input id="shareServerHostname" />
       <input id="ttsServerUrl" />
       <input id="clipsServerUrl" />
@@ -37,6 +40,9 @@ describe("settings page", () => {
     for (const input of document.querySelectorAll("input")) input.value = "";
     mockStorage.sync.get.mockResolvedValue({});
     mockStorage.sync.set.mockResolvedValue(undefined);
+    mockRuntime.sendMessage.mockImplementation((_message, callback) => {
+      callback({ models: SUPPORTED_MODELS, source: "fallback" });
+    });
   });
 
   it("ignores malformed storage values and applies safe defaults", async () => {
@@ -88,5 +94,60 @@ describe("settings page", () => {
         },
       }),
     );
+  });
+
+  it("keeps a saved dynamic choice when discovery fails", async () => {
+    mockStorage.sync.get.mockResolvedValue({
+      aiGatewayConfig: { apiKey: "key", model: "new-lab/new-model" },
+    });
+    mockRuntime.sendMessage.mockImplementation((_message, callback) => {
+      callback(undefined);
+    });
+    dispatchDOMContentLoaded();
+    await vi.waitFor(() =>
+      expect(requireElement("modelCatalogStatus", HTMLParagraphElement).textContent).toContain(
+        "Could not load",
+      ),
+    );
+    expect(requireElement("aiGatewayModel", HTMLSelectElement).value).toBe("new-lab/new-model");
+    expect(mockStorage.sync.set).not.toHaveBeenCalled();
+  });
+
+  it("loads and refreshes the background catalog without replacing the selection", async () => {
+    const catalog: ModelCatalogResult = {
+      models: [
+        {
+          id: "new-lab/new-model",
+          displayName: "New model",
+          provider: "New lab",
+          tags: [],
+          recommended: false,
+        },
+      ],
+      source: "live",
+    };
+    mockStorage.sync.get.mockResolvedValue({
+      aiGatewayConfig: { apiKey: "key", model: "new-lab/new-model" },
+    });
+    mockRuntime.sendMessage.mockImplementation((_message, callback) => {
+      callback(catalog);
+    });
+    dispatchDOMContentLoaded();
+    await vi.waitFor(() =>
+      expect(requireElement("modelCatalogStatus", HTMLParagraphElement).textContent).toBe(
+        "Models are up to date.",
+      ),
+    );
+    expect(
+      requireElement("aiGatewayModel", HTMLSelectElement).selectedOptions[0]?.textContent,
+    ).toBe("New model");
+    requireElement("refreshModels", HTMLButtonElement).click();
+    await vi.waitFor(() =>
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        { action: "getModelCatalog", refresh: true },
+        expect.any(Function),
+      ),
+    );
+    expect(requireElement("aiGatewayModel", HTMLSelectElement).value).toBe("new-lab/new-model");
   });
 });

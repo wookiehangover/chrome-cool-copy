@@ -1,74 +1,57 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { DEFAULT_MODEL, sendMessage, migrateModelId } from "@repo/shared";
 import type { ModelId } from "@repo/shared";
+import { loadModelCatalog } from "./useModelCatalog";
 
-/**
- * Hook for managing model selection with chrome.storage.sync
- * Loads initial model from storage and syncs changes back
- */
 export function useModelSelection(messageSender: typeof sendMessage = sendMessage) {
   const [selectedModel, setSelectedModel] = useState<ModelId>(DEFAULT_MODEL);
   const [isLoading, setIsLoading] = useState(true);
+  const selectionVersion = useRef(0);
 
-  // Load model from storage on mount
   useEffect(() => {
+    let active = true;
+    const version = selectionVersion.current;
+    const isCurrent = () => active && selectionVersion.current === version;
     const loadModel = async () => {
       try {
         const result = await new Promise<{ aiGatewayConfig?: { model?: string } }>((resolve) => {
-          chrome.storage.sync.get(["aiGatewayConfig"], (result) => {
-            resolve(result);
-          });
+          chrome.storage.sync.get(["aiGatewayConfig"], resolve);
         });
-
         const model = result.aiGatewayConfig?.model;
-        if (model) {
-          const migratedModel = migrateModelId(model);
+        if (!model || !isCurrent()) return;
+        setSelectedModel(migrateModelId(model));
+        const catalog = await loadModelCatalog(false, messageSender);
+        if (!isCurrent() || catalog.source !== "live") return;
+        const migratedModel = migrateModelId(model, catalog.models);
+        if (migratedModel !== model) {
           setSelectedModel(migratedModel);
-
-          // If model was migrated, save the new one
-          if (migratedModel !== model) {
-            console.log(`[useModelSelection] Migrated model from ${model} to ${migratedModel}`);
-            messageSender({
-              action: "updateAIGatewayConfig",
-              config: { model: migratedModel },
-            }).catch((err) => {
-              console.error("[useModelSelection] Failed to save migrated model:", err);
-            });
-          }
+          await messageSender({
+            action: "updateAIGatewayConfig",
+            config: { model: migratedModel },
+          });
         }
       } catch (error) {
-        console.error("[useModelSelection] Failed to load model from storage:", error);
+        console.error("[useModelSelection] Could not refresh saved model:", error);
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
-
-    loadModel();
+    void loadModel();
+    return () => {
+      active = false;
+    };
   }, [messageSender]);
 
-  // Save model to storage when it changes
   const handleModelChange = useCallback(
     (model: ModelId) => {
+      selectionVersion.current += 1;
       setSelectedModel(model);
-
-      // Save to chrome.storage.sync
-      messageSender({
-        action: "updateAIGatewayConfig",
-        config: { model },
-      })
-        .then(() => {
-          console.log("[useModelSelection] Model saved successfully:", model);
-        })
-        .catch((err) => {
-          console.error("[useModelSelection] Failed to save model:", err);
-        });
+      void messageSender({ action: "updateAIGatewayConfig", config: { model } }).catch((error) => {
+        console.error("[useModelSelection] Failed to save model:", error);
+      });
     },
     [messageSender],
   );
 
-  return {
-    selectedModel,
-    setSelectedModel: handleModelChange,
-    isLoading,
-  };
+  return { selectedModel, setSelectedModel: handleModelChange, isLoading };
 }

@@ -1,4 +1,5 @@
-import { DEFAULT_MODEL, SUPPORTED_MODELS, type ModelId } from "./models.js";
+import { DEFAULT_MODEL, type ModelId, type ModelDefinition } from "./models.js";
+import { isGatewayModelId } from "./model-catalog.js";
 
 // Migration map for old model IDs to new ones
 export const MODEL_MIGRATION_MAP = {
@@ -37,19 +38,13 @@ export const MODEL_MIGRATION_MAP = {
 /**
  * Migrate old model ID to new one if needed
  */
-export function migrateModelId(modelId: string): ModelId {
+export function migrateModelId(modelId: string, catalog?: ModelDefinition[]): ModelId {
+  if (!isGatewayModelId(modelId)) return DEFAULT_MODEL;
+  if (!catalog || catalog.some((model) => model.id === modelId)) return modelId;
   // Check if model needs migration
   const migratedModel = Object.entries(MODEL_MIGRATION_MAP).find(
     ([legacyModel]) => legacyModel === modelId,
   )?.[1];
-  if (migratedModel) return migratedModel;
-
-  // Check if model is currently supported
-  const isSupported = SUPPORTED_MODELS.some((m) => m.id === modelId);
-  if (isSupported) {
-    return SUPPORTED_MODELS.find((model) => model.id === modelId)?.id ?? DEFAULT_MODEL;
-  }
-
-  // Default to the default model if unknown
-  return DEFAULT_MODEL;
+  if (migratedModel && catalog.some((model) => model.id === migratedModel)) return migratedModel;
+  return modelId;
 }

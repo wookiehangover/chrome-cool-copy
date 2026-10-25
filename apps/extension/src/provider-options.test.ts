@@ -19,4 +19,13 @@ describe("default provider options", () => {
       anthropic: { thinking: { type: "enabled", budgetTokens: 10000 } },
     });
   });
+
+  it.each([
+    "openai/gpt-6-astra",
+    "deepseek/new-model",
+    "anthropic/unknown",
+    "anthropic/claude-opus-5-future",
+  ])("leaves provider defaults unchanged for %s", (model) => {
+    expect(getDefaultProviderOptions(model)).toEqual({});
+  });
 });

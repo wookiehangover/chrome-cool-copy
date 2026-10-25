@@ -6,7 +6,10 @@
 import { initializeDatabase, getWebpages } from "../../services/database";
 import {
   DEFAULT_MODEL,
-  MODELS_BY_PROVIDER,
+  SUPPORTED_MODELS,
+  sendMessage,
+  type ModelDefinition,
+  type ModelCatalogResult,
   parseJSONObject,
   type AgentDBConfig,
   type JSONObject,
@@ -104,6 +107,9 @@ const dbTypeSelect = getRequiredElement("dbType", HTMLSelectElement);
 // Vercel AI Gateway form elements
 const aiGatewayApiKeyInput = getRequiredElement("aiGatewayApiKey", HTMLInputElement);
 const aiGatewayModelInput = getRequiredElement("aiGatewayModel", HTMLSelectElement);
+const modelCatalogStatus = getRequiredElement("modelCatalogStatus", HTMLParagraphElement);
+const refreshModelsButton = getRequiredElement("refreshModels", HTMLButtonElement);
+let currentModels = SUPPORTED_MODELS;
 
 // Share Server form elements
 const shareServerHostnameInput = getRequiredElement("shareServerHostname", HTMLInputElement);
@@ -121,13 +127,17 @@ const backToPopup = getRequiredElement("backToPopup", HTMLAnchorElement);
 const statusMessage = getRequiredElement("statusMessage", HTMLDivElement);
 
 // Load existing settings on page load
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   populateModelOptions();
-  loadSettings();
+  await loadSettings();
+  await loadModelCatalog();
 });
 
 // Event listeners
 form.addEventListener("submit", saveSettings);
+refreshModelsButton.addEventListener("click", () => {
+  void loadModelCatalog(true);
+});
 testConnectionBtn.addEventListener("click", testConnection);
 backToPopup.addEventListener("click", (e: Event): void => {
   e.preventDefault();
@@ -137,7 +147,7 @@ backToPopup.addEventListener("click", (e: Event): void => {
 /**
  * Populate the model select element with options grouped by provider
  */
-function populateModelOptions(): void {
+function populateModelOptions(selected = aiGatewayModelInput.value || DEFAULT_MODEL): void {
   // Clear existing options
   aiGatewayModelInput.innerHTML = "";
 
@@ -149,7 +159,14 @@ function populateModelOptions(): void {
   aiGatewayModelInput.appendChild(placeholderOption);
 
   // Group models by provider and add optgroups
-  for (const [provider, models] of Object.entries(MODELS_BY_PROVIDER)) {
+  const groups = new Map<string, ModelDefinition[]>();
+  for (const model of currentModels) {
+    const creator = model.creator || model.provider;
+    const group = groups.get(creator) ?? [];
+    group.push(model);
+    groups.set(creator, group);
+  }
+  for (const [provider, models] of groups) {
     const optgroup = document.createElement("optgroup");
     optgroup.label = provider;
 
@@ -161,6 +178,33 @@ function populateModelOptions(): void {
     }
 
     aiGatewayModelInput.appendChild(optgroup);
+  }
+  if (!currentModels.some((model) => model.id === selected)) {
+    aiGatewayModelInput.append(new Option(`${selected} (saved; not in current catalog)`, selected));
+  }
+  aiGatewayModelInput.value = selected;
+}
+
+async function loadModelCatalog(refresh = false): Promise<void> {
+  refreshModelsButton.disabled = true;
+  modelCatalogStatus.textContent = "Loading available models…";
+  try {
+    const catalog = await sendMessage<ModelCatalogResult>({ action: "getModelCatalog", refresh });
+    if (!catalog?.models.length) throw new Error("No catalog returned");
+    currentModels = catalog.models;
+    populateModelOptions();
+    const source =
+      catalog.source === "live"
+        ? "Models are up to date."
+        : catalog.source === "cache"
+          ? "Showing cached models."
+          : "Showing bundled models.";
+    modelCatalogStatus.textContent = catalog.error ? `${source} ${catalog.error}` : source;
+  } catch {
+    modelCatalogStatus.textContent =
+      "Could not load models. Your saved choice is preserved. Retry to refresh.";
+  } finally {
+    refreshModelsButton.disabled = false;
   }
 }
 
@@ -196,7 +240,7 @@ async function loadSettings(): Promise<void> {
     );
     if (aiGatewayConfig) {
       aiGatewayApiKeyInput.value = aiGatewayConfig.apiKey || "";
-      aiGatewayModelInput.value = aiGatewayConfig.model || DEFAULT_MODEL;
+      populateModelOptions(aiGatewayConfig.model || DEFAULT_MODEL);
     } else {
       // Set defaults if no config exists
       aiGatewayModelInput.value = DEFAULT_MODEL;

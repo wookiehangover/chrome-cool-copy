@@ -6,22 +6,12 @@
 /**
  * Unique identifier for a model
  */
-export type ModelId =
-  // Anthropic models
-  | "anthropic/claude-fable-5"
-  | "anthropic/claude-opus-5"
-  // OpenAI models
-  | "openai/gpt-5.6-sol"
-  | "openai/gpt-5.6-terra"
-  | "openai/gpt-5.6-luna"
-  | "openai/gpt-6-astra"
-  // xAI models
-  | "spacexai/grok-4.6";
+export type ModelId = string;
 
 /**
  * AI provider identifier
  */
-export type ModelProvider = "Anthropic" | "OpenAI" | "X.AI";
+export type ModelProvider = string;
 
 /**
  * Model definition with metadata
@@ -30,6 +20,26 @@ export interface ModelDefinition {
   id: ModelId;
   displayName: string;
   provider: ModelProvider;
+  creator?: string;
+  tags?: string[];
+  recommended?: boolean;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  inputPrice?: number;
+  outputPrice?: number;
+  variablePricing?: boolean;
+}
+
+export interface ModelCatalogRequest {
+  action: "getModelCatalog";
+  refresh?: boolean;
+}
+
+export interface ModelCatalogResult {
+  models: ModelDefinition[];
+  source: "live" | "cache" | "fallback";
+  fetchedAt?: number;
+  error?: string;
 }
 
 export const DEFAULT_MODEL: ModelId = "openai/gpt-5.6-sol";

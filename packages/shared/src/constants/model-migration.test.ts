@@ -28,7 +28,7 @@ describe("model migration", () => {
     ["openai/gpt-5.4", "openai/gpt-5.6-terra"],
     ["openai/gpt-5.4-mini", "openai/gpt-5.6-luna"],
   ])("migrates %s directly to %s", (legacy, replacement) => {
-    expect(migrateModelId(legacy)).toBe(replacement);
+    expect(migrateModelId(legacy, SUPPORTED_MODELS)).toBe(replacement);
   });
 
   it("keeps every migration target supported and stable", () => {
@@ -38,10 +38,27 @@ describe("model migration", () => {
     }
   });
 
-  it.each(["acme/legacy-model", "", "toString", "__proto__"])(
+  it.each(["", "toString", "__proto__", "invalid id/model", "provider/../model"])(
     "falls back to the default for unknown ID %s",
     (id) => {
       expect(migrateModelId(id)).toBe(DEFAULT_MODEL);
     },
   );
+
+  it("preserves dynamic IDs while offline or absent from the catalog", () => {
+    expect(migrateModelId("acme/new-chat")).toBe("acme/new-chat");
+    expect(migrateModelId("acme/new-chat", SUPPORTED_MODELS)).toBe("acme/new-chat");
+    expect(migrateModelId("google/gemini-3.5-flash")).toBe("google/gemini-3.5-flash");
+  });
+
+  it("prefers an exact catalog match over an old migration alias", () => {
+    const id = "google/gemini-3.5-flash";
+    expect(
+      migrateModelId(id, [...SUPPORTED_MODELS, { id, displayName: "Gemini", provider: "Google" }]),
+    ).toBe(id);
+  });
+
+  it("does not migrate to an unavailable target", () => {
+    expect(migrateModelId("google/gemini-3.5-flash", [])).toBe("google/gemini-3.5-flash");
+  });
 });
