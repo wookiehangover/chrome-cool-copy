@@ -64,6 +64,9 @@ There are many like it, but this one is mine.
 - **Open Chat**: `Cmd+Shift+A` (macOS) / `Ctrl+Shift+A` (Windows/Linux)
 - Opens an AI-powered chat assistant in the side panel
 - Interact with AI while browsing any webpage
+- Search Gateway models by name or provider, with Recommended and All compatible views, reasoning filters, context limits, and base token prices.
+- The extension refreshes its public model catalog daily and keeps the last good copy for offline use. Use Refresh in the picker or extension settings to retry sooner.
+- Chat models must support text, tools, and the installed AI SDK. Batch-only and incompatible model types are excluded. Gateway account restrictions and provider availability can still prevent a request.
 
 ### Read Aloud
 - **Read Aloud**: Access via Command Palette

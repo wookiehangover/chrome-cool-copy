@@ -5,3 +5,4 @@
 
 export * from "./models.js";
 export * from "./model-migration.js";
+export * from "./model-catalog.js";

@@ -23,6 +23,12 @@ export const mockRuntime = {
 };
 
 export const mockStorage = {
+  onChanged: {
+    addListener:
+      vi.fn<(listener: Parameters<typeof chrome.storage.onChanged.addListener>[0]) => void>(),
+    removeListener:
+      vi.fn<(listener: Parameters<typeof chrome.storage.onChanged.removeListener>[0]) => void>(),
+  },
   sync: {
     get: vi.fn((keys: string[] | string | null, callback: (items: StorageData) => void) => {
       if (!keys) {
