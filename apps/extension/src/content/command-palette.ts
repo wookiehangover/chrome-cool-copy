@@ -1,29 +1,29 @@
 /**
- * Command Palette UI Component
- * Provides a searchable overlay for accessing extension commands
+ * Command Palette Web Component
+ * Provides an isolated Shadow DOM overlay for searching and executing extension commands
  */
 
 import type { Command } from "./commands.js";
 import { showToast } from "./toast.js";
+import { defineCustomElement, isolateKeyboardEvents, mountOverlayHost } from "./web-component.js";
 import styles from "./command-palette.css?raw";
 
-let commandPaletteOpen = false;
-let selectedCommandIndex = 0;
-let filteredCommands: Command[] = [];
-let allCommands: Command[] = [];
-let styleInjected = false;
-let currentSearchQuery = "";
+export const COMMAND_PALETTE_TAG = "cool-copy-command-palette";
 
-// Storage key for command usage timestamps
 const COMMAND_USAGE_TIMESTAMPS_KEY = "command_usage_timestamps";
 
 interface CommandUsageTimestamps {
   [commandId: string]: number;
 }
 
-/**
- * Load command usage timestamps from storage
- */
+let allCommands: Command[] = [];
+let activeHost: HTMLElement | null = null;
+let activeController: CommandPaletteController | null = null;
+let isOpening = false;
+
+const paletteControllers = new WeakMap<HTMLElement, CommandPaletteController>();
+const paletteShadows = new WeakMap<HTMLElement, ShadowRoot>();
+
 async function loadCommandUsageTimestamps(): Promise<Record<string, number>> {
   return new Promise((resolve) => {
     chrome.storage.local.get([COMMAND_USAGE_TIMESTAMPS_KEY], (result) => {
@@ -39,9 +39,6 @@ async function loadCommandUsageTimestamps(): Promise<Record<string, number>> {
   });
 }
 
-/**
- * Save command usage timestamps to storage
- */
 async function saveCommandUsageTimestamps(timestamps: Record<string, number>): Promise<void> {
   return new Promise((resolve) => {
     chrome.storage.local.set({ [COMMAND_USAGE_TIMESTAMPS_KEY]: timestamps }, () => {
@@ -50,32 +47,12 @@ async function saveCommandUsageTimestamps(timestamps: Record<string, number>): P
   });
 }
 
-/**
- * Update the timestamp for a command when it's executed
- */
 async function recordCommandUsage(commandId: string): Promise<void> {
   const timestamps = await loadCommandUsageTimestamps();
   timestamps[commandId] = Date.now();
   await saveCommandUsageTimestamps(timestamps);
 }
 
-/**
- * Inject command palette CSS into the page
- */
-function injectStyles(): void {
-  if (styleInjected) return;
-
-  const style = document.createElement("style");
-  style.id = "command-palette-styles";
-  style.textContent = styles;
-
-  document.head.appendChild(style);
-  styleInjected = true;
-}
-
-/**
- * Simple fuzzy search implementation
- */
 function fuzzyMatch(query: string, text: string): boolean {
   const queryLower = query.toLowerCase();
   const textLower = text.toLowerCase();
@@ -90,13 +67,12 @@ function fuzzyMatch(query: string, text: string): boolean {
   return queryIndex === queryLower.length;
 }
 
-/**
- * Highlight matching characters in text based on fuzzy match query
- * Returns HTML string with matched characters wrapped in <span class="command-palette-match">
- */
-function highlightMatches(text: string, query: string): string {
+function buildHighlightedLabel(text: string, query: string): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+
   if (!query.trim()) {
-    return text;
+    fragment.appendChild(document.createTextNode(text));
+    return fragment;
   }
 
   const queryLower = query.toLowerCase();
@@ -104,7 +80,6 @@ function highlightMatches(text: string, query: string): string {
   const matchIndices: number[] = [];
   let queryIndex = 0;
 
-  // Find all matching character indices
   for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
     if (textLower[i] === queryLower[queryIndex]) {
       matchIndices.push(i);
@@ -112,62 +87,64 @@ function highlightMatches(text: string, query: string): string {
     }
   }
 
-  // If no matches found, return original text
   if (matchIndices.length === 0) {
-    return text;
+    fragment.appendChild(document.createTextNode(text));
+    return fragment;
   }
 
-  // Build HTML with highlighted matches
-  let result = "";
   const matchSet = new Set(matchIndices);
+  let plainBuffer = "";
+
+  const flushPlain = (): void => {
+    if (plainBuffer) {
+      fragment.appendChild(document.createTextNode(plainBuffer));
+      plainBuffer = "";
+    }
+  };
 
   for (let i = 0; i < text.length; i++) {
     if (matchSet.has(i)) {
-      result += `<span class="command-palette-match">${text[i]}</span>`;
+      flushPlain();
+      const span = document.createElement("span");
+      span.className = "command-palette-match";
+      span.textContent = text[i];
+      fragment.appendChild(span);
     } else {
-      result += text[i];
+      plainBuffer += text[i];
     }
   }
 
-  return result;
+  flushPlain();
+  return fragment;
 }
 
-/**
- * Get commands that are currently visible based on context, sorted by recency
- */
-async function getVisibleCommands(): Promise<Command[]> {
-  const visibleCommands = allCommands.filter((cmd) => !cmd.isVisible || cmd.isVisible());
+async function getVisibleCommands(commands: Command[]): Promise<Command[]> {
+  const visibleCommands = commands.filter((cmd) => !cmd.isVisible || cmd.isVisible());
   const timestamps = await loadCommandUsageTimestamps();
 
-  // Separate used and unused commands
   const usedCommands = visibleCommands.filter((cmd) => timestamps[cmd.id] !== undefined);
   const unusedCommands = visibleCommands.filter((cmd) => timestamps[cmd.id] === undefined);
 
-  // Sort used commands by timestamp (most recent first)
   usedCommands.sort((a, b) => (timestamps[b.id] || 0) - (timestamps[a.id] || 0));
 
-  // Return used commands first, then unused commands in their original order
   return [...usedCommands, ...unusedCommands];
 }
 
-/**
- * Filter commands based on search query
- */
-async function filterCommands(query: string): Promise<Command[]> {
-  const visibleCommands = await getVisibleCommands();
+async function filterCommands(commands: Command[], query: string): Promise<Command[]> {
+  const visibleCommands = await getVisibleCommands(commands);
 
   if (!query.trim()) {
     return visibleCommands;
   }
 
-  const results = [];
+  const results: Command[] = [];
 
-  const extactMatch = visibleCommands.find((cmd) =>
+  const exactMatch = visibleCommands.find((cmd) =>
     cmd.name.toLowerCase().includes(query.toLowerCase()),
   );
 
-  if (extactMatch) {
-    results.push(extactMatch);
+  if (exactMatch) {
+    results.push(exactMatch);
   }
 
   const fuzzyMatches = visibleCommands.filter((cmd) => fuzzyMatch(query, cmd.name));
@@ -179,65 +156,271 @@ async function filterCommands(query: string): Promise<Command[]> {
   return [...new Set([...results, ...fuzzyMatches, ...descriptionMatches])];
 }
 
-/**
- * Render the command palette UI
- */
-function renderCommandPalette(): void {
-  const dialog = document.getElementById("command-palette-dialog");
-  if (!dialog) return;
+class CommandPaletteController {
+  readonly host: HTMLElement;
+  readonly shadow: ShadowRoot;
+  private readonly dialog: HTMLDialogElement;
+  private readonly searchInput: HTMLInputElement;
+  private readonly commandList: HTMLDivElement;
 
-  const commandList = dialog.querySelector("#command-palette-list");
-  if (!(commandList instanceof HTMLElement)) return;
+  private abortController: AbortController | null = null;
+  private commands: Command[] = [];
+  private filteredCommands: Command[] = [];
+  private selectedIndex = 0;
+  private searchQuery = "";
+  private filterRevision = 0;
+  private openState = false;
+  private previouslyFocused: HTMLElement | null = null;
+  private onDismiss: (() => void) | null = null;
 
-  // Clear and rebuild command list
-  commandList.innerHTML = "";
+  constructor(host: HTMLElement) {
+    this.host = host;
+    this.shadow = host.attachShadow({ mode: "closed" });
+    paletteShadows.set(host, this.shadow);
 
-  filteredCommands.forEach((cmd, index) => {
-    const item = document.createElement("div");
-    item.className = `command-palette-item ${index === selectedCommandIndex ? "selected" : ""}`;
-    item.dataset.index = String(index);
+    const styleEl = document.createElement("style");
+    styleEl.textContent = styles;
 
-    const nameEl = document.createElement("div");
-    nameEl.className = "command-palette-item-name";
-    nameEl.innerHTML = highlightMatches(cmd.name, currentSearchQuery);
+    this.dialog = document.createElement("dialog");
+    this.dialog.className = "command-palette-dialog";
+    this.dialog.setAttribute("aria-label", "Command palette");
 
-    const shortcutEl = document.createElement("div");
-    shortcutEl.className = "command-palette-item-shortcut";
-    shortcutEl.textContent = cmd.shortcut || "";
+    this.searchInput = document.createElement("input");
+    this.searchInput.type = "text";
+    this.searchInput.className = "command-palette-search";
+    this.searchInput.placeholder = "Search commands...";
+    this.searchInput.autocomplete = "off";
+    this.searchInput.spellcheck = false;
+    this.searchInput.setAttribute("aria-label", "Search commands");
+    this.searchInput.setAttribute("role", "combobox");
+    this.searchInput.setAttribute("aria-expanded", "true");
+    this.searchInput.setAttribute("aria-autocomplete", "list");
+    this.searchInput.setAttribute("aria-controls", "command-palette-list");
 
-    item.appendChild(nameEl);
-    item.appendChild(shortcutEl);
+    this.commandList = document.createElement("div");
+    this.commandList.id = "command-palette-list";
+    this.commandList.className = "command-palette-list";
+    this.commandList.setAttribute("role", "listbox");
 
-    item.addEventListener("click", () => {
-      selectedCommandIndex = index;
-      executeCommand();
-    });
+    this.dialog.append(this.searchInput, this.commandList);
+    this.shadow.append(styleEl, this.dialog);
+  }
 
-    item.addEventListener("mouseenter", () => {
-      if (selectedCommandIndex !== index) {
-        // Update selection without full re-render
-        const previousSelected = commandList.querySelector(".command-palette-item.selected");
-        if (previousSelected) {
-          previousSelected.classList.remove("selected");
+  get isOpen(): boolean {
+    return this.openState;
+  }
+
+  connect(): void {
+    if (this.abortController) return;
+    this.abortController = new AbortController();
+    const { signal } = this.abortController;
+
+    isolateKeyboardEvents(this.shadow, signal);
+
+    this.searchInput.addEventListener(
+      "input",
+      () => {
+        void this.handleSearchInput();
+      },
+      { signal },
+    );
+
+    this.searchInput.addEventListener(
+      "keydown",
+      (event) => {
+        this.handleKeydown(event);
+      },
+      { signal },
+    );
+
+    this.dialog.addEventListener(
+      "click",
+      (event) => {
+        if (event.target === this.dialog) {
+          this.dismiss(true);
         }
-        item.classList.add("selected");
-        selectedCommandIndex = index;
+      },
+      { signal },
+    );
+
+    this.dialog.addEventListener(
+      "cancel",
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this.dismiss(true);
+      },
+      { signal },
+    );
+  }
+
+  disconnect(): void {
+    this.abortController?.abort();
+    this.abortController = null;
+    this.openState = false;
+    if (this.dialog.open) {
+      this.dialog.close();
+    }
+  }
+
+  async open(commands: Command[], onDismiss: () => void): Promise<void> {
+    this.commands = commands;
+    this.onDismiss = onDismiss;
+    this.searchQuery = "";
+    this.selectedIndex = 0;
+    this.searchInput.value = "";
+    this.previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const revision = ++this.filterRevision;
+    this.filteredCommands = await getVisibleCommands(this.commands);
+    if (revision !== this.filterRevision || !this.host.isConnected) {
+      return;
+    }
+
+    this.renderList();
+    this.openState = true;
+    this.dialog.showModal();
+    this.searchInput.focus();
+  }
+
+  close(restoreFocus = false): void {
+    const wasOpen = this.openState;
+    this.openState = false;
+    this.filterRevision += 1;
+
+    if (this.dialog.open) {
+      this.dialog.close();
+    }
+
+    const focusTarget = this.previouslyFocused;
+    this.previouslyFocused = null;
+
+    if (wasOpen && restoreFocus && focusTarget && focusTarget.isConnected) {
+      focusTarget.focus();
+    }
+  }
+
+  private dismiss(restoreFocus: boolean): void {
+    this.close(restoreFocus);
+    const callback = this.onDismiss;
+    this.onDismiss = null;
+    callback?.();
+  }
+
+  private async handleSearchInput(): Promise<void> {
+    const query = this.searchInput.value;
+    this.searchQuery = query;
+    const revision = ++this.filterRevision;
+    const matches = await filterCommands(this.commands, query);
+
+    if (revision !== this.filterRevision || !this.openState) {
+      return;
+    }
+
+    this.filteredCommands = matches;
+    this.selectedIndex = 0;
+    this.renderList();
+  }
+
+  private handleKeydown(event: KeyboardEvent): void {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (this.filteredCommands.length === 0) return;
+      this.selectedIndex = Math.min(this.selectedIndex + 1, this.filteredCommands.length - 1);
+      this.updateSelection();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      if (this.filteredCommands.length === 0) return;
+      this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+      this.updateSelection();
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      void this.executeSelected();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      this.dismiss(true);
+    }
+  }
+
+  private updateSelection(): void {
+    const items = this.commandList.querySelectorAll(".command-palette-item");
+    items.forEach((item, index) => {
+      const isSelected = index === this.selectedIndex;
+      item.classList.toggle("selected", isSelected);
+      item.setAttribute("aria-selected", String(isSelected));
+      if (isSelected && item instanceof HTMLElement) {
+        this.searchInput.setAttribute("aria-activedescendant", item.id);
+        item.scrollIntoView?.({ block: "nearest" });
       }
     });
+  }
 
-    commandList.appendChild(item);
-  });
-}
+  private renderList(): void {
+    this.commandList.textContent = "";
 
-/**
- * Execute the selected command
- */
-async function executeCommand(): Promise<void> {
-  if (selectedCommandIndex >= 0 && selectedCommandIndex < filteredCommands.length) {
-    const command = filteredCommands[selectedCommandIndex];
-    closeCommandPalette();
+    if (this.filteredCommands.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "command-palette-empty";
+      empty.textContent = "No matching commands";
+      this.commandList.appendChild(empty);
+      this.searchInput.removeAttribute("aria-activedescendant");
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    this.filteredCommands.forEach((cmd, index) => {
+      const isSelected = index === this.selectedIndex;
+      const item = document.createElement("div");
+      item.id = `command-palette-option-${index}`;
+      item.className = isSelected ? "command-palette-item selected" : "command-palette-item";
+      item.dataset.index = String(index);
+      item.setAttribute("role", "option");
+      item.setAttribute("aria-selected", String(isSelected));
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "command-palette-item-name";
+      nameEl.appendChild(buildHighlightedLabel(cmd.name, this.searchQuery));
+
+      const shortcutEl = document.createElement("div");
+      shortcutEl.className = "command-palette-item-shortcut";
+      shortcutEl.textContent = cmd.shortcut || "";
+
+      item.append(nameEl, shortcutEl);
+
+      item.addEventListener("click", () => {
+        this.selectedIndex = index;
+        void this.executeSelected();
+      });
+
+      item.addEventListener("mouseenter", () => {
+        if (this.selectedIndex !== index) {
+          this.selectedIndex = index;
+          this.updateSelection();
+        }
+      });
+
+      fragment.appendChild(item);
+    });
+
+    this.commandList.appendChild(fragment);
+    this.searchInput.setAttribute(
+      "aria-activedescendant",
+      `command-palette-option-${this.selectedIndex}`,
+    );
+  }
+
+  private async executeSelected(): Promise<void> {
+    if (this.selectedIndex < 0 || this.selectedIndex >= this.filteredCommands.length) {
+      return;
+    }
+
+    const command = this.filteredCommands[this.selectedIndex];
+    this.dismiss(false);
+
     try {
-      // Record command usage before executing
       await recordCommandUsage(command.id);
       await command.action();
     } catch (error) {
@@ -248,106 +431,101 @@ async function executeCommand(): Promise<void> {
   }
 }
 
-/**
- * Open the command palette
- */
-export async function openCommandPalette(): Promise<void> {
-  if (commandPaletteOpen) return;
+export class CoolCopyCommandPaletteElement extends HTMLElement {
+  static readonly tagName = COMMAND_PALETTE_TAG;
+  private readonly controller: CommandPaletteController;
 
-  commandPaletteOpen = true;
-  selectedCommandIndex = 0;
-
-  // Inject styles if not already done
-  injectStyles();
-
-  // Create dialog if it doesn't exist
-  const existingDialog = document.getElementById("command-palette-dialog");
-  let dialog: HTMLDialogElement;
-  if (existingDialog instanceof HTMLDialogElement) {
-    dialog = existingDialog;
-  } else {
-    existingDialog?.remove();
-    dialog = document.createElement("dialog");
-    dialog.id = "command-palette-dialog";
-    document.body.appendChild(dialog);
+  constructor() {
+    super();
+    this.controller = new CommandPaletteController(this);
+    paletteControllers.set(this, this.controller);
   }
 
-  dialog.innerHTML = `
-    <input
-      id="command-palette-search"
-      type="text"
-      class="command-palette-search"
-      placeholder="Search commands..."
-      autocomplete="off"
-    />
-    <div id="command-palette-list" class="command-palette-list"></div>
-  `;
-
-  const searchInput = dialog.querySelector("#command-palette-search");
-  if (!(searchInput instanceof HTMLInputElement)) {
-    dialog.remove();
-    commandPaletteOpen = false;
-    throw new Error("Command palette search input was not created");
+  connectedCallback(): void {
+    this.controller.connect();
   }
 
-  // Handle search input
-  searchInput.addEventListener("input", async (e) => {
-    if (!(e.currentTarget instanceof HTMLInputElement)) return;
-    const query = e.currentTarget.value;
-    currentSearchQuery = query;
-    filteredCommands = await filterCommands(query);
-    selectedCommandIndex = 0;
-    renderCommandPalette();
-  });
+  disconnectedCallback(): void {
+    this.controller.disconnect();
+  }
 
-  // Handle keyboard navigation (arrow keys and enter only, escape handled by dialog)
-  searchInput.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      selectedCommandIndex = Math.min(selectedCommandIndex + 1, filteredCommands.length - 1);
-      renderCommandPalette();
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      selectedCommandIndex = Math.max(selectedCommandIndex - 1, 0);
-      renderCommandPalette();
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      executeCommand();
-    }
-  });
+  get isOpen(): boolean {
+    return this.controller.isOpen;
+  }
 
-  // Close on backdrop click
-  dialog.addEventListener("click", (e) => {
-    if (e.target === dialog) {
-      closeCommandPalette();
-    }
-  });
+  close(): void {
+    this.controller.close(true);
+  }
+}
 
-  // Handle cancel event (Escape key)
-  dialog.addEventListener("cancel", (e) => {
-    e.preventDefault();
-    closeCommandPalette();
-  });
+function createCommandPaletteHost() {
+  const nativeCustomElement = defineCustomElement(
+    COMMAND_PALETTE_TAG,
+    CoolCopyCommandPaletteElement,
+  );
+  const host = document.createElement(COMMAND_PALETTE_TAG);
 
-  // Initial render with visible commands only
-  filteredCommands = await getVisibleCommands();
-  renderCommandPalette();
+  let controller = paletteControllers.get(host);
+  if (!controller) {
+    controller = new CommandPaletteController(host);
+    paletteControllers.set(host, controller);
+  }
 
-  // Open as modal and focus search input
-  dialog.showModal();
-  searchInput.focus();
+  return { host, controller, nativeCustomElement };
+}
+
+function cleanupActivePalette(restoreFocus = false): void {
+  const host = activeHost;
+  const controller = activeController;
+  activeHost = null;
+  activeController = null;
+  isOpening = false;
+
+  controller?.close(restoreFocus);
+  controller?.disconnect();
+  host?.remove();
+}
+
+export function isCommandPaletteOpen(): boolean {
+  return isOpening || Boolean(activeController?.isOpen);
 }
 
 /**
- * Close the command palette
+ * Open the command palette web component
+ */
+export async function openCommandPalette(): Promise<void> {
+  if (isCommandPaletteOpen()) return;
+
+  isOpening = true;
+
+  try {
+    const { host, controller, nativeCustomElement } = createCommandPaletteHost();
+    activeHost = host;
+    activeController = controller;
+
+    mountOverlayHost(host);
+    if (!nativeCustomElement) {
+      controller.connect();
+    }
+
+    await controller.open(allCommands, () => {
+      if (activeHost === host) {
+        cleanupActivePalette(false);
+      }
+    });
+  } catch (error) {
+    cleanupActivePalette(false);
+    throw error;
+  } finally {
+    isOpening = false;
+  }
+}
+
+/**
+ * Close the command palette web component
  */
 export function closeCommandPalette(): void {
-  commandPaletteOpen = false;
-  const dialog = document.getElementById("command-palette-dialog");
-  if (dialog instanceof HTMLDialogElement) {
-    dialog.close();
-    dialog.remove();
-  }
+  cleanupActivePalette(true);
 }
 
 /**
@@ -355,4 +533,12 @@ export function closeCommandPalette(): void {
  */
 export function registerCommands(commands: Command[]): void {
   allCommands = commands;
+}
+
+/**
+ * Internal helper for test suites to inspect the closed shadow root without
+ * exposing it on the DOM host element.
+ */
+export function getCommandPaletteShadowRoot(host: HTMLElement): ShadowRoot | undefined {
+  return paletteShadows.get(host);
 }
